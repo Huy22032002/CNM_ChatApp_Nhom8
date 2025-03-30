@@ -23,4 +23,11 @@ async function connectDB() {
   }
 }
 
+async function syncDB() {
+  await connectDB();
+  await sequelize.sync({ alter: true });
+  console.log("Syn DB");
+}
+syncDB();
+
 module.exports = { sequelize, connectDB };
