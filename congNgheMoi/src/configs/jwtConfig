@@ -1,0 +1,58 @@
+const dotenv = require('dotenv');
+
+// Load biến môi trường từ .env (nếu chưa được load)
+dotenv.config();
+
+// Kiểm tra biến môi trường và cảnh báo nếu thiếu
+if (!process.env.JWT_ACCESS_SECRET_KEY || !process.env.JWT_REFRESH_SECRET_KEY) {
+    throw new Error("Missing JWT secret keys in environment variables.");
+}
+
+// const jwtConfig = Object.freeze({
+//     accessToken: {
+//         secret: process.env.JWT_ACCESS_SECRET_KEY, 
+//         expiresIn: process.env.JWT_ACCESS_EXPIRES_IN,
+//         algorithm: 'HS256', 
+//     },
+//     refreshToken: {
+//         secret: process.env.JWT_REFRESH_SECRET_KEY, 
+//         expiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
+//         algorithm: 'HS256', 
+//     },
+// });
+import jwt from 'jsonwebtoken'
+
+export const generateToken = (user) => {
+  const accessToken = jwt.sign(
+    {
+      id: user.id,
+      username: user.username,
+      phone: user.phone,
+      password: user.pass_hash,
+    },
+    process.env.JWT_ACCESS_SECRET_KEY,
+    {
+      expiresIn: process.env.JWT_ACCESS_EXPIRES_IN,
+    }
+  );
+
+  const refreshToken = jwt.sign(
+    {
+      id: user.id,
+      username: user.username,
+      phone: user.phone,
+      password: user.pass_hash,
+    },
+    process.env.JWT_REFRESH_SECRET_KEY,
+    {
+      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
+    }
+  );
+    console.log({ accessToken, refreshToken });
+  return {
+    accessToken,
+    refreshToken,
+  };
+};
+
+// module.exports = jwtConfig;

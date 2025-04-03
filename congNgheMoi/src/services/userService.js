@@ -18,6 +18,38 @@ async function getAllUSer() {
   }
 }
 
+<<<<<<< Updated upstream
+=======
+async function updateUser(id, user_data) {
+  try {
+    const [updated] = await User.update(user_data, {
+      where: { id },
+    });
+    if (updated === 0) {
+      throw new Error("fail to update user in userService");
+    }
+    return await User.findByPk(id);
+  } catch (error) {
+    console.log(`Error update user service ${error}`);
+  }
+}
+
+async function findUser(id) {
+  try {
+    const user = await User.findByPk(id, {
+      include: [{ model: UserDetail }],
+    });
+    if (!user) {
+      throw new Error("User not found in userService");
+    }
+    return user;
+  } catch (error) {
+    console.log(`Error find user service ${error}`);
+  }
+}
+
+module.exports = { createUser, updateUser, getAllUSer , findUser };
+>>>>>>> Stashed changes
 async function checkPass(password, email) {
   try {
     const user = await User.findOne({ where: { email } });
