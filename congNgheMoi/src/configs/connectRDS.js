@@ -8,8 +8,12 @@ const sequelize = new Sequelize(
   {
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
-    dialect: "mysql",
-    logging: false,
+    dialect: process.env.DB_DIALECT,
+    define: {
+      timestamps: true,
+      underscored: true,
+    },
+    logging: true,
   }
 );
 
@@ -25,8 +29,12 @@ async function connectDB() {
 
 async function syncDB() {
   await connectDB();
-  await sequelize.sync({ alter: true });
-  console.log("Syn DB");
+
+  await sequelize.sync({
+    //  alter: true // for dev
+    // force: false, // for prod
+  });
+  // console.log("Syn DB");
 }
 syncDB();
 
