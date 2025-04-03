@@ -18,8 +18,6 @@ async function getAllUSer() {
   }
 }
 
-<<<<<<< Updated upstream
-=======
 async function updateUser(id, user_data) {
   try {
     const [updated] = await User.update(user_data, {
@@ -49,7 +47,7 @@ async function findUser(id) {
 }
 
 module.exports = { createUser, updateUser, getAllUSer , findUser };
->>>>>>> Stashed changes
+
 async function checkPass(password, email) {
   try {
     const user = await User.findOne({ where: { email } });
