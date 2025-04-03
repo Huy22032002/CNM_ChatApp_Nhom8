@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/userModel'); 
 const router = express.Router();
 const userService = require('../services/userService'); 
+import { generateToken, verifyAndRefreshToken } from "../configs/jwtConfig.js";
 
 
 const register = async (req, res) => {
@@ -24,39 +25,47 @@ const register = async (req, res) => {
         await newUser.save();
         
         res.status(201).json({ message: 'User registered successfully' });
+        return res.redirect('/login'); 
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
     }
 };
 
-// Login a user
-const login = async (req, res) => {
-    try {
-        const { username, password } = req.body;
+export const login = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const user = await userService.authenticate(username, password);
 
-        // Find the user
-        const user = await User.findOne({ username });
-        if (!user) {
-            return res.status(400).json({ message: 'Invalid credentials' });
-        }
-
-        // Compare passwords
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Invalid credentials' });
-        }
-
-        // Generate a token
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-        res.status(200).json({ message: 'Login successful', token });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+    if (!user) {
+      return res.status(401).json({ message: "Tài khoản hoặc mật khẩu không đúng" });
     }
+
+    const tokens = generateToken(user);
+    res.json(tokens);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi đăng nhập" });
+  }
 };
 
-// Export the controller functions
+export const refreshToken = async (req, res) => {
+  const { accessToken, refreshToken } = req.body;
+
+  const tokenStatus = await verifyAndRefreshToken(accessToken, refreshToken);
+
+  if (!tokenStatus.valid) {
+    return res.status(401).json({ message: "Phiên đăng nhập hết hạn, vui lòng đăng nhập lại" });
+  }
+
+  res.json({ accessToken: tokenStatus.accessToken, refreshToken: tokenStatus.refreshToken });
+};
+
+const logout = (req, res) => {
+    res.clearCookie('token');
+    res.status(200).json({ message: 'Logged out successfully' });  
+    return res.redirect('/login'); 
+}
 module.exports = {
     register,
     login,
+    logout
 };
