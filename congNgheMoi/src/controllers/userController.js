@@ -7,12 +7,8 @@ const createUser = async (req, res) => {
     const newUser = await userService.createUser(
       user.username,
       user.email,
-<<<<<<< HEAD
       user.pass_hash,
       user.phone
-=======
-      user.pass_hash
->>>>>>> HoangBranch
     );
 
     res.status(201).json({
