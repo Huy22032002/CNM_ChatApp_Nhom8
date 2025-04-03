@@ -1,24 +1,53 @@
-const dotenv = require('dotenv');
 
-// Load biến môi trường từ .env (nếu chưa được load)
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+
 dotenv.config();
 
-// Kiểm tra biến môi trường và cảnh báo nếu thiếu
-if (!process.env.JWT_ACCESS_SECRET_KEY || !process.env.JWT_REFRESH_SECRET_KEY) {
-    throw new Error("Missing JWT secret keys in environment variables.");
-}
+// Tạo accessToken và refreshToken
+export const generateToken = (user) => {
+  const payload = { id: user.id, username: user.username, phone: user.phone };
 
-const jwtConfig = Object.freeze({
-    accessToken: {
-        secret: process.env.JWT_ACCESS_SECRET_KEY, 
-        expiresIn: process.env.JWT_ACCESS_EXPIRES_IN,
-        algorithm: 'HS256', 
-    },
-    refreshToken: {
-        secret: process.env.JWT_REFRESH_SECRET_KEY, 
-        expiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
-        algorithm: 'HS256', 
-    },
-});
+  const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET_KEY, {
+    expiresIn: process.env.JWT_ACCESS_EXPIRES_IN,
+  });
 
-module.exports = jwtConfig;
+  const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET_KEY, {
+    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
+  });
+
+  return { accessToken, refreshToken };
+};
+
+// Kiểm tra accessToken và refreshToken
+export const verifyAndRefreshToken = async (accessToken, refreshToken) => {
+  try {
+    // Kiểm tra accessToken còn hợp lệ không
+    const decodedAccessToken = jwt.verify(accessToken, process.env.JWT_ACCESS_SECRET_KEY);
+    return { valid: true, accessToken, refreshToken }; // Token vẫn còn hạn
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      console.log("AccessToken hết hạn, kiểm tra RefreshToken...");
+      try {
+        // Kiểm tra refreshToken
+        const decodedRefreshToken = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET_KEY);
+        console.log("RefreshToken hợp lệ, tạo accessToken mới...");
+
+        // Tạo accessToken mới
+        const newAccessToken = jwt.sign(
+          { id: decodedRefreshToken.id, username: decodedRefreshToken.username, phone: decodedRefreshToken.phone },
+          process.env.JWT_ACCESS_SECRET_KEY,
+          { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN }
+        );
+
+        return { valid: true, accessToken: newAccessToken, refreshToken };
+      } catch (refreshError) {
+        console.log("RefreshToken hết hạn, yêu cầu đăng nhập lại!");
+        return { valid: false }; // Cả accessToken & refreshToken đều hết hạn
+      }
+    } else {
+      console.log("AccessToken không hợp lệ!");
+      return { valid: false }; // Token sai hoặc lỗi khác
+    }
+  }
+};
