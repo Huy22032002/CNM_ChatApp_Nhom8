@@ -12,6 +12,7 @@ const Friend = sequelize.define("Friend", {
   },
   created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
 });
+
 //set composite primary key
 Friend.removeAttribute("id");
 Friend.belongsTo(User, { foreignKey: "user_id" });

@@ -7,7 +7,12 @@ const createUser = async (req, res) => {
     const newUser = await userService.createUser(
       user.username,
       user.email,
+<<<<<<< HEAD
+      user.pass_hash,
+      user.phone
+=======
       user.pass_hash
+>>>>>>> HoangBranch
     );
 
     res.status(201).json({
@@ -30,4 +35,22 @@ const getAllUser = async (req, res) => {
   }
 };
 
-module.exports = { createUser, getAllUser };
+const updateUser = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    console.log(id);
+
+    const data = req.body;
+    console.log(data);
+
+    const updateUser = await userService.updateUser(id, data);
+    res.status(200).json(updateUser);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "error updating user controller", error: err.message });
+  }
+};
+
+module.exports = { createUser, getAllUser, updateUser };
+
