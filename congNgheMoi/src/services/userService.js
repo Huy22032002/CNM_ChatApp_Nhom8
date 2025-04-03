@@ -1,9 +1,8 @@
 const User = require("../models/userModel");
-const UserDetail = require("../models/userDetail");
 
-async function createUser(username, email, pass_hash) {
+async function createUser(username, email, pass_hash, phone) {
   try {
-    const user = await User.create({ username, email, pass_hash });
+    const user = await User.create({ username, email, pass_hash, phone });
     return user;
   } catch (error) {
     throw new Error("Lỗi khi tạo user: " + error.message);
@@ -18,24 +17,18 @@ async function getAllUSer() {
   }
 }
 
-async function checkPass(password, email) {
+async function updateUser(id, user_data) {
   try {
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
-      console.log("user khong ton tai");
-      return false;
+    const [updated] = await User.update(user_data, {
+      where: { id },
+    });
+    if (updated === 0) {
+      throw new Error("fail to update user in userService");
     }
-
-    const rs = await bcrypt.compare(password, user.pass_hash);
-    if (rs) {
-      console.log("Password trung khop");
-    } else {
-      console.log("Password sai");
-    }
-    return rs;
+    return await User.findByPk(id);
   } catch (error) {
-    console.error(`check pass error: ${error}`);
+    console.log(`Error update user service ${error}`);
   }
 }
 
-module.exports = { createUser, checkPass, getAllUSer };
+module.exports = { createUser, updateUser, getAllUSer };
