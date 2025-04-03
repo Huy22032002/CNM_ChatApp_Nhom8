@@ -1,4 +1,5 @@
 const User = require("../models/userModel");
+
 const UserDetail = require("../models/userDetail");
 
 async function createUser(username, email, pass_hash) {
@@ -32,6 +33,7 @@ async function updateUser(id, user_data) {
   }
 }
 
+
 async function findUser(id) {
   try {
     const user = await User.findByPk(id, {
@@ -47,25 +49,3 @@ async function findUser(id) {
 }
 
 module.exports = { createUser, updateUser, getAllUSer , findUser };
-
-async function checkPass(password, email) {
-  try {
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
-      console.log("user khong ton tai");
-      return false;
-    }
-
-    const rs = await bcrypt.compare(password, user.pass_hash);
-    if (rs) {
-      console.log("Password trung khop");
-    } else {
-      console.log("Password sai");
-    }
-    return rs;
-  } catch (error) {
-    console.error(`check pass error: ${error}`);
-  }
-}
-
-module.exports = { createUser, checkPass, getAllUSer };
