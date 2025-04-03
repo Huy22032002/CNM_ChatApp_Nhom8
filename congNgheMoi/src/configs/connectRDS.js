@@ -29,8 +29,11 @@ async function connectDB() {
 
 async function syncDB() {
   await connectDB();
-  await sequelize.sync({ alter: true });
-  console.log("Syn DB");
+  await sequelize.sync({
+    //  alter: true // for dev
+    // force: false, // for prod
+  });
+  // console.log("Syn DB");
 }
 syncDB();
 

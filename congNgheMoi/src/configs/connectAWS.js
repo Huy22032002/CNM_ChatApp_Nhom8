@@ -8,6 +8,6 @@ AWS.config.update({
 });
 
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
-console.log("Connect to DynamoDB");
+console.log("Connected to DynamoDB");
 
 module.exports = dynamoDB;
