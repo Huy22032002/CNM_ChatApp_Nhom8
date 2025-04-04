@@ -8,8 +8,8 @@ const sequelize = new Sequelize(
   {
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
-    dialect: "mysql",
-    logging: false,
+    dialect: "mariadb",
+    logging: true,
   }
 );
 
@@ -25,7 +25,9 @@ async function connectDB() {
 
 async function syncDB() {
   await connectDB();
-  await sequelize.sync({ alter: true });
+  await sequelize.sync({ 
+    // alter: true 
+  });
   console.log("Syn DB");
 }
 syncDB();
