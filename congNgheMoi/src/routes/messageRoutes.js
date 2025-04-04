@@ -1,12 +1,16 @@
-const express = require("express");
+import express from "express";
+import MessageController from "../controllers/messageController.js";
+
 const router = express.Router();
-const MessageController = require("../controllers/messageController");
-const { authMiddleware } = require("../middlewares/authMiddleware"); 
 
 // Gửi tin nhắn (yêu cầu đăng nhập)
-router.post("/add", authMiddleware, MessageController.createMessage);
+router.post("/add", 
+    // authMiddleware, 
+    MessageController.createMessage);
 
 // Lấy tin nhắn theo `conversationId` (yêu cầu đăng nhập)
-router.get("/:converId", authMiddleware, MessageController.getAllMessageByConversationId);
+router.get("/:converId", 
+    // authMiddleware, 
+    MessageController.getAllMessageByConversationId);
 
-module.exports = router;
+export default router;

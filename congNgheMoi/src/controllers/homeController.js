@@ -1,3 +1,7 @@
-exports.getHome = (req, res) => {
-  res.json({ message: "Welcome to ExpressJS" });
+const getHome = async (req, res) => {
+  res.send("Welcome to the Home Page!");
+};
+
+export default {
+  getHome,
 };
