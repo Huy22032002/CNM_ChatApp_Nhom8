@@ -6,7 +6,7 @@ import authMiddleware from "../middlewares/authMiddleware.js";
 
 // API trang chủ (yêu cầu đăng nhập)
 router.get("/", 
-    // authMiddleware,
+    authMiddleware,
     getHome);
 
 export default router;
