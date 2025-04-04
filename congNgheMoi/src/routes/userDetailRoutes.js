@@ -5,7 +5,7 @@ const { createUserDetail, getAllUserDetail, updateUserDetail } = userDetailContr
 import authMiddleware from "../middlewares/authMiddleware.js"; 
 // Tạo chi tiết người dùng (yêu cầu đăng nhập)
 router.post("/add", 
-    // authMiddleware, 
+    authMiddleware, 
     createUserDetail);
 
 export default router;
