@@ -33,25 +33,19 @@ async function updateUser(id, user_data) {
   }
 }
 
-module.exports = { createUser, updateUser, getAllUSer };
-async function checkPass(password, email) {
-  try {
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
-      console.log("user khong ton tai");
-      return false;
-    }
 
-    const rs = await bcrypt.compare(password, user.pass_hash);
-    if (rs) {
-      console.log("Password trung khop");
-    } else {
-      console.log("Password sai");
+async function findUser(id) {
+  try {
+    const user = await User.findByPk(id, {
+      include: [{ model: UserDetail }],
+    });
+    if (!user) {
+      throw new Error("User not found in userService");
     }
-    return rs;
+    return user;
   } catch (error) {
-    console.error(`check pass error: ${error}`);
+    console.log(`Error find user service ${error}`);
   }
 }
 
-module.exports = { createUser, checkPass, getAllUSer };
+module.exports = { createUser, updateUser, getAllUSer , findUser };
