@@ -1,9 +1,12 @@
-const express = require("express");
-const router = express.Router();
-const homeController = require("../controllers/homeController");
-const { authMiddleware } = require("../middlewares/authMiddleware");
+import { Router } from "express";
+const router = Router();
+import homeController from "../controllers/homeController.js";
+const { getHome } = homeController;
+import authMiddleware from "../middlewares/authMiddleware.js";
 
 // API trang chủ (yêu cầu đăng nhập)
-router.get("/", authMiddleware, homeController.getHome);
+router.get("/", 
+    // authMiddleware,
+    getHome);
 
-module.exports = router;
+export default router;

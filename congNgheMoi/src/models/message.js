@@ -1,5 +1,6 @@
-const dynamoDB = require("../configs/connectDynamo");
-const { v4: uuidv4 } = require("uuid");
+import dynamoDB from "../configs/connectDynamo.js";
+const { put, scan } = dynamoDB;
+import { v4 as uuidv4 } from "uuid";
 
 const TABLE_NAME = "Messages";
 
@@ -18,7 +19,7 @@ const MessageModel = {
       },
     };
     try {
-      await dynamoDB.put(params).promise();
+      await put(params).promise();
       return params.Item;
     } catch (error) {
       throw new Error(`Err add message model ${error.message}`);
@@ -34,7 +35,7 @@ const MessageModel = {
       ScanIndexForward: false,
     };
     try {
-      const result = await dynamoDB.scan(params).promise();
+      const result = await scan(params).promise();
       return result.Items;
     } catch (error) {
       console.log(`error get all message of conver in model: ${error}`);
@@ -42,4 +43,4 @@ const MessageModel = {
   },
 };
 
-module.exports = MessageModel;
+export default MessageModel;

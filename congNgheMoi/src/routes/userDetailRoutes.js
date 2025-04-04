@@ -1,8 +1,11 @@
-const express = require("express");
-const router = express.Router();
-const userDetailController = require("../controllers/userDetailController");
-const { authMiddleware } = require("../middlewares/authMiddleware"); 
+import { Router } from "express";
+const router = Router();
+import userDetailController from "../controllers/userDetailController.js";
+const { createUserDetail, getAllUserDetail, updateUserDetail } = userDetailController;
+import authMiddleware from "../middlewares/authMiddleware.js"; 
 // Tạo chi tiết người dùng (yêu cầu đăng nhập)
-router.post("/add", authMiddleware, userDetailController.createUserDetail);
+router.post("/add", 
+    // authMiddleware, 
+    createUserDetail);
 
-module.exports = router;
+export default router;

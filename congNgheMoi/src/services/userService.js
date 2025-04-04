@@ -1,6 +1,6 @@
-const User = require("../models/userModel");
+import User from "../models/userModel.js";
 
-const UserDetail = require("../models/userDetail");
+import UserDetail from "../models/userDetail.js";
 
 async function createUser(username, email, pass_hash) {
   try {
@@ -48,4 +48,20 @@ async function findUser(id) {
   }
 }
 
-module.exports = { createUser, updateUser, getAllUSer , findUser };
+async function authenticate(username, password) {
+  try {
+    const user = await User.findOne({ where: { username } });
+    if (!user) {
+      throw new Error("User not found in userService");
+    }
+    const isValidPassword = await user.validatePassword(password);
+    if (!isValidPassword) {
+      throw new Error("Invalid password in userService");
+    }
+    return user;
+  } catch (error) {
+    console.log(`Error authenticate user service ${error}`);
+  }
+}
+
+export { createUser, updateUser, getAllUSer, findUser, authenticate };

@@ -1,4 +1,4 @@
-const MessageModel = require("../models/message");
+import MessageModel from "../models/message.js";
 
 const MessageService = {
   async createMessage(message) {
@@ -11,4 +11,4 @@ const MessageService = {
   },
 };
 
-module.exports = MessageService;
+export default MessageService;

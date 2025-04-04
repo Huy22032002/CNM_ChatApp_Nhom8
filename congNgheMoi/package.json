@@ -2,6 +2,7 @@
   "name": "congnghemoi",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "nodemon index.js"
   },
@@ -11,11 +12,11 @@
   "description": "",
   "dependencies": {
     "aws-sdk": "^2.1692.0",
+    "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
     "express": "^4.21.2",
-
     "jsonwebtoken": "^9.0.2",
     "mariadb": "^3.4.1",
     "mysql2": "^3.14.0",
