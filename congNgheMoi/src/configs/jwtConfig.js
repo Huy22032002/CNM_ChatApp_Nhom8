@@ -32,6 +32,19 @@ const generateToken = (user) => {
   return { accessToken, refreshToken };
 };
 
+const verifyAccessToken = async (token) => {
+  try {
+    const decoded = verify(token, process.env.JWT_ACCESS_SECRET_KEY);
+    return { valid: true, decoded };
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      return { valid: false, expired: true };
+    } else {
+      return { valid: false };
+    }
+  }
+}
+
 // Kiểm tra accessToken và refreshToken
 const verifyAndRefreshToken = async (accessToken, refreshToken) => {
   try {
@@ -63,4 +76,4 @@ const verifyAndRefreshToken = async (accessToken, refreshToken) => {
 };
 
 // Export module as CommonJS module
-export { generateToken, verifyAndRefreshToken };
+export { generateToken, verifyAndRefreshToken,verifyAccessToken };
