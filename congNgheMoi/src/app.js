@@ -1,22 +1,28 @@
-const express = require("express");
-const homeRoutes = require("./routes/homeRoutes");
-const userRoutes = require("./routes/userRoutes");
-const userDetailRoutes = require("./routes/userDetailRoutes");
-const conversationRoutes = require("./routes/conversationRoutes");
-const messageRoutes = require("./routes/messageRoutes");
-const authRoutes = require("./routes/authRoutes");
+import express from "express";
+import homeRoutes from "./routes/homeRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import userDetailRoutes from "./routes/userDetailRoutes.js";
+import conversationRoutes from "./routes/conversationRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
+import {authMiddleware,authMiddlewareWithoutRefresh} from "./middlewares/authMiddleware.js";
 
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-//su dung routes
-app.use("/", homeRoutes);
+// Use routes
+app.use("/auth", authRoutes);
+
+// Apply authentication middleware for protected routes
+app.use(authMiddlewareWithoutRefresh,
+    // authMiddleware
+);
+app.use("/api/home", homeRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/userDetails", userDetailRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/messages", messageRoutes);
-app.use("/api/auth", authRoutes);
 
-module.exports = app;
+export default app;
