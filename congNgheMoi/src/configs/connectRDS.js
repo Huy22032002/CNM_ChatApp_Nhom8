@@ -1,5 +1,7 @@
-require("dotenv").config();
-const { Sequelize } = require("sequelize");
+import dotenv from "dotenv";
+import { Sequelize } from "sequelize";
+
+dotenv.config();
 
 const sequelize = new Sequelize(
   process.env.DB_NAME,
@@ -31,11 +33,11 @@ async function syncDB() {
   await connectDB();
 
   await sequelize.sync({
-    //  alter: true // for dev
-    // force: false, // for prod
+    //  alter: true, // for dev
+    // force: true, // for prod
   });
   // console.log("Syn DB");
 }
 syncDB();
 
-module.exports = { sequelize, connectDB };
+export { sequelize, connectDB };

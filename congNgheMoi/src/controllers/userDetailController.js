@@ -1,4 +1,4 @@
-const UserDetailService = require("../services/userDetailService");
+import { createUserDetail as _createUserDetail } from "../services/userDetailService.js";
 
 const createUserDetail = async (req, res) => {
   try {
@@ -10,7 +10,7 @@ const createUserDetail = async (req, res) => {
       avatar_url: req.body.avatar_url,
     };
     //goi service
-    const userDetail = await UserDetailService.createUserDetail(userDetailData);
+    const userDetail = await _createUserDetail(userDetailData);
 
     res.status(200).json({
       message: "create userdetail successfully",
@@ -23,4 +23,4 @@ const createUserDetail = async (req, res) => {
   }
 };
 
-module.exports = { createUserDetail };
+export default { createUserDetail };
