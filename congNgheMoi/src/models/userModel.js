@@ -14,16 +14,16 @@ const User = sequelize.define(
     },
     pass_hash: { type: DataTypes.STRING, allowNull: false },
     email: { type: DataTypes.STRING, allowNull: false, unique: true },
-    phone: { type: DataTypes.STRING, allowNull: false, unique: true },
-  },
-  {
-    hooks: {
-      beforeCreate: async (user) => {
-        const salt = await genSalt(10);
-        user.pass_hash = await hash(user.pass_hash, salt);
-      },
-    },
+    phone: { type: DataTypes.STRING, allowNull: true, unique: true, lenghth: 10 },
   }
+  // ,{
+  //   hooks: {
+  //     beforeCreate: async (user) => {
+  //       const salt = await genSalt(10);
+  //       user.pass_hash = await hash(user.pass_hash, salt);
+  //     },
+  //   },
+  // }
 );
 
 export default User;

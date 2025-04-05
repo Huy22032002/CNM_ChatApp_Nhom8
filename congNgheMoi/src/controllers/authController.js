@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { hash } from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/userModel.js'; 
 const router = Router();
@@ -8,23 +8,25 @@ import { generateToken, verifyAndRefreshToken } from "../configs/jwtConfig.js";
 
 const register = async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { username, password ,email,phone} = req.body;
 
         // Check if user already exists
         const existingUser = await findUser(username);
-        if (existingUser) {
-            return res.status(400).json({ message: 'User already exists' });
-        }
-
-        // Hash the password
-        const hashedPassword = await hash(password, 10);
+        if (existingUser==null) {
+            const hashedPassword = await bcrypt.hash(password,10);
+        console.log(hashedPassword);
 
         // Create a new user
-        const newUser = new User({ username, password: hashedPassword });
+        const newUser = new User({ username, pass_hash: hashedPassword ,email, phone });
         await newUser.save();
         
         res.status(201).json({ message: 'User registered successfully' });
         return res.redirect('/login'); 
+        }else{
+            return res.status(400).json({ message: 'Username already exists' });
+        }
+        // Hash the password
+        
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
     }
