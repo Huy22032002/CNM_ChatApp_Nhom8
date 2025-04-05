@@ -1,10 +1,11 @@
 import User from "../models/userModel.js";
+import bcrypt from "bcryptjs";
 
 import UserDetail from "../models/userDetail.js";
 
-async function createUser(username, email, pass_hash) {
+async function createUser(username, email, pass_hash,phone) {
   try {
-    const user = await User.create({ username, email, pass_hash });
+    const user = await User.create({ username, email, pass_hash,phone });
     return user;
   } catch (error) {
     throw new Error("Lỗi khi tạo user: " + error.message);
@@ -39,10 +40,13 @@ async function findUser(id) {
     const user = await User.findByPk(id, {
       include: [{ model: UserDetail }],
     });
-    if (!user) {
-      throw new Error("User not found in userService");
+    if (user) {
+      return user;
+    }else{
+      console.log("User not found in userService");
+      return null;
     }
-    return user;
+    
   } catch (error) {
     console.log(`Error find user service ${error}`);
   }
@@ -54,7 +58,13 @@ async function authenticate(username, password) {
     if (!user) {
       throw new Error("User not found in userService");
     }
-    const isValidPassword = await user.validatePassword(password);
+    //unhash password with bcryptjs
+    // const hashedPassword = await bcrypt.hash(password, 10);
+    // const unhashedPassword = await bcrypt.(user.pass_hash, 10);
+    // Compare the hashed password with the stored password
+
+    const isValidPassword = await bcrypt.compare(password, user.pass_hash);
+    // const isValidPassword = await bcrypt.compare(hashedPassword, user.pass_hash);;
     if (!isValidPassword) {
       throw new Error("Invalid password in userService");
     }
