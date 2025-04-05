@@ -5,13 +5,10 @@ import userDetailRoutes from "./routes/userDetailRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
-<<<<<<< HEAD
 import authMiddleware from "./middlewares/authMiddleware.js";
 import cors from "cors";
-=======
 import {authMiddleware,authMiddlewareWithoutRefresh} from "./middlewares/authMiddleware.js";
 
->>>>>>> 2b3bc19d3670d35bcf3853f60d223e1c8383b946
 const app = express();
 
 app.use(cors({
