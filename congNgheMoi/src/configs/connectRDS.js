@@ -24,20 +24,25 @@ async function connectDB() {
     await sequelize.authenticate();
     console.log("Connect DB Successfully!");
   } catch (error) {
-    console.error("Error Connect DB", error);
+    console.error("Error Connect DB", error.message);
+    console.error("Stack Trace:", error.stack);
     process.exit(1);
   }
 }
 
 async function syncDB() {
-  await connectDB();
-
-  await sequelize.sync({
-    //  alter: true, // for dev
-    // force: true, // for prod
-  });
-  // console.log("Syn DB");
+  try {
+    await connectDB();
+    await sequelize.sync({
+      // alter: true, // for dev
+      // force: true, // for prod
+    });
+    console.log("Database synchronized successfully!");
+  } catch (error) {
+    console.error("Error synchronizing database:", error);
+    process.exit(1); // Thoát ứng dụng nếu không thể đồng bộ
+  }
 }
 syncDB();
 
-export { sequelize, connectDB };
+export { sequelize, connectDB, syncDB };
