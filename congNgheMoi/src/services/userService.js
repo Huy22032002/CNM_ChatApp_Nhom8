@@ -1,16 +1,16 @@
-const User = require("../models/userModel");
+import User from "../models/userModel.js";
+import bcrypt from "bcryptjs";
 
-const UserDetail = require("../models/userDetail");
+import UserDetail from "../models/userDetail.js";
 
-async function createUser(username, email, pass_hash) {
+async function createUser(username, email, pass_hash, phone) {
   try {
-    const user = await User.create({ username, email, pass_hash });
+    const user = await User.create({ username, email, pass_hash, phone });
     return user;
   } catch (error) {
     throw new Error("Lỗi khi tạo user: " + error.message);
   }
 }
-
 async function getAllUSer() {
   try {
     return await User.findAll();
@@ -18,7 +18,6 @@ async function getAllUSer() {
     throw new Error(`Erre get all users service: ${err}`);
   }
 }
-
 async function updateUser(id, user_data) {
   try {
     const [updated] = await User.update(user_data, {
@@ -30,28 +29,42 @@ async function updateUser(id, user_data) {
     return await User.findByPk(id);
   } catch (error) {
     console.log(`Error update user service ${error}`);
+    throw new Error("err update user");
   }
 }
-
-module.exports = { createUser, updateUser, getAllUSer };
-async function checkPass(password, email) {
+async function findUser(id) {
   try {
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findByPk(id, {
+      include: [{ model: UserDetail }],
+    });
+    if (user) {
+      return user;
+    } else {
+      console.log("User not found in userService");
+      return null;
+    }
+  } catch (error) {
+    console.log(`Error find user service ${error}`);
+    return null;
+  }
+}
+async function authenticate(username, password) {
+  try {
+    const user = await User.findOne({ where: { username } });
     if (!user) {
-      console.log("user khong ton tai");
-      return false;
+      throw new Error("User not found in userService");
     }
 
-    const rs = await bcrypt.compare(password, user.pass_hash);
-    if (rs) {
-      console.log("Password trung khop");
-    } else {
-      console.log("Password sai");
+    const isValidPassword = await bcrypt.compare(password, user.pass_hash);
+    // const isValidPassword = await bcrypt.compare(hashedPassword, user.pass_hash);;
+    if (!isValidPassword) {
+      throw new Error("Invalid password in userService");
     }
-    return rs;
+    return user;
   } catch (error) {
-    console.error(`check pass error: ${error}`);
+    console.log(`Error authenticate user service ${error}`);
+    return null;
   }
 }
 
-module.exports = { createUser, checkPass, getAllUSer };
+export { createUser, updateUser, getAllUSer, findUser, authenticate };

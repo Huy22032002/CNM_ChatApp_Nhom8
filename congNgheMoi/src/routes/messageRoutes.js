@@ -1,8 +1,22 @@
-const express = require("express");
+import express from "express";
+import MessageController from "../controllers/messageController.js";
+import {
+  authMiddleware,
+  authMiddlewareWithoutRefresh,
+} from "../middlewares/authMiddleware.js";
+
 const router = express.Router();
-const MessageController = require("../controllers/messageController");
 
-router.post("/add", MessageController.createMessage);
-router.get("/:converId", MessageController.getAllMessageByConversationId);
+router.post(
+  "/add",
+  authMiddlewareWithoutRefresh,
+  MessageController.createMessage
+);
 
-module.exports = router;
+router.get(
+  "/:converId",
+  authMiddlewareWithoutRefresh,
+  MessageController.getAllMessageByConversationId
+);
+
+export default router;
