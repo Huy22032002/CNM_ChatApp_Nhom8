@@ -1,21 +1,15 @@
-require("dotenv").config();
+import dotenv from "dotenv";
+dotenv.config();
 
-const { connectDB } = require("./src/configs/connectRDS");
+import { connectDB } from "./src/configs/connectRDS.js";
 connectDB();
 
 const PORT = process.env.PORT;
 const cors = require("cors");
 const express = require("express");
 
-const app = require("./src/app");
+import app from "./src/app.js";
 
-app.use(cors());
-app.use(cors({
-  origin: "http://localhost:5173",
-}))
-app.get("/api/data", (req, res) => {
-  res.send("Hello World!");
-});
 app.listen(PORT, (req, res) => {
   console.log(`listen on PORT ${PORT}`);
 });

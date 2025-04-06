@@ -1,4 +1,4 @@
-const UserDetail = require("../models/userDetail");
+import UserDetail from "../models/userDetail.js";
 
 const createUserDetail = async (userDetailData) => {
   try {
@@ -8,4 +8,4 @@ const createUserDetail = async (userDetailData) => {
   }
 };
 
-module.exports = { createUserDetail };
+export { createUserDetail };

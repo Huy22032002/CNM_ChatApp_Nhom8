@@ -1,9 +1,19 @@
-const express = require("express");
-const router = express.Router();
-const userControler = require("../controllers/userController");
+import { Router } from "express";
+const router = Router();
+import userController from "../controllers/userController.js";
+const { createUser, getAllUser, updateUser } = userController;
+import {authMiddleware,authMiddlewareWithoutRefresh} from "../middlewares/authMiddleware.js"; 
+// Tạo người dùng (không cần xác thực)
+router.post("/add", createUser);
 
-router.post("/add", userControler.createUser);
-router.get("/", userControler.getAllUser);
-router.post("/update/:id", userControler.updateUser);
+// Lấy danh sách tất cả người dùng (yêu cầu đăng nhập)
+router.get("/", 
+    authMiddleware, 
+    getAllUser);
 
-module.exports = router;
+// Cập nhật thông tin người dùng (yêu cầu đăng nhập)
+router.post("/update/:id", 
+    authMiddleware, 
+    updateUser);
+
+export default router;
