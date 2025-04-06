@@ -8,25 +8,22 @@ import { generateToken, verifyAndRefreshToken } from "../configs/jwtConfig.js";
 
 const register = async (req, res) => {
     try {
-        const { username, password ,email,phone} = req.body;
+        const { username, password, email, phone } = req.body;
 
         // Check if user already exists
         const existingUser = await findUser(username);
-        if (existingUser==null) {
-            const hashedPassword = await bcrypt.hash(password,10);
-        // console.log(hashedPassword);
+        if (!existingUser) {
+            const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create a new user
-        const newUser = new User({ username, pass_hash: hashedPassword ,email, phone });
-        await newUser.save();
-        
-        res.status(201).json({ message: 'User registered successfully' });
-        return res.redirect('/login'); 
-        }else{
+            // Create a new user
+            const newUser = new User({ username, pass_hash: hashedPassword, email, phone });
+            await newUser.save();
+
+            // Send a JSON response or redirect, but not both
+            return res.status(201).json({ message: 'User registered successfully' });
+        } else {
             return res.status(400).json({ message: 'Username already exists' });
         }
-        // Hash the password
-        
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
     }
@@ -42,14 +39,13 @@ const login = async (req, res) => {
         }
 
         const tokens = generateToken(user);
-        res.json(tokens);
         //luu token vao cookie
         //accessToken: tokens.accessToken, refreshToken: tokens.refreshToken
         res.cookie('accessToken', tokens.accessToken, { httpOnly: true, secure: true, maxAge: 15 * 60 * 1000 }); // 15 minutes
         res.cookie('token', tokens.refreshToken, { httpOnly: true, secure: true, maxAge: 7 * 24 * 60 * 60 * 1000 }); // 7 days
-
+        return res.json(tokens);
     } catch (error) {
-        res.status(500).json({ message: "Lỗi đăng nhập" });
+        return res.status(500).json({ message: "Lỗi đăng nhập" });
     }
 };
 
