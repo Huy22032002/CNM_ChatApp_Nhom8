@@ -35,12 +35,12 @@ const generateToken = (user) => {
 const verifyAccessToken = async (token) => {
   try {
     const decoded = verify(token, process.env.JWT_ACCESS_SECRET_KEY);
-    return { valid: true, decoded };
+    return { valid: true,expired:false, decoded };
   } catch (error) {
     if (error.name === "TokenExpiredError") {
       return { valid: false, expired: true };
     } else {
-      return { valid: false };
+      return { valid: false,expired:false };
     }
   }
 }
