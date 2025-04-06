@@ -1,7 +1,27 @@
-const express = require("express");
-const router = express.Router();
-const userDetailController = require("../controllers/userDetailController");
+import { Router } from "express";
+import userDetailController from "../controllers/userDetailController.js";
 
-router.post("/add", userDetailController.createUserDetail);
+const router = Router();
 
-module.exports = router;
+import {
+  authMiddleware,
+  authMiddlewareWithoutRefresh,
+} from "../middlewares/authMiddleware.js";
+
+router.post(
+  "/add",
+  authMiddlewareWithoutRefresh,
+  userDetailController.createUserDetail
+);
+router.put(
+  "/update/:user_id",
+  authMiddlewareWithoutRefresh,
+  userDetailController.updateUserDetails
+);
+router.get(
+  "/",
+  authMiddlewareWithoutRefresh,
+  userDetailController.getAllUserDetail
+);
+
+export default router;
