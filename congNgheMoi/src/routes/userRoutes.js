@@ -8,12 +8,12 @@ router.post("/add", createUser);
 
 // Lấy danh sách tất cả người dùng (yêu cầu đăng nhập)
 router.get("/", 
-    authMiddleware, 
+    authMiddlewareWithoutRefresh, 
     getAllUser);
 
 // Cập nhật thông tin người dùng (yêu cầu đăng nhập)
 router.post("/update/:id", 
-    authMiddleware, 
+    authMiddlewareWithoutRefresh, 
     updateUser);
 
 export default router;
