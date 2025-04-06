@@ -1,14 +1,13 @@
-require("dotenv").config();
+import dotenv from "dotenv";
+dotenv.config();
 
-const { connectDB } = require("./src/configs/connectRDS");
+import { connectDB } from "./src/configs/connectRDS.js";
 connectDB();
-
-const { syncDB } = require("./src/configs/syncDB"); //dang loi tao indexes ltuc
 
 const PORT = process.env.PORT;
 
-const app = require("./src/app");
+import app from "./src/app.js";
 
-app.listen(PORT, (req, res) => {
+app.listen(PORT, () => {
   console.log(`listen on PORT ${PORT}`);
 });

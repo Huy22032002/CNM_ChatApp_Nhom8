@@ -1,11 +1,13 @@
-const { getAllMessageByConversationId } = require("../models/message");
-const MessageService = require("../services/messageService");
+import MessageModel from "../models/message.js";
+const { getAllMessageByConversationId } = MessageModel;
+import messageService from "../services/messageService.js";
+const { createMessage: _createMessage } = messageService;
 
 const MessageController = {
   async createMessage(req, res) {
     try {
       const data = req.body;
-      const message = await MessageService.createMessage(data);
+      const message = await _createMessage(data);
       res.status(200).json(message);
     } catch (error) {
       res
@@ -18,7 +20,7 @@ const MessageController = {
     const converId = req.params.converId;
     console.log(converId);
     try {
-      const lstMessage = await MessageService.getAllMessageByConversationId(
+      const lstMessage = await getAllMessageByConversationId(
         converId
       );
       res.status(200).json(lstMessage);
@@ -31,4 +33,4 @@ const MessageController = {
   },
 };
 
-module.exports = MessageController;
+export default MessageController;
