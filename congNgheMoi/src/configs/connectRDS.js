@@ -45,4 +45,4 @@ async function syncDB() {
 }
 syncDB();
 
-export { sequelize, connectDB, syncDB };
+export { sequelize, connectDB ,syncDB};
