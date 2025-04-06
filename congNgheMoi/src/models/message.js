@@ -1,5 +1,4 @@
 import dynamoDB from "../configs/connectDynamo.js";
-const { put, scan } = dynamoDB;
 import { v4 as uuidv4 } from "uuid";
 
 const TABLE_NAME = "Messages";
@@ -12,14 +11,15 @@ const MessageModel = {
         message_id: uuidv4(),
         conversation_id: message.conversation_id,
         sender: message.sender,
+        receivers: message.receivers,
         content: message.content,
         message_type: message.type,
         status: message.status,
-        created_at: Date.now(),
+        created_at: new Date().toISOString(),
       },
     };
     try {
-      await put(params).promise();
+      await dynamoDB.put(params).promise();
       return params.Item;
     } catch (error) {
       throw new Error(`Err add message model ${error.message}`);
@@ -28,17 +28,19 @@ const MessageModel = {
   async getAllMessageByConversationId(conversation_id) {
     const params = {
       TableName: TABLE_NAME,
-      FilterExpression: "conversation_id = :convId",
+      IndexName: "ConversationIndex", //ten GSI,
+      KeyConditionExpression: "conversation_id = :converId",
       ExpressionAttributeValues: {
-        ":convId": conversation_id,
+        ":converId": conversation_id,
       },
-      ScanIndexForward: false,
+      ScanIndexForward: true, //sort từ cũ -> mới
     };
     try {
-      const result = await scan(params).promise();
+      const result = await dynamoDB.query(params).promise();
       return result.Items;
     } catch (error) {
       console.log(`error get all message of conver in model: ${error}`);
+      return [];
     }
   },
 };
