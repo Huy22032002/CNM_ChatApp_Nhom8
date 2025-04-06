@@ -1,4 +1,4 @@
-const ConversationService = require("../services/conversationService");
+import ConversationService from "../services/conversationService.js";
 
 const createConversation = async (req, res) => {
   try {
@@ -29,5 +29,30 @@ const getAllConversations = async (req, res) => {
     });
   }
 };
+const updateConversation = async (req, res) => {
+  const { conversation_id } = req.params;
+  const { lastMessage } = req.body;
 
-module.exports = { createConversation, getAllConversations };
+  if (!conversation_id || !lastMessage) {
+    return res.status(400).json({
+      message: "Invalid data for update conversation",
+    });
+  }
+
+  try {
+    const updatedConversation = await ConversationService.updateConver(
+      conversation_id,
+      lastMessage
+    );
+    res.status(200).json({
+      message: "Conversation updated successfully",
+      updatedConversation,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error updating conversation controller",
+      error: error.message,
+    });
+  }
+};
+export default { createConversation, getAllConversations, updateConversation };
