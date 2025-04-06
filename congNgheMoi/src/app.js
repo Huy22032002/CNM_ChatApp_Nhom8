@@ -5,9 +5,16 @@ import userDetailRoutes from "./routes/userDetailRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+<<<<<<< HEAD
 import cors from "cors";
 import { authMiddleware, authMiddlewareWithoutRefresh } from "./middlewares/authMiddleware.js"; 
 
+=======
+import {
+  authMiddleware,
+  authMiddlewareWithoutRefresh,
+} from "./middlewares/authMiddleware.js";
+>>>>>>> HuyBranch
 
 const app = express();
 
@@ -22,8 +29,15 @@ app.use(express.urlencoded({ extended: false }));
 // Use routes
 app.use("/auth", authRoutes);
 
+<<<<<<< HEAD
 // Apply authentication middleware for protected routes
 app.use(authMiddlewareWithoutRefresh);
+=======
+app.use(
+  authMiddlewareWithoutRefresh
+  // authMiddleware
+);
+>>>>>>> HuyBranch
 app.use("/api/home", homeRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/userDetails", userDetailRoutes);
