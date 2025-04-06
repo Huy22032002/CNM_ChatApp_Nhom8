@@ -1,13 +1,18 @@
-const userService = require("../services/userService");
+import { createUser as _createUser, getAllUSer, updateUser as _updateUser, findUser as _findUser } from "../services/userService.js";
 
 const createUser = async (req, res) => {
   try {
     const user = req.body;
 
-    const newUser = await userService.createUser(
+    const newUser = await _createUser(
       user.username,
       user.email,
+<<<<<<< HEAD
       user.pass_hash
+=======
+      user.pass_hash,
+      user.phone
+>>>>>>> HoangBranch
     );
 
     res.status(201).json({
@@ -23,7 +28,7 @@ const createUser = async (req, res) => {
 
 const getAllUser = async (req, res) => {
   try {
-    const users = await userService.getAllUSer();
+    const users = await getAllUSer();
     res.status(200).json(users);
   } catch (err) {
     res.status(500).body(err.message);
@@ -38,7 +43,7 @@ const updateUser = async (req, res) => {
     const data = req.body;
     console.log(data);
 
-    const updateUser = await userService.updateUser(id, data);
+    const updateUser = await _updateUser(id, data);
     res.status(200).json(updateUser);
   } catch (err) {
     res
@@ -47,5 +52,20 @@ const updateUser = async (req, res) => {
   }
 };
 
-module.exports = { createUser, getAllUser, updateUser };
+const findUser = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const user = await _findUser(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error finding user", error: error.message });
+  }
+}
+
+export default { createUser, getAllUser, updateUser };
 

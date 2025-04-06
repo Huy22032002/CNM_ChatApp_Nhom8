@@ -1,5 +1,7 @@
-require("dotenv").config();
-const { Sequelize } = require("sequelize");
+import dotenv from "dotenv";
+import { Sequelize } from "sequelize";
+
+dotenv.config();
 
 const sequelize = new Sequelize(
   process.env.DB_NAME,
@@ -22,20 +24,25 @@ async function connectDB() {
     await sequelize.authenticate();
     console.log("Connect DB Successfully!");
   } catch (error) {
-    console.error("Error Connect DB", error);
+    console.error("Error Connect DB", error.message);
+    console.error("Stack Trace:", error.stack);
     process.exit(1);
   }
 }
 
 async function syncDB() {
-  await connectDB();
-
-  await sequelize.sync({
-    //  alter: true // for dev
-    // force: false, // for prod
-  });
-  // console.log("Syn DB");
+  try {
+    await connectDB();
+    await sequelize.sync({
+      // alter: true, // for dev
+      // force: true, // for prod
+    });
+    console.log("Database synchronized successfully!");
+  } catch (error) {
+    console.error("Error synchronizing database:", error);
+    process.exit(1); // Thoát ứng dụng nếu không thể đồng bộ
+  }
 }
 syncDB();
 
-module.exports = { sequelize, connectDB };
+export { sequelize, connectDB ,syncDB};

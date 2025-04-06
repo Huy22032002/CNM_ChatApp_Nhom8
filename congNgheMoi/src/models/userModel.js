@@ -1,6 +1,6 @@
-const { DataTypes } = require("sequelize");
-const { sequelize } = require("../configs/connectRDS");
-const bcrypt = require("bcryptjs");
+import { DataTypes } from "sequelize";
+import { sequelize } from "../configs/connectRDS.js";
+import { genSalt, hash } from "bcryptjs";
 
 const User = sequelize.define(
   "User",
@@ -14,16 +14,16 @@ const User = sequelize.define(
     },
     pass_hash: { type: DataTypes.STRING, allowNull: false },
     email: { type: DataTypes.STRING, allowNull: false, unique: true },
-    phone: { type: DataTypes.STRING, allowNull: false, unique: true },
-  },
-  {
-    hooks: {
-      beforeCreate: async (user) => {
-        const salt = await bcrypt.genSalt(10);
-        user.pass_hash = await bcrypt.hash(user.pass_hash, salt);
-      },
-    },
+    phone: { type: DataTypes.STRING, allowNull: true, unique: true, lenghth: 10 },
   }
+  // ,{
+  //   hooks: {
+  //     beforeCreate: async (user) => {
+  //       const salt = await genSalt(10);
+  //       user.pass_hash = await hash(user.pass_hash, salt);
+  //     },
+  //   },
+  // }
 );
 
-module.exports = User;
+export default User;
