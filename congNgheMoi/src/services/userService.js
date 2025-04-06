@@ -3,15 +3,14 @@ import bcrypt from "bcryptjs";
 
 import UserDetail from "../models/userDetail.js";
 
-async function createUser(username, email, pass_hash,phone) {
+async function createUser(username, email, pass_hash, phone) {
   try {
-    const user = await User.create({ username, email, pass_hash,phone });
+    const user = await User.create({ username, email, pass_hash, phone });
     return user;
   } catch (error) {
     throw new Error("Lỗi khi tạo user: " + error.message);
   }
 }
-
 async function getAllUSer() {
   try {
     return await User.findAll();
@@ -19,7 +18,6 @@ async function getAllUSer() {
     throw new Error(`Erre get all users service: ${err}`);
   }
 }
-
 async function updateUser(id, user_data) {
   try {
     const [updated] = await User.update(user_data, {
@@ -31,10 +29,9 @@ async function updateUser(id, user_data) {
     return await User.findByPk(id);
   } catch (error) {
     console.log(`Error update user service ${error}`);
+    throw new Error("err update user");
   }
 }
-
-
 async function findUser(id) {
   try {
     const user = await User.findByPk(id, {
@@ -42,26 +39,21 @@ async function findUser(id) {
     });
     if (user) {
       return user;
-    }else{
+    } else {
       console.log("User not found in userService");
       return null;
     }
-    
   } catch (error) {
     console.log(`Error find user service ${error}`);
+    return null;
   }
 }
-
 async function authenticate(username, password) {
   try {
     const user = await User.findOne({ where: { username } });
     if (!user) {
       throw new Error("User not found in userService");
     }
-    //unhash password with bcryptjs
-    // const hashedPassword = await bcrypt.hash(password, 10);
-    // const unhashedPassword = await bcrypt.(user.pass_hash, 10);
-    // Compare the hashed password with the stored password
 
     const isValidPassword = await bcrypt.compare(password, user.pass_hash);
     // const isValidPassword = await bcrypt.compare(hashedPassword, user.pass_hash);;
@@ -71,6 +63,7 @@ async function authenticate(username, password) {
     return user;
   } catch (error) {
     console.log(`Error authenticate user service ${error}`);
+    return null;
   }
 }
 

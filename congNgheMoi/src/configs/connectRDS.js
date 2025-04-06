@@ -15,7 +15,7 @@ const sequelize = new Sequelize(
       timestamps: true,
       underscored: true,
     },
-    logging: true,
+    logging: console.log,
   }
 );
 
