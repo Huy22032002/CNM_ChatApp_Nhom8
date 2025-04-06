@@ -49,11 +49,16 @@ const authMiddlewareWithoutRefresh = async (req, res, next) => {
     //     authMiddleware(req, res, next);
     // }
     req.user = tokenStatus.user;
-    console.log("Status: "+tokenStatus.user);
+    console.log("Status: "+tokenStatus.expired);
     console.log("Valid: "+tokenStatus.valid);
     if (!tokenStatus.valid) {
       return res.status(401).json({ message: "Phiên đăng nhập hết hạn, vui lòng đăng nhập lại" });
     }
+    if (tokenStatus.expired) {
+      console.log("AccessToken hết hạn, yêu cầu làm mới token...");
+      return res.status(401).json({ message: "AccessToken hết hạn" });
+    }
+
     next();
   } catch (error) {
     console.error("Lỗi xác thực:", error);
