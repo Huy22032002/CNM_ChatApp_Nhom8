@@ -51,6 +51,7 @@ const login = async (req, res) => {
     res.cookie("accessToken", tokens.accessToken, {
       httpOnly: true,
       secure: true,
+      sameSite: "strict",// prevent CSRF attacks
       maxAge: 15 * 60 * 1000,
     }); // 15 minutes
     res.cookie("token", tokens.refreshToken, {
@@ -92,5 +93,7 @@ const logout = (req, res) => {
   res.clearCookie("token");
   res.status(200).json({ message: "Logged out successfully" });
 };
+
+
 
 export { register, login, refreshToken, logout };

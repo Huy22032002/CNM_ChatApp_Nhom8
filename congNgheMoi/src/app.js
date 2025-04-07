@@ -5,19 +5,16 @@ import userDetailRoutes from "./routes/userDetailRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
-<<<<<<< HEAD
 import cors from "cors";
-import { authMiddleware, authMiddlewareWithoutRefresh } from "./middlewares/authMiddleware.js"; 
-
-=======
+import cookieParser from "cookie-parser";
 import {
   authMiddleware,
   authMiddlewareWithoutRefresh,
 } from "./middlewares/authMiddleware.js";
->>>>>>> HuyBranch
 
 const app = express();
 
+app.use(cookieParser());
 app.use(cors({
   origin: "http://localhost:5173", 
   credentials: true,
@@ -29,15 +26,10 @@ app.use(express.urlencoded({ extended: false }));
 // Use routes
 app.use("/auth", authRoutes);
 
-<<<<<<< HEAD
-// Apply authentication middleware for protected routes
-app.use(authMiddlewareWithoutRefresh);
-=======
 app.use(
   authMiddlewareWithoutRefresh
   // authMiddleware
 );
->>>>>>> HuyBranch
 app.use("/api/home", homeRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/userDetails", userDetailRoutes);
