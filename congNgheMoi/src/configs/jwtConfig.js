@@ -35,15 +35,15 @@ const generateToken = (user) => {
 const verifyAccessToken = async (token) => {
   try {
     const decoded = verify(token, process.env.JWT_ACCESS_SECRET_KEY);
-    return { valid: true, decoded };
+    return { valid: true, expired: false, decoded };
   } catch (error) {
     if (error.name === "TokenExpiredError") {
       return { valid: false, expired: true };
     } else {
-      return { valid: false };
+      return { valid: false, expired: false };
     }
   }
-}
+};
 
 // Kiểm tra accessToken và refreshToken
 const verifyAndRefreshToken = async (accessToken, refreshToken) => {
@@ -54,11 +54,18 @@ const verifyAndRefreshToken = async (accessToken, refreshToken) => {
     if (error.name === "TokenExpiredError") {
       console.log("AccessToken hết hạn, kiểm tra RefreshToken...");
       try {
-        const decodedRefreshToken = verify(refreshToken, process.env.JWT_REFRESH_SECRET_KEY);
+        const decodedRefreshToken = verify(
+          refreshToken,
+          process.env.JWT_REFRESH_SECRET_KEY
+        );
         console.log("RefreshToken hợp lệ, tạo accessToken mới...");
 
         const newAccessToken = sign(
-          { id: decodedRefreshToken.id, username: decodedRefreshToken.username, phone: decodedRefreshToken.phone },
+          {
+            id: decodedRefreshToken.id,
+            username: decodedRefreshToken.username,
+            phone: decodedRefreshToken.phone,
+          },
           process.env.JWT_ACCESS_SECRET_KEY,
           { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN }
         );
@@ -76,4 +83,4 @@ const verifyAndRefreshToken = async (accessToken, refreshToken) => {
 };
 
 // Export module as CommonJS module
-export { generateToken, verifyAndRefreshToken,verifyAccessToken };
+export { generateToken, verifyAndRefreshToken, verifyAccessToken };
