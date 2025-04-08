@@ -13,7 +13,7 @@ const register = async (req, res) => {
 
     const existingUser = await findUser(username);
     if (existingUser == null) {
-      const hashedPassword = await bcrypt.hash(password, 10);
+      // const hashedPassword = await bcrypt.hash(password, 10);
 
       // Tạo OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -21,6 +21,16 @@ const register = async (req, res) => {
 
       // Gửi email OTP
       await sendOtpEmail(email, otp);
+
+      // const hashedPassword = await bcrypt.hash(password, 10);//for testing
+      // const newUser = new User({
+      //   username,
+      //   pass_hash: hashedPassword,
+      //   email,
+      //   phone,
+      // });
+      // await newUser.save();//for testing
+
 
       // Chưa lưu user vào DB ngay — đợi xác thực OTP
       res.status(200).json({ message: "OTP sent to email", email });
@@ -33,6 +43,7 @@ const register = async (req, res) => {
   }
 };
 
+<<<<<<< HEAD
 const verifyOtp = async (req, res) => {
   const { email, username, password, phone, otp } = req.body;
   const storedOtp = otpCache.get(email);
@@ -53,6 +64,30 @@ const verifyOtp = async (req, res) => {
   otpCache.delete(email);
 
   res.status(201).json({ message: "Đăng ký thành công" });
+=======
+
+const verifyOtp= async (req, res) => {
+    const { email, username, password, phone, otp } = req.body;
+    const storedOtp = otpCache.get(email);
+    
+  
+    if (storedOtp !== otp) {
+      return res.status(400).json({ message: "OTP không chính xác" });
+    }
+  
+    // Tạo user sau khi xác thực
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({
+      username,
+      pass_hash: hashedPassword,
+      email,
+      phone,
+    });
+    await newUser.save();
+    otpCache.delete(email);
+  
+    res.status(201).json({ message: "Đăng ký thành công" });
+>>>>>>> bd62525d6210297524b662623c0ba97df819114a
 };
 
 // const register = async (req, res) => {
@@ -115,10 +150,14 @@ const login = async (req, res) => {
     await updateUser(user.id, { status: "ONLINE" });
     ({ message: "Login successful", accessToken: tokens.accessToken });
 
+<<<<<<< HEAD
     res
       .status(200)
       .json({ message: "Login successful", accessToken: tokens.accessToken });
     return user;
+=======
+    res.status(200).json({ message: "Login successful", accessToken: tokens.accessToken,user });
+>>>>>>> bd62525d6210297524b662623c0ba97df819114a
   } catch (error) {
     res.status(500).json({ message: "Lỗi đăng nhập" });
     console.log(error);
@@ -143,6 +182,7 @@ const refreshToken = async (req, res) => {
 };
 
 const logout = (req, res) => {
+
   res.clearCookie("token");
   res.status(200).json({ message: "Logged out successfully" });
 };
