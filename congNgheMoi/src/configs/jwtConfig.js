@@ -40,7 +40,9 @@ const verifyAccessToken = async (token) => {
     if (error.name === "TokenExpiredError") {
       return { valid: false, expired: true };
     } else {
+
       return { valid: false, expired: false };
+
     }
   }
 };

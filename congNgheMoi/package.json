@@ -7,7 +7,7 @@
     "start": "nodemon index.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "VuVietHoang,NguyenDucHuy",
   "license": "ISC",
   "description": "",
   "dependencies": {
@@ -24,6 +24,7 @@
     "mariadb": "^3.4.1",
     "multer": "^1.4.5-lts.2",
     "mysql2": "^3.14.0",
+    "nodemailer": "^6.10.0",
     "nodemon": "^3.1.9",
     "sequelize": "^6.37.7",
     "socket.io": "^4.8.1",
