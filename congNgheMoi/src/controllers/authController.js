@@ -24,6 +24,7 @@ const register = async (req, res) => {
 
       // Chưa lưu user vào DB ngay — đợi xác thực OTP
       res.status(200).json({ message: "OTP sent to email", email });
+      return otp;
     } else {
       return res.status(400).json({ message: "Username already exists" });
     }
