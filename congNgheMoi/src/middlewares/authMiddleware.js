@@ -1,5 +1,7 @@
-import { verifyAndRefreshToken,verifyAccessToken } from "../configs/jwtConfig.js";
-
+import {
+  verifyAndRefreshToken,
+  verifyAccessToken,
+} from "../configs/jwtConfig.js";
 
 const authMiddleware = async (req, res, next) => {
   try {
@@ -13,7 +15,9 @@ const authMiddleware = async (req, res, next) => {
     const tokenStatus = await verifyAndRefreshToken(accessToken, refreshToken);
 
     if (!tokenStatus.valid) {
-      return res.status(401).json({ message: "Phiên đăng nhập hết hạn, vui lòng đăng nhập lại" });
+      return res
+        .status(401)
+        .json({ message: "Phiên đăng nhập hết hạn, vui lòng đăng nhập lại" });
     }
 
     // Nếu accessToken được làm mới, gửi lại token mới cho client
@@ -33,12 +37,12 @@ const authMiddlewareWithoutRefresh = async (req, res, next) => {
   try {
     // const accessToken = req.headers.authorization?.split(" ")[1];
     //lay accessToken tu header Authorization ("Bearer token")
-    const accessToken = req.headers.authorization?.split(" ")[1] ;
+    const accessToken = req.headers.authorization?.split(" ")[1];
     // const accessToken = req.headers["authorization"].split(" ")[1];
 
     if (!accessToken) {
-        console.log("ko co accessToken");
-        return res.status(401).json({ message: "Vui lòng đăng nhập" });
+      console.log("ko co accessToken");
+      return res.status(401).json({ message: "Vui lòng đăng nhập" });
     }
     // Nếu không cần làm mới token, chỉ cần xác thực accessToken
     const tokenStatus = await verifyAccessToken(accessToken); // Không cần refresh token
@@ -49,11 +53,23 @@ const authMiddlewareWithoutRefresh = async (req, res, next) => {
     //     authMiddleware(req, res, next);
     // }
     req.user = tokenStatus.user;
+    // console.log("AccessToken: "+accessToken);
+
+    console.log("TokenStatus: "+JSON.stringify(tokenStatus));
+  
+    if (!tokenStatus.valid) {
+      return res.status(401).json({ message: "Phiên đăng nhập hết hạn, vui lòng đăng nhập lại" });
+    }
+    if (tokenStatus.expired) {
+      console.log("AccessToken hết hạn, yêu cầu làm mới token...");
+      return res.status(401).json({ message: "AccessToken hết hạn" });
+    }
+
     next();
   } catch (error) {
     console.error("Lỗi xác thực:", error);
     res.status(500).json({ message: "Lỗi máy chủ" });
   }
-}
+};
 
-export  {authMiddleware,authMiddlewareWithoutRefresh};
+export { authMiddleware, authMiddlewareWithoutRefresh };
