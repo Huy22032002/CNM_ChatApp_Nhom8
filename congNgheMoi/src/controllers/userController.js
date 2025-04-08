@@ -1,4 +1,9 @@
-import { createUser as _createUser, getAllUSer, updateUser as _updateUser, findUser as _findUser } from "../services/userService.js";
+import {
+  createUser as _createUser,
+  getAllUSer,
+  updateUser as _updateUser,
+  findUser as _findUser,
+} from "../services/userService.js";
 
 const createUser = async (req, res) => {
   try {
@@ -21,7 +26,6 @@ const createUser = async (req, res) => {
       .json({ message: "Error creating user", error: error.message });
   }
 };
-
 const getAllUser = async (req, res) => {
   try {
     const users = await getAllUSer();
@@ -30,7 +34,6 @@ const getAllUser = async (req, res) => {
     res.status(500).body(err.message);
   }
 };
-
 const updateUser = async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -47,7 +50,6 @@ const updateUser = async (req, res) => {
       .json({ message: "error updating user controller", error: err.message });
   }
 };
-
 const findUser = async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -61,7 +63,6 @@ const findUser = async (req, res) => {
       .status(500)
       .json({ message: "Error finding user", error: error.message });
   }
-}
+};
 
-export default { createUser, getAllUser, updateUser };
-
+export default { createUser, getAllUser, updateUser, findUser };
