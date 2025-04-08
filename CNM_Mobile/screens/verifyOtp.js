@@ -61,19 +61,18 @@ const VerifyOtp = () => {
     try {
       const api_url=process.env.API_URL||"http://10.0.2.2:3000";
       console.log(api_url);
-      const response = await axios.post(`${api_url}/auth/verifyOtp`, {
-        email,
+      await axios.post(`${api_url}/auth/createNewUser`, {
         username,
         password,
-        phone,
-        otp: otpCode,
+        email,
+        phone
       });
-
-      Alert.alert('Thành công', 'Xác minh OTP thành công', [
-        { text: 'OK', onPress: () => navigation.navigate('Login') },
-      ]);
+      Alert.alert('Thành công', 'Tạo tài khoản thành công!');
+      navigation.navigate('login');
+      
     } catch (error) {
-      Alert.alert('Lỗi', error.response?.data?.message || 'Xác minh OTP thất bại');
+      Alert.alert('Lỗi', 'Xác minh OTP thất bại');
+      console.error('Error:', error);
       console.error('Verification error:', error);
     } finally {
       setLoading(false);
