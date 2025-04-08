@@ -60,7 +60,7 @@ const ConversationModel = {
       ExpressionAttributeValues: {
         ":lastMessages": {
           content: lastMessage.content,
-          create_at: lastMessage.create_at,
+          updated_at: new Date().toISOString(),
         },
       },
       ReturnValues: "UPDATED_NEW", //return gia tri moi dc update
