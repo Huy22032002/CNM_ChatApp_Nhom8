@@ -56,7 +56,7 @@ const login = async (req, res) => {
     }); // 15 minutes
     res.cookie("token", tokens.refreshToken, {
       httpOnly: true,
-      secure: true,
+      secure: true, 
       maxAge: 7 * 24 * 60 * 60 * 1000,
     }); // 7 days
 
@@ -67,6 +67,7 @@ const login = async (req, res) => {
     res
       .status(200)
       .json({ message: "Login successful", accessToken: tokens.accessToken });
+      return {user, tokens};
   } catch (error) {
     res.status(500).json({ message: "Lỗi đăng nhập" });
   }
