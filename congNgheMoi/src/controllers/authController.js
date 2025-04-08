@@ -8,13 +8,11 @@ import { generateToken, verifyAndRefreshToken } from "../configs/jwtConfig.js";
 const register = async (req, res) => {
   try {
     const { username, password, email, phone } = req.body;
-
-
-        // Check if user already exists
-        const existingUser = await findUser(username);
-        if (existingUser==null) {
-            const hashedPassword = await bcrypt.hash(password,10);
-        // console.log(hashedPassword);
+    // Check if user already exists
+    const existingUser = await findUser(username);
+    if (existingUser == null) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      // console.log(hashedPassword);
 
       // Create a new user
       const newUser = new User({
@@ -36,7 +34,6 @@ const register = async (req, res) => {
 };
 
 const login = async (req, res) => {
-
   try {
     const { username, password } = req.body;
     const user = await authenticate(username, password);
@@ -55,7 +52,7 @@ const login = async (req, res) => {
       secure: true,
       maxAge: 15 * 60 * 1000,
     }); // 15 minutes
-    
+
     res.cookie("token", tokens.refreshToken, {
       httpOnly: true,
       secure: true,
@@ -65,7 +62,6 @@ const login = async (req, res) => {
     //update user ONLINE
     console.log(user);
     await updateUser(user.id, { status: "ONLINE" });
-
     res
       .status(200)
       .json({ message: "Login successful", accessToken: tokens.accessToken });
@@ -73,9 +69,7 @@ const login = async (req, res) => {
     res.status(500).json({ message: "Lỗi đăng nhập" });
     console.log(error);
   }
-
 };
-
 
 const refreshToken = async (req, res) => {
   const { accessToken, refreshToken } = req.body;
