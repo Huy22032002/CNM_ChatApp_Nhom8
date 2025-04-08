@@ -9,11 +9,12 @@ const register = async (req, res) => {
   try {
     const { username, password, email, phone } = req.body;
 
-    // Check if user already existss
-    const existingUser = await findUser(username);
-    if (existingUser == null) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      console.log(hashedPassword);
+
+        // Check if user already exists
+        const existingUser = await findUser(username);
+        if (existingUser==null) {
+            const hashedPassword = await bcrypt.hash(password,10);
+        // console.log(hashedPassword);
 
       // Create a new user
       const newUser = new User({
@@ -35,6 +36,7 @@ const register = async (req, res) => {
 };
 
 const login = async (req, res) => {
+
   try {
     const { username, password } = req.body;
     const user = await authenticate(username, password);
@@ -68,8 +70,11 @@ const login = async (req, res) => {
       .json({ message: "Login successful", accessToken: tokens.accessToken });
   } catch (error) {
     res.status(500).json({ message: "Lỗi đăng nhập" });
+    console.log(error);
   }
+
 };
+
 
 const refreshToken = async (req, res) => {
   const { accessToken, refreshToken } = req.body;
