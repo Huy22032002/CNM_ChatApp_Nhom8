@@ -16,6 +16,7 @@
     "axios": "^1.8.4",
     "dotenv": "^16.4.7",
     "expo": "~52.0.43",
+    "expo-image-picker": "~16.0.6",
     "expo-modules-core": "^2.2.3",
     "expo-status-bar": "~2.0.1",
     "metro": "^0.82.1",

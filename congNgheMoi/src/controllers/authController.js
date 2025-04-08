@@ -116,9 +116,8 @@ const login = async (req, res) => {
     console.log(user);
     await updateUser(user.id, { status: "ONLINE" });
 
-    res
-      .status(200)
-      .json({ message: "Login successful", accessToken: tokens.accessToken });
+    res.status(200).json({ message: "Login successful", accessToken: tokens.accessToken });
+    return user;
   } catch (error) {
     res.status(500).json({ message: "Lỗi đăng nhập" });
     console.log(error);
