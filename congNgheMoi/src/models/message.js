@@ -5,6 +5,10 @@ const TABLE_NAME = "Messages";
 
 const MessageModel = {
   async createMessage(message) {
+    if (!message.conversation_id) {
+      throw new Error("conversation_id is required to create a message.");
+    }
+
     const params = {
       TableName: TABLE_NAME,
       Item: {
@@ -13,7 +17,7 @@ const MessageModel = {
         sender: message.sender,
         receivers: message.receivers,
         content: message.content,
-        message_type: message.type,
+        message_type: message.message_type || message.type,
         status: message.status,
         created_at: new Date().toISOString(),
       },
