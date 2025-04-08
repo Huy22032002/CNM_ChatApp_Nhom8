@@ -23,10 +23,15 @@ export default function RegisterScreen() {
   const onRegister = async () => {
     try {
       setLoading(true);
-      const apiUrl = process.env.API_URL || "http://10.0.2.2:3000";
+      const apiUrl = "http://10.0.2.2:3000";
 
       if (!username || !password || !email || !phone) {
         alert('Vui lòng nhập đầy đủ thông tin!');
+        return;
+      }
+      //check phone 10 digits
+      if (!/^\d{10}$/.test(phone)) {
+        alert('Số điện thoại không hợp lệ!');
         return;
       }
 
@@ -41,13 +46,13 @@ export default function RegisterScreen() {
         alert('Đăng ký thất bại. Vui lòng thử lại!');
         return;
       }
-
+      console.log(response.data);
       navigation.navigate('verifyOtp', {
         username,
         password,
         email,
         phone,
-        otp: response.data.otp,
+        otpGen: response.data.otp,
       });
     } catch (err) {
       console.error(err.response?.data || err.message);

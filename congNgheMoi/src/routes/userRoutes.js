@@ -1,7 +1,7 @@
 import { Router } from "express";
 const router = Router();
 import userController from "../controllers/userController.js";
-const { createUser, getAllUser, updateUser, findUser,checkMatchPassword,updatePassword } = userController;
+const { createUser, getAllUser, updateUser, findUser,checkMatchPassword,updatePassword} = userController;
 import {
   authMiddleware,
   authMiddlewareWithoutRefresh,
@@ -15,7 +15,7 @@ router.get("/", authMiddlewareWithoutRefresh, getAllUser);
 router.post("/update/:id", authMiddlewareWithoutRefresh, updateUser);
 router.get("/:id", authMiddlewareWithoutRefresh, findUser);
 router.post("/checkMatchPassword", authMiddlewareWithoutRefresh, checkMatchPassword);
-router.post("/updatePassword/:id", authMiddlewareWithoutRefresh, updatePassword);
+router.post("/updatePassword", authMiddlewareWithoutRefresh, updatePassword);
 
 
 

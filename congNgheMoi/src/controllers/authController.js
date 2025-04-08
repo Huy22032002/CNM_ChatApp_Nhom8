@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import User from "../models/userModel.js";
 const router = Router();
-import { findUser, authenticate, updateUser } from "../services/userService.js";
+import { findUser, authenticate, updateUser, createUser } from "../services/userService.js";
 import { generateToken, verifyAndRefreshToken } from "../configs/jwtConfig.js";
 import sendOtpEmail from "../utils/sendOtpEmail.js";
 import otpCache from "../middlewares/otpCache.js";
@@ -33,8 +33,7 @@ const register = async (req, res) => {
 
 
       // Chưa lưu user vào DB ngay — đợi xác thực OTP
-      res.status(200).json({ message: "OTP sent to email", email });
-      return otp;
+      res.status(200).json({ message: "OTP sent to email", email,otp });
     } else {
       return res.status(400).json({ message: "Username already exists" });
     }
@@ -60,11 +59,38 @@ const verifyOtp= async (req, res) => {
       pass_hash: hashedPassword,
       email,
       phone,
+      status: "OFFLINE",
     });
     await newUser.save();
     otpCache.delete(email);
   
     res.status(201).json({ message: "Đăng ký thành công" });
+};
+
+const createNewUser = async (req, res) => {
+  try {
+    const { username, password, email, phone } = req.body;
+    console.log(username, password, email, phone);
+    const existingUser = await findUser(username);
+    if (existingUser) {
+      return res.status(400).json({ message: "Username already exists" });
+    }
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({
+      username,
+      pass_hash: hashedPassword,
+      email,
+      phone,
+      status: "OFFLINE",
+    });
+    await newUser.save();
+    res.status(201).json({ message: "User created successfully" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error creating user", error: error.message });
+  }
 };
 
 // const register = async (req, res) => {
@@ -161,4 +187,4 @@ const logout = (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
 };
 
-export { register, login, refreshToken, logout ,verifyOtp};
+export { register, login, refreshToken, logout ,verifyOtp,createNewUser};

@@ -95,48 +95,72 @@ export default function HomeChat({ route }) {
   };
   
   const changePassword = async () => {
-    const id = userId;
-    if (!id) {
-      Alert.alert('Lỗi', 'Không tìm thấy ID người dùng');
-      return;
-    }
-    if (!oldPassword || !password || !confirmPassword) {
-      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
-      return;
-    }
-  
-    if (password !== confirmPassword) {
-      Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp');
-      return;
-    }
-  
     try {
-      // Kiểm tra mật khẩu cũ
-      await axios.post(`http://10.0.2.2:3000/api/users/checkMatchPassword/${id}`, {
-        oldPassword
-      }, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+      const id = userId;
+      if (!id) {
+        Alert.alert('Lỗi', 'Không tìm thấy ID người dùng');
+        return;
+      }
+      if (!oldPassword || !password || !confirmPassword) {
+        Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
+        return;
+      }
+  
+      if (password !== confirmPassword) {
+        Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp');
+        return;
+      }
+  
+      try {
+        // Gọi check mật khẩu cũ
+        const res = await axios.post(
+          "http://10.0.2.2:3000/api/users/checkMatchPassword",
+          {
+            username: userInfo?.username,
+            password: oldPassword,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        )
+        if (res.status !== 200) {
+          Alert.alert('Lỗi', 'Mật khẩu cũ không chính xác!');
+          return;
         }
-      });
-  
-      // Gửi yêu cầu cập nhật mật khẩu
-      await axios.post(`http://10.0.2.2:3000/api/users/updatePassword/${id}`, {
-        password
-      }, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+        
+      } catch (error) {
+        if (error.response?.status === 401) {
+          Alert.alert('Lỗi', 'Mật khẩu cũ không chính xác!');
+          return;
+        } else {
+          Alert.alert('Lỗi', 'Đã xảy ra lỗi, vui lòng thử lại!');
+          return;
         }
-      });
+      }
+
   
-      Alert.alert('Thành công', 'Đã đổi mật khẩu thành công');
-      setShowChangePassword(false);
-      setOldPassword('');
-      setPassword('');
-      setConfirmPassword('');
+    
+        
+        await axios.post(`http://10.0.2.2:3000/api/users/updatePassword/`, 
+          {
+            id: userInfo?.id,
+            password: password,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
   
+        Alert.alert('Thành công', 'Đã đổi mật khẩu thành công');
+        setShowChangePassword(false);
+        setOldPassword('');
+        setPassword('');
+        setConfirmPassword('');
+      
     } catch (err) {
       if (err.response?.status === 401 || err.response?.status === 400) {
         Alert.alert('Lỗi', err.response.data.message || 'Mật khẩu cũ không chính xác!');
