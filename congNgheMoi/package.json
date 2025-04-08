@@ -7,7 +7,7 @@
     "start": "nodemon index.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "VuVietHoang,NguyenDucHuy",
   "license": "ISC",
   "description": "",
   "dependencies": {
