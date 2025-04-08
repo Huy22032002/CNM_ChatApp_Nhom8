@@ -21,12 +21,7 @@ const VerifyOtp = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
-  const { email, username, password, phone } = route.params || {
-    email: '',
-    username: '',
-    password: '',
-    phone: '',
-  };
+  const { email, username, password, phone, otpGen } = route.params;
 
   useEffect(() => {
     if (timeLeft > 0) {
@@ -57,9 +52,14 @@ const VerifyOtp = () => {
       return;
     }
 
+    if (otpCode !== otpGen) {
+      Alert.alert('Lỗi', 'Mã OTP không chính xác');
+      return;
+    }
+
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:3000/auth/verify-otp', {
+      const response = await axios.post(`${process.env.API_URL}/auth/verifyOtp`, {
         email,
         username,
         password,

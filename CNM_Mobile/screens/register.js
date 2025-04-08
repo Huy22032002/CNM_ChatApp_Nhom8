@@ -16,9 +16,14 @@ export default function RegisterScreen() {
   const onRegister = async () => {
     try {
       setLoading(true);
-      await axios.post(`${process.env.API_URL}/auth/register`, { email, phone, username, password });
-      alert('Đăng ký thành công!');
-      navigation.navigate('login');
+      const response=await axios.post(`${process.env.API_URL}/auth/register`, {username, password ,email, phone});
+      if (response.status !== 200) {
+        alert('Đăng ký thất bại. Vui lòng thử lại!');
+        return;
+      }
+      
+      console.log(response.data);
+      navigation.navigate('verifyOtp', {username, password ,email, phone , otp: response.data.otp});
     } catch (err) {
       alert('Đăng ký thất bại. Vui lòng thử lại!');
     } finally {
