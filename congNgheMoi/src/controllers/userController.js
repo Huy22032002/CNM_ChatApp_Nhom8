@@ -3,7 +3,9 @@ import {
   getAllUSer,
   updateUser as _updateUser,
   findUser as _findUser,
+  authenticate
 } from "../services/userService.js";
+import bcrypt from "bcrypt";
 
 const createUser = async (req, res) => {
   try {
@@ -50,6 +52,26 @@ const updateUser = async (req, res) => {
       .json({ message: "error updating user controller", error: err.message });
   }
 };
+
+const updatePassword = async (req, res) => {
+  try {
+    const {id, password } = req.body;
+    console.log('req.body:', req.body);
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const updatedUser = await _updateUser(id, { pass_hash: hashedPassword });
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json(updatedUser);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error updating password", error: error.message });
+  }
+}
+
+
 const findUser = async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -65,4 +87,16 @@ const findUser = async (req, res) => {
   }
 };
 
-export default { createUser, getAllUser, updateUser, findUser };
+const checkMatchPassword = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const user = await authenticate(username, password);
+    if (!user) {
+      return res.status(401).json({ message: "Invalid Old Pass" });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: "Error authenticating user", error });
+  }
+};
+export default { createUser, getAllUser, updateUser, findUser,checkMatchPassword ,updatePassword};
