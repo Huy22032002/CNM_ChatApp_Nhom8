@@ -12,6 +12,10 @@ import {
   Button,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useNavigation } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
+import axios from 'axios';
+
 
 const DATA = {
   friends: [
@@ -63,41 +67,86 @@ export default function HomeChat({ route }) {
     }
   }, []);
 
+  const checkOldPassword = async () => {
+    if (!oldPassword) {
+      Alert.alert('Lỗi', 'Vui lòng nhập mật khẩu cũ');
+      return;
+    }
+    try {
+      const res = await axios.post(
+        "http://10.0.2.2:3000/api/users/checkMatchPassword",
+        {
+          username: userInfo?.username,
+          password: oldPassword,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+    } catch (error) {
+      if (error.response?.status === 401) {
+        Alert.alert('Lỗi', 'Mật khẩu cũ không chính xác!');
+      } else {
+        Alert.alert('Lỗi', 'Đã xảy ra lỗi, vui lòng thử lại!');
+      }
+    }
+  };
+  
   const changePassword = async () => {
+    const id = userId;
+    if (!id) {
+      Alert.alert('Lỗi', 'Không tìm thấy ID người dùng');
+      return;
+    }
     if (!oldPassword || !password || !confirmPassword) {
       Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
       return;
     }
+  
     if (password !== confirmPassword) {
       Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp');
       return;
     }
-
+  
     try {
-      const response = await fetch(`http://10.0.2.2:3000/api/users/${userId}/change-password`, {
-        method: 'POST',
+      // Kiểm tra mật khẩu cũ
+      await axios.post(`http://10.0.2.2:3000/api/users/checkMatchPassword/${id}`, {
+        oldPassword
+      }, {
         headers: {
+          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({ oldPassword, newPassword: password }),
+        }
       });
-
-      if (response.ok) {
-        Alert.alert('Thành công', 'Đã đổi mật khẩu!');
-        setShowChangePassword(false);
-        setOldPassword('');
-        setPassword('');
-        setConfirmPassword('');
-      } else {
-        const errorData = await response.json();
-        Alert.alert('Lỗi', errorData.message || 'Không thể đổi mật khẩu');
-      }
+  
+      // Gửi yêu cầu cập nhật mật khẩu
+      await axios.post(`http://10.0.2.2:3000/api/users/updatePassword/${id}`, {
+        password
+      }, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        }
+      });
+  
+      Alert.alert('Thành công', 'Đã đổi mật khẩu thành công');
+      setShowChangePassword(false);
+      setOldPassword('');
+      setPassword('');
+      setConfirmPassword('');
+  
     } catch (err) {
-      Alert.alert('Lỗi', 'Đã xảy ra lỗi khi đổi mật khẩu');
+      if (err.response?.status === 401 || err.response?.status === 400) {
+        Alert.alert('Lỗi', err.response.data.message || 'Mật khẩu cũ không chính xác!');
+      } else {
+        Alert.alert('Lỗi', 'Đã xảy ra lỗi khi đổi mật khẩu');
+      }
       console.error(err);
     }
   };
+  
 
   const pickImageAndUpload = async () => {
     try {
