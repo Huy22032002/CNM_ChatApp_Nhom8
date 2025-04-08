@@ -2,7 +2,11 @@ import {
   createUserDetail as _createUserDetail,
   getAllUserDetails,
   updateUserDetail,
+  findUserDetailByUserId,
 } from "../services/userDetailService.js";
+
+import { v4 as uuidv4 } from "uuid";
+import S3 from "../configs/configS3.js";
 
 const createUserDetail = async (req, res) => {
   try {
@@ -35,21 +39,52 @@ const getAllUserDetail = async (req, res) => {
     res.status(500).json(`err getAllUserDetail Controller ${err}`);
   }
 };
-
+const getUserDetailByUserId = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await findUserDetailByUserId(id);
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json(`err get userDetail by id Controller ${err}`);
+  }
+};
 const updateUserDetails = async (req, res) => {
   try {
     const user_id = req.params.user_id;
     const userDetailData = req.body;
 
+    if (req.file) {
+      const image = req.file.originalname.split(".");
+      const fileType = image[image.length - 1];
+      const filePath = `${uuidv4()}.${fileType}`;
+
+      const params = {
+        Bucket: "chatappnhom8",
+        Key: filePath,
+        Body: req.file.buffer,
+        ContentType: req.file.mimetype,
+      };
+
+      const uploadedImg = await S3.upload(params).promise();
+      userDetailData.avatar_url = uploadedImg.Location;
+    }
+
+    // Gọi service update
     const updatedUserDetail = await updateUserDetail(user_id, userDetailData);
 
     res.status(200).json({
-      message: "User detail updated successfully",
+      message: "Cập nhật người dùng thành công!",
       userDetail: updatedUserDetail,
     });
   } catch (err) {
-    res.status(500).json(`err update userdetail controller ${err}`);
+    console.error("Lỗi cập nhật người dùng:", err);
+    res.status(500).json({ message: "Lỗi server", error: err.message });
   }
 };
 
-export default { createUserDetail, getAllUserDetail, updateUserDetails };
+export default {
+  createUserDetail,
+  getAllUserDetail,
+  updateUserDetails,
+  getUserDetailByUserId,
+};

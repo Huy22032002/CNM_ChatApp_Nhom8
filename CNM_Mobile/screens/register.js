@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   StyleSheet,
@@ -7,9 +7,9 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
-} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import axios from 'axios';
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
@@ -20,15 +20,18 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [loading, setLoading] = useState(false);
+
+  const API_URL = "http://10.0.2.2:3000";
 
   const onRegister = async () => {
     try {
       setLoading(true);
       const apiUrl = "http://10.0.2.2:3000";
-
       if (!username || !password || !email || !phone || !confirmPassword) {
         alert('Vui lòng nhập đầy đủ thông tin!');
+
         return;
       }
       //check phone 10 digits
@@ -58,9 +61,10 @@ export default function RegisterScreen() {
       });
 
       if (response.status !== 200) {
-        alert('Đăng ký thất bại. Vui lòng thử lại!');
+        alert("Đăng ký thất bại. Vui lòng thử lại!");
         return;
       }
+
       console.log(response.data);
       navigation.navigate('verifyOtp', {
         username,
@@ -71,7 +75,7 @@ export default function RegisterScreen() {
       });
     } catch (err) {
       console.error(err.response?.data || err.message);
-      alert('Đăng ký thất bại. Vui lòng thử lại!');
+      alert("Đăng ký thất bại. Vui lòng thử lại!");
     } finally {
       setLoading(false);
     }
@@ -79,8 +83,7 @@ export default function RegisterScreen() {
 
   return (
     <View style={styles.container}>
-      <Image source={require('../assets/register.png')} style={styles.logo} />
-
+      <Image source={require("../assets/register.png")} style={styles.logo} />
       <TextInput
         placeholder="Tên người dùng"
         value={username}
@@ -88,7 +91,6 @@ export default function RegisterScreen() {
         style={styles.input}
         autoCapitalize="none"
       />
-
       <TextInput
         placeholder="Email"
         value={email}
@@ -97,7 +99,6 @@ export default function RegisterScreen() {
         keyboardType="email-address"
         autoCapitalize="none"
       />
-
       <TextInput
         placeholder="Số điện thoại"
         value={phone}
@@ -105,7 +106,6 @@ export default function RegisterScreen() {
         style={styles.input}
         keyboardType="phone-pad"
       />
-
       <View style={styles.passwordContainer}>
         <TextInput
           placeholder="Mật khẩu"
@@ -116,10 +116,11 @@ export default function RegisterScreen() {
         />
         <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
           <Text style={styles.togglePassword}>
-            {showPassword ? '🙈' : '👁️'}
+            {showPassword ? "🙈" : "👁️"}
           </Text>
         </TouchableOpacity>
       </View>
+
 
       <View style={styles.passwordContainer}>
         <TextInput
@@ -135,7 +136,6 @@ export default function RegisterScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-      
       <TouchableOpacity
         style={[styles.button, loading && styles.disabledButton]}
         onPress={onRegister}
@@ -147,8 +147,7 @@ export default function RegisterScreen() {
           <Text style={styles.buttonText}>Đăng ký</Text>
         )}
       </TouchableOpacity>
-
-      <Text style={styles.link} onPress={() => navigation.navigate('login')}>
+      <Text style={styles.link} onPress={() => navigation.navigate("login")}>
         Đã có tài khoản? Đăng nhập
       </Text>
     </View>
@@ -156,49 +155,54 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#fff' },
-  logo: { width: 100, height: 100, alignSelf: 'center', marginBottom: 20 },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    padding: 24,
+    backgroundColor: "#fff",
+  },
+  logo: { width: 100, height: 100, alignSelf: "center", marginBottom: 20 },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: "#f9f9f9",
   },
   passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     borderRadius: 8,
     paddingRight: 10,
     marginBottom: 12,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: "#f9f9f9",
   },
   togglePassword: {
     fontSize: 18,
     paddingHorizontal: 8,
-    color: '#555',
+    color: "#555",
   },
   button: {
-    backgroundColor: '#28a745',
+    backgroundColor: "#28a745",
     paddingVertical: 14,
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
     marginVertical: 12,
   },
   disabledButton: {
     opacity: 0.6,
   },
   buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "bold",
   },
   link: {
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 16,
-    color: '#0066cc',
-    textDecorationLine: 'underline',
+    color: "#0066cc",
+    textDecorationLine: "underline",
   },
 });
