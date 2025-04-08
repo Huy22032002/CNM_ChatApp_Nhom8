@@ -7,6 +7,7 @@ import messageRoutes from "./routes/messageRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import { ConnectSocket } from "./configs/configSocketIO.js";
 import http from "http";
+import cors from "cors";
 
 import {
   authMiddleware,
@@ -17,7 +18,7 @@ const app = express();
 const server = http.createServer(app);
 ConnectSocket(server); 
 
-import cors from "cors";
+
 
 
 
