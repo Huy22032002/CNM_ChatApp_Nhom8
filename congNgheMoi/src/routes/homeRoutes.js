@@ -1,7 +1,12 @@
-const express = require("express");
-const router = express.Router();
-const homeController = require("../controllers/homeController");
+import { Router } from "express";
+const router = Router();
+import homeController from "../controllers/homeController.js";
+const { getHome } = homeController;
+import {
+  authMiddleware,
+  authMiddlewareWithoutRefresh,
+} from "../middlewares/authMiddleware.js";
 
-router.get("/", homeController.getHome);
+router.get("/", authMiddlewareWithoutRefresh, getHome);
 
-module.exports = router;
+export default router;

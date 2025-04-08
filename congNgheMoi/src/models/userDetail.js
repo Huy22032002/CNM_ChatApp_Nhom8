@@ -1,7 +1,6 @@
-const { DataTypes } = require("sequelize");
-const { sequelize } = require("../configs/connectRDS");
-
-const User = require("./userModel");
+import { DataTypes } from "sequelize";
+import { sequelize } from "../configs/connectRDS.js";
+import User from "./userModel.js";
 
 const UserDetail = sequelize.define("UserDetail", {
   user_id: { type: DataTypes.INTEGER, primaryKey: true },
@@ -11,8 +10,8 @@ const UserDetail = sequelize.define("UserDetail", {
   avatar_url: { type: DataTypes.STRING, allowNull: true },
 });
 
-//set Foreign Key
+// Set Foreign Key
 User.hasOne(UserDetail, { foreignKey: "user_id" });
 UserDetail.belongsTo(User, { foreignKey: "user_id" });
 
-module.exports = UserDetail;
+export default UserDetail;
