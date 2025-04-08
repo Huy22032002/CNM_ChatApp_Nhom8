@@ -1,4 +1,5 @@
 import UserDetail from "../models/userDetail.js";
+import User from "../models/userModel.js";
 
 const createUserDetail = async (userDetailData) => {
   try {
@@ -12,15 +13,18 @@ const updateUserDetail = async (user_id, userDetailData) => {
     const [updated] = await UserDetail.update(userDetailData, {
       where: { user_id },
     });
+
     if (updated === 0) {
-      throw new Error("fail to update userdetail in service");
+      throw new Error("Không tìm thấy hoặc không có dữ liệu để cập nhật");
     }
-    return await UserDetail.findByPk(user_id);
+
+    return await UserDetail.findOne({ where: { user_id } });
   } catch (err) {
     console.log(`Error update user detail service ${err}`);
     throw new Error("err update user detail");
   }
 };
+
 const getAllUserDetails = async () => {
   try {
     return await UserDetail.findAll();
@@ -28,5 +32,17 @@ const getAllUserDetails = async () => {
     throw new Error(`Error get all user details serice ${err}`);
   }
 };
+const findUserDetailByUserId = async (id) => {
+  try {
+    return await UserDetail.findByPk(id);
+  } catch (err) {
+    throw new Error(`Error get user details by id serice ${err}`);
+  }
+};
 
-export { createUserDetail, getAllUserDetails, updateUserDetail };
+export {
+  createUserDetail,
+  getAllUserDetails,
+  updateUserDetail,
+  findUserDetailByUserId,
+};
