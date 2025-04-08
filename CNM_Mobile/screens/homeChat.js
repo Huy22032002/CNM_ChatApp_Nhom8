@@ -4,9 +4,9 @@ import { Text, Searchbar, Avatar, Button, Divider } from 'react-native-paper';
 
 const DATA = {
   friends: [
-    { id: '1', name: 'Trâm Hồ', message: 'Hình ảnh nè!', avatar: require('../assets/user1.png') },
-    { id: '2', name: 'Mẹ', message: 'Đã gọi cho con rồi nha', avatar: require('../assets/user2.png') },
-    { id: '3', name: 'Cậu Bảy', message: 'Gửi hình hôm qua', avatar: require('../assets/user3.png') },
+    { id: '1', name: 'Huy', message: 'Hình ảnh nè!', avatar: require('../assets/user1.png') },
+    { id: '2', name: 'Hoàng', message: 'Đã gọi cho con rồi nha', avatar: require('../assets/user2.png') },
+    { id: '3', name: 'Hải', message: 'Gửi hình hôm qua', avatar: require('../assets/user3.png') },
   ],
   groups: [
     { id: '101', name: '111 Lê Đức Thọ - 1', message: 'Thanh Vy: Hình ảnh nè!', avatar: require('../assets/group1.png') },

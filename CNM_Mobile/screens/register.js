@@ -16,7 +16,7 @@ export default function RegisterScreen() {
   const onRegister = async () => {
     try {
       setLoading(true);
-      await axios.post(`https://${process.env.API_URL}/auth/register`, { email, phone, username, password });
+      await axios.post(`${process.env.API_URL}/auth/register`, { email, phone, username, password });
       alert('Đăng ký thành công!');
       navigation.navigate('login');
     } catch (err) {

@@ -6,7 +6,6 @@ import { findUser, authenticate, updateUser } from "../services/userService.js";
 import { generateToken, verifyAndRefreshToken } from "../configs/jwtConfig.js";
 import sendOtpEmail from "../utils/sendOtpEmail.js";
 import otpCache from "../middlewares/otpCache.js";
-import verifyOtp from "../middlewares/verifyOtp.js";
 
 const register = async (req, res) => {
   try {
