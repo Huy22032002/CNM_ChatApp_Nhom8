@@ -1,26 +1,59 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Image } from 'react-native';
-import { TextInput, Button, Text } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
-import axios from 'axios';
+import React, { useState } from "react";
+import {
+  View,
+  StyleSheet,
+  Image,
+  TextInput,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [name, setName] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const API_URL = "http://10.0.2.2:3000";
 
   const onRegister = async () => {
     try {
       setLoading(true);
-      await axios.post(`https://${process.env.API_URL}/auth/register`, { email,phone, username:name, password });
-      alert('Đăng ký thành công!');
-      navigation.navigate('login');
+      const apiUrl = process.env.API_URL || "http://10.0.2.2:3000";
+
+      if (!username || !password || !email || !phone) {
+        alert("Vui lòng nhập đầy đủ thông tin!");
+        return;
+      }
+
+      const response = await axios.post(`${apiUrl}/auth/register`, {
+        username,
+        password,
+        email,
+        phone,
+      });
+
+      if (response.status !== 200) {
+        alert("Đăng ký thất bại. Vui lòng thử lại!");
+        return;
+      }
+
+      navigation.navigate("verifyOtp", {
+        username,
+        password,
+        email,
+        phone,
+        otp: response.data.otp,
+      });
     } catch (err) {
-      alert('Đăng ký thất bại. Vui lòng thử lại!');
+      console.error(err.response?.data || err.message);
+      alert("Đăng ký thất bại. Vui lòng thử lại!");
     } finally {
       setLoading(false);
     }
@@ -28,47 +61,55 @@ export default function RegisterScreen() {
 
   return (
     <View style={styles.container}>
-      <Image source={require('../assets/register.png')} style={styles.logo} />
+      <Image source={require("../assets/register.png")} style={styles.logo} />
       <TextInput
-        label="Họ tên"
-        value={name}
-        onChangeText={setName}
-        left={<TextInput.Icon name="account" />}
+        placeholder="Tên người dùng"
+        value={username}
+        onChangeText={setUsername}
         style={styles.input}
+        autoCapitalize="none"
       />
       <TextInput
-        label="Email"
+        placeholder="Email"
         value={email}
         onChangeText={setEmail}
-        left={<TextInput.Icon name="email" />}
         style={styles.input}
+        keyboardType="email-address"
+        autoCapitalize="none"
       />
       <TextInput
-        label="Phone"
+        placeholder="Số điện thoại"
         value={phone}
         onChangeText={setPhone}
-        left={<TextInput.Icon name="phone" />}
         style={styles.input}
+        keyboardType="phone-pad"
       />
-      <TextInput
-        label="Mật khẩu"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry={!showPassword}
-        left={<TextInput.Icon name="lock" />}
-        right={
-          <TextInput.Icon
-            name={showPassword ? 'eye-off' : 'eye'}
-            onPress={() => setShowPassword(!showPassword)}
-          />
-        }
-        style={styles.input}
-      />
-      <Button mode="contained" onPress={onRegister} loading={loading} style={styles.button}>
-        Đăng ký
-      </Button>
-
-      <Text style={styles.link} onPress={() => navigation.navigate('login')}>
+      <View style={styles.passwordContainer}>
+        <TextInput
+          placeholder="Mật khẩu"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={!showPassword}
+          style={[styles.input, { flex: 1, marginBottom: 0 }]}
+        />
+        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+          <Text style={styles.togglePassword}>
+            {showPassword ? "🙈" : "👁️"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+      <TouchableOpacity
+        style={[styles.button, loading && styles.disabledButton]}
+        onPress={onRegister}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Đăng ký</Text>
+        )}
+      </TouchableOpacity>
+      <Text style={styles.link} onPress={() => navigation.navigate("login")}>
         Đã có tài khoản? Đăng nhập
       </Text>
     </View>
@@ -76,9 +117,54 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24 },
-  logo: { width: 100, height: 100, alignSelf: 'center', marginBottom: 20 },
-  input: { marginBottom: 12 },
-  button: { marginVertical: 12, borderRadius: 10 },
-  link: { textAlign: 'center', marginTop: 16, color: '#0066cc' },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    padding: 24,
+    backgroundColor: "#fff",
+  },
+  logo: { width: 100, height: 100, alignSelf: "center", marginBottom: 20 },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    backgroundColor: "#f9f9f9",
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    paddingRight: 10,
+    marginBottom: 12,
+    backgroundColor: "#f9f9f9",
+  },
+  togglePassword: {
+    fontSize: 18,
+    paddingHorizontal: 8,
+    color: "#555",
+  },
+  button: {
+    backgroundColor: "#28a745",
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    marginVertical: 12,
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  link: {
+    textAlign: "center",
+    marginTop: 16,
+    color: "#0066cc",
+    textDecorationLine: "underline",
+  },
 });
