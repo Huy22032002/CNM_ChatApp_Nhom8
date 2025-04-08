@@ -5,14 +5,11 @@ import userDetailRoutes from "./routes/userDetailRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
-<<<<<<< HEAD
 import cors from "cors";
 import cookieParser from "cookie-parser";
-=======
 import { ConnectSocket } from "./configs/configSocketIO.js";
 import http from "http";
 
->>>>>>> HuyBranch
 import {
   authMiddleware,
   authMiddlewareWithoutRefresh,
@@ -20,17 +17,14 @@ import {
 
 const app = express();
 
-<<<<<<< HEAD
 app.use(cookieParser());
 app.use(cors({
   origin: "http://localhost:5173", 
   credentials: true,
 }));
-=======
 //ket noi socket server chung voi app
 const server = http.createServer(app);
 ConnectSocket(server); //ket noi socketio
->>>>>>> HuyBranch
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
