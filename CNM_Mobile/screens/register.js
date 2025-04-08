@@ -16,7 +16,13 @@ export default function RegisterScreen() {
   const onRegister = async () => {
     try {
       setLoading(true);
-      const response=await axios.post(`${process.env.API_URL}/auth/register`, {username, password ,email, phone});
+      const apiUrl = process.env.API_URL || "10.0.2.2:3000"; ;
+      console.log(apiUrl);
+      if (!username || !password || !email || !phone) {
+        alert('Vui lòng nhập đầy đủ thông tin!');
+        return;
+      }
+      const response = await axios.post(`${apiUrl}/auth/register`, { username, password, email, phone });
       if (response.status !== 200) {
         alert('Đăng ký thất bại. Vui lòng thử lại!');
         return;

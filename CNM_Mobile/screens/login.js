@@ -19,8 +19,9 @@ export default function LoginScreen() {
         return;
       }
       setLoading(true);
-      const res = await axios.post(`${process.env.API_URL}/auth/login`, { username, password });
-      navigation.navigate('homeChat', { user: res.data.user.username });
+
+      const res = await axios.post(`http://10.0.2.2:3000/auth/login`, { username, password });
+      navigation.navigate('homeChat', { username: res.data.user.username });
     } catch (err) {
       console.error(err);
       alert('Sai tài khoản hoặc mật khẩu!');
