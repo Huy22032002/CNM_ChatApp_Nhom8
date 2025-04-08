@@ -9,7 +9,6 @@ const MessageService = {
       throw new Error("Err creating message service");
     }
   },
-
   async getAllMessageByConversationId(conversation_id) {
     if (!conversation_id) {
       throw new Error("Invalid conversation_id in service");
@@ -19,6 +18,14 @@ const MessageService = {
     } catch (error) {
       console.error(`Error fetching messages: ${error.message}`);
       throw new Error("Error fetching messages service");
+    }
+  },
+  async updateMessageContent(message) {
+    try {
+      return await MessageModel.updateMessageContent(message);
+    } catch (err) {
+      console.log(`Err update message content service ${err}`);
+      throw new Error("Err update msg content serivce");
     }
   },
 };
