@@ -1,23 +1,30 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Image } from 'react-native';
-import { TextInput, Button, Text } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
-import axios from 'axios';
+import React, { useState } from "react";
+import { View, StyleSheet, Image } from "react-native";
+import { TextInput, Button, Text } from "react-native-paper";
+import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
 
 export default function LoginScreen() {
   const navigation = useNavigation();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
+  const API_URL = "http://10.0.2.2:3000";
 
   const onLogin = async () => {
     try {
       setLoading(true);
-      const res = await axios.post(`https://${process.env.API_URL}/auth/login`, { username, password });
-      navigation.navigate('homeChat', { user: res.data.user.name });
+      const res = await axios.post(`${API_URL}/auth/login`, {
+        username,
+        password,
+      });
+      console.log("Login success:", res.data);
+      navigation.navigate("homeChat");
     } catch (err) {
-      alert('Sai tài khoản hoặc mật khẩu!');
+      console.error("Login error:", err?.response?.data || err.message);
+      alert("Sai tài khoản hoặc mật khẩu!");
     } finally {
       setLoading(false);
     }
@@ -25,7 +32,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Image source={require('../assets/logo.png')} style={styles.logo} />
+      <Image source={require("../assets/logo.png")} style={styles.logo} />
       <TextInput
         label="username"
         value={username}
@@ -41,17 +48,22 @@ export default function LoginScreen() {
         left={<TextInput.Icon name="lock" />}
         right={
           <TextInput.Icon
-            name={showPassword ? 'eye-off' : 'eye'}
+            name={showPassword ? "eye-off" : "eye"}
             onPress={() => setShowPassword(!showPassword)}
           />
         }
         style={styles.input}
       />
-      <Button mode="contained" loading={loading} onPress={onLogin} style={styles.button}>
+      <Button
+        mode="contained"
+        loading={loading}
+        onPress={onLogin}
+        style={styles.button}
+      >
         Đăng nhập
       </Button>
 
-      <Text style={styles.link} onPress={() => navigation.navigate('register')}>
+      <Text style={styles.link} onPress={() => navigation.navigate("register")}>
         Chưa có tài khoản? Đăng ký
       </Text>
     </View>
@@ -59,9 +71,9 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24 },
-  logo: { width: 100, height: 100, alignSelf: 'center', marginBottom: 20 },
+  container: { flex: 1, justifyContent: "center", padding: 24 },
+  logo: { width: 100, height: 100, alignSelf: "center", marginBottom: 20 },
   input: { marginBottom: 12 },
   button: { marginVertical: 12, borderRadius: 10 },
-  link: { textAlign: 'center', marginTop: 16, color: '#0066cc' },
+  link: { textAlign: "center", marginTop: 16, color: "#0066cc" },
 });
