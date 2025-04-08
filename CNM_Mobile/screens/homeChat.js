@@ -66,33 +66,6 @@ export default function HomeChat({ route }) {
       fetchUser(userId);
     }
   }, []);
-
-  const checkOldPassword = async () => {
-    if (!oldPassword) {
-      Alert.alert('Lỗi', 'Vui lòng nhập mật khẩu cũ');
-      return;
-    }
-    try {
-      const res = await axios.post(
-        "http://10.0.2.2:3000/api/users/checkMatchPassword",
-        {
-          username: userInfo?.username,
-          password: oldPassword,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-    } catch (error) {
-      if (error.response?.status === 401) {
-        Alert.alert('Lỗi', 'Mật khẩu cũ không chính xác!');
-      } else {
-        Alert.alert('Lỗi', 'Đã xảy ra lỗi, vui lòng thử lại!');
-      }
-    }
-  };
   
   const changePassword = async () => {
     try {
