@@ -55,10 +55,7 @@ const updateUser = async (req, res) => {
 
 const updatePassword = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    
-    const { password } = req.body;
-    console.log('req.params.id:', req.params.id);
+    const {id, password } = req.body;
     console.log('req.body:', req.body);
 
     const hashedPassword = await bcrypt.hash(password, 10);
