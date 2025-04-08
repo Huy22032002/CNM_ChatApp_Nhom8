@@ -17,9 +17,11 @@ const MessageModel = {
         sender: message.sender,
         receivers: message.receivers,
         content: message.content,
+        image_url: message.image_url || null,
         message_type: message.message_type || message.type,
         status: message.status,
         created_at: new Date().toISOString(),
+        update_at: null,
       },
     };
     try {
@@ -45,6 +47,28 @@ const MessageModel = {
     } catch (error) {
       console.log(`error get all message of conver in model: ${error}`);
       return [];
+    }
+  },
+  async updateMessageContent(message) {
+    const { message_id, content } = message;
+    const params = {
+      TableName: TABLE_NAME,
+      Key: {
+        message_id,
+      },
+      UpdateExpression: "set content = :content, update_at = :update_at",
+      ExpressionAttributeValues: {
+        ":content": content,
+        ":update_at": new Date().toISOString(),
+      },
+      ReturnValues: "UPDATED_NEW",
+    };
+    try {
+      const result = await dynamoDB.update(params).promise();
+      return result.Attributes;
+    } catch (err) {
+      console.log(`Error update message: ${err}`);
+      return null;
     }
   },
 };
