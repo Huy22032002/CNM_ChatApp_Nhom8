@@ -8,13 +8,13 @@ export default function LoginScreen() {
   const navigation = useNavigation();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
   const onLogin = async () => {
     try {
       setLoading(true);
-      const res = await axios.post(`https://${process.env.API_URL}/auth/login`, { email, password });
+      const res = await axios.post(`https://${process.env.API_URL}/auth/login`, { username, password });
       navigation.navigate('homeChat', { user: res.data.user.name });
     } catch (err) {
       alert('Sai tài khoản hoặc mật khẩu!');
@@ -27,9 +27,9 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <Image source={require('../assets/logo.png')} style={styles.logo} />
       <TextInput
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
+        label="username"
+        value={username}
+        onChangeText={setUsername}
         left={<TextInput.Icon name="email" />}
         style={styles.input}
       />

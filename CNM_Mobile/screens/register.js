@@ -8,6 +8,7 @@ export default function RegisterScreen() {
   const navigation = useNavigation();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,7 +16,7 @@ export default function RegisterScreen() {
   const onRegister = async () => {
     try {
       setLoading(true);
-      await axios.post(`https://${process.env.API_URL}/auth/register`, { email, name, password });
+      await axios.post(`https://${process.env.API_URL}/auth/register`, { email,phone, username:name, password });
       alert('Đăng ký thành công!');
       navigation.navigate('login');
     } catch (err) {
@@ -40,6 +41,13 @@ export default function RegisterScreen() {
         value={email}
         onChangeText={setEmail}
         left={<TextInput.Icon name="email" />}
+        style={styles.input}
+      />
+      <TextInput
+        label="Phone"
+        value={phone}
+        onChangeText={setPhone}
+        left={<TextInput.Icon name="phone" />}
         style={styles.input}
       />
       <TextInput
