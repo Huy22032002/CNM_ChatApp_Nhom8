@@ -21,27 +21,20 @@ import cors from "cors";
 
 
 
-const app = express();
-
 app.use(cors({
   origin: "http://localhost:5173", 
   credentials: true,
 }));
 
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Use routes
 app.use("/auth", authRoutes);
 
 // app.use(
 //   authMiddlewareWithoutRefresh
 //   // authMiddleware
 // );
-
-
-// Apply authentication middleware for protected routes
 app.use(authMiddlewareWithoutRefresh);
 
 app.use("/api/home", homeRoutes);

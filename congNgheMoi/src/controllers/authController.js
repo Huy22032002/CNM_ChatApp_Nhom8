@@ -4,36 +4,86 @@ import User from "../models/userModel.js";
 const router = Router();
 import { findUser, authenticate, updateUser } from "../services/userService.js";
 import { generateToken, verifyAndRefreshToken } from "../configs/jwtConfig.js";
+import sendOtpEmail from "../utils/sendOtpEmail.js";
+import otpCache from "../middlewares/otpCache.js";
+import verifyOtp from "../middlewares/verifyOtp.js";
 
 const register = async (req, res) => {
   try {
     const { username, password, email, phone } = req.body;
 
+    const existingUser = await findUser(username);
+    if (existingUser == null) {
+      const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Check if user already exists
-        const existingUser = await findUser(username);
-        if (existingUser==null) {
-            const hashedPassword = await bcrypt.hash(password,10);
-        // console.log(hashedPassword);
+      // Tạo OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      otpCache.set(email, otp); // lưu vào cache
 
-      // Create a new user
-      const newUser = new User({
-        username,
-        pass_hash: hashedPassword,
-        email,
-        phone,
-      });
-      await newUser.save();
+      // Gửi email OTP
+      await sendOtpEmail(email, otp);
 
-      res.status(201).json({ message: "User registered successfully" });
+      // Chưa lưu user vào DB ngay — đợi xác thực OTP
+      res.status(200).json({ message: "OTP sent to email", email });
     } else {
       return res.status(400).json({ message: "Username already exists" });
     }
-    // Hash the password
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
 };
+
+const verifyOtp = async (req, res) => {
+    const { email, username, password, phone, otp } = req.body;
+    const storedOtp = otpCache.get(email);
+  
+    if (storedOtp !== otp) {
+      return res.status(400).json({ message: "OTP không chính xác" });
+    }
+  
+    // Tạo user sau khi xác thực
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({
+      username,
+      pass_hash: hashedPassword,
+      email,
+      phone,
+    });
+    await newUser.save();
+    otpCache.delete(email);
+  
+    res.status(201).json({ message: "Đăng ký thành công" });
+};
+
+// const register = async (req, res) => {
+//   try {
+//     const { username, password, email, phone } = req.body;
+
+
+//         // Check if user already exists
+//         const existingUser = await findUser(username);
+//         if (existingUser==null) {
+//             const hashedPassword = await bcrypt.hash(password,10);
+//         // console.log(hashedPassword);
+
+//       // Create a new user
+//       const newUser = new User({
+//         username,
+//         pass_hash: hashedPassword,
+//         email,
+//         phone,
+//       });
+//       await newUser.save();
+
+//       res.status(201).json({ message: "User registered successfully" });
+//     } else {
+//       return res.status(400).json({ message: "Username already exists" });
+//     }
+//     // Hash the password
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error", error });
+//   }
+// };
 
 const login = async (req, res) => {
 
@@ -55,7 +105,7 @@ const login = async (req, res) => {
       secure: true,
       maxAge: 15 * 60 * 1000,
     }); // 15 minutes
-    
+
     res.cookie("token", tokens.refreshToken, {
       httpOnly: true,
       secure: true,
@@ -99,4 +149,4 @@ const logout = (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
 };
 
-export { register, login, refreshToken, logout };
+export { register, login, refreshToken, logout ,verifyOtp};
