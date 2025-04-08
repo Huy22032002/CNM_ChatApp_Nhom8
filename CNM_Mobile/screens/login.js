@@ -15,16 +15,19 @@ export default function LoginScreen() {
 
   const onLogin = async () => {
     try {
+      console.log(process.env.API_URL);
+      if (!username || !password) {
+        alert('Vui lòng nhập tài khoản và mật khẩu!');
+        return;
+      }
       setLoading(true);
-      const res = await axios.post(`${API_URL}/auth/login`, {
-        username,
-        password,
-      });
-      console.log("Login success:", res.data);
-      navigation.navigate("homeChat");
+
+
+      const res = await axios.post(`http://10.0.2.2:3000/auth/login`, { username, password });
+      navigation.navigate('homeChat', { username: res.data.user.username });
     } catch (err) {
-      console.error("Login error:", err?.response?.data || err.message);
-      alert("Sai tài khoản hoặc mật khẩu!");
+      console.error(err);
+      alert('Sai tài khoản hoặc mật khẩu!');
     } finally {
       setLoading(false);
     }
