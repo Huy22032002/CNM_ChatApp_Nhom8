@@ -13,8 +13,13 @@ export default function LoginScreen() {
 
   const onLogin = async () => {
     try {
+      console.log(process.env.API_URL);
+      if (!username || !password) {
+        alert('Vui lòng nhập tài khoản và mật khẩu!');
+        return;
+      }
       setLoading(true);
-      const res = await axios.post(`https://localhost:3000/auth/login`, { username, password });
+      const res = await axios.post(`${process.env.API_URL}/auth/login`, { username, password });
       navigation.navigate('homeChat', { user: res.data.user.name });
     } catch (err) {
       console.error(err);
