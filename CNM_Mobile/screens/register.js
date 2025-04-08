@@ -1,6 +1,13 @@
 import React, { useState } from "react";
-import { View, StyleSheet, Image } from "react-native";
-import { TextInput, Button, Text } from "react-native-paper";
+import {
+  View,
+  StyleSheet,
+  Image,
+  TextInput,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 
@@ -18,21 +25,34 @@ export default function RegisterScreen() {
   const onRegister = async () => {
     try {
       setLoading(true);
-      const apiUrl = process.env.API_URL || "10.0.2.2:3000"; ;
-      console.log(apiUrl);
+      const apiUrl = process.env.API_URL || "http://10.0.2.2:3000";
+
       if (!username || !password || !email || !phone) {
-        alert('Vui lòng nhập đầy đủ thông tin!');
+        alert("Vui lòng nhập đầy đủ thông tin!");
         return;
       }
-      const response = await axios.post(`${apiUrl}/auth/register`, { username, password, email, phone });
+
+      const response = await axios.post(`${apiUrl}/auth/register`, {
+        username,
+        password,
+        email,
+        phone,
+      });
+
       if (response.status !== 200) {
-        alert('Đăng ký thất bại. Vui lòng thử lại!');
+        alert("Đăng ký thất bại. Vui lòng thử lại!");
         return;
       }
-      
-      console.log(response.data);
-      navigation.navigate('verifyOtp', {username, password ,email, phone , otp: response.data.otp});
+
+      navigation.navigate("verifyOtp", {
+        username,
+        password,
+        email,
+        phone,
+        otp: response.data.otp,
+      });
     } catch (err) {
+      console.error(err.response?.data || err.message);
       alert("Đăng ký thất bại. Vui lòng thử lại!");
     } finally {
       setLoading(false);
@@ -43,49 +63,52 @@ export default function RegisterScreen() {
     <View style={styles.container}>
       <Image source={require("../assets/register.png")} style={styles.logo} />
       <TextInput
-        label="Username"
+        placeholder="Tên người dùng"
         value={username}
         onChangeText={setUsername}
-        left={<TextInput.Icon name="account" />}
         style={styles.input}
+        autoCapitalize="none"
       />
       <TextInput
-        label="Email"
+        placeholder="Email"
         value={email}
         onChangeText={setEmail}
-        left={<TextInput.Icon name="email" />}
         style={styles.input}
+        keyboardType="email-address"
+        autoCapitalize="none"
       />
       <TextInput
-        label="Phone"
+        placeholder="Số điện thoại"
         value={phone}
         onChangeText={setPhone}
-        left={<TextInput.Icon name="phone" />}
         style={styles.input}
+        keyboardType="phone-pad"
       />
-      <TextInput
-        label="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry={!showPassword}
-        left={<TextInput.Icon name="lock" />}
-        right={
-          <TextInput.Icon
-            name={showPassword ? "eye-off" : "eye"}
-            onPress={() => setShowPassword(!showPassword)}
-          />
-        }
-        style={styles.input}
-      />
-      <Button
-        mode="contained"
+      <View style={styles.passwordContainer}>
+        <TextInput
+          placeholder="Mật khẩu"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={!showPassword}
+          style={[styles.input, { flex: 1, marginBottom: 0 }]}
+        />
+        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+          <Text style={styles.togglePassword}>
+            {showPassword ? "🙈" : "👁️"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+      <TouchableOpacity
+        style={[styles.button, loading && styles.disabledButton]}
         onPress={onRegister}
-        loading={loading}
-        style={styles.button}
+        disabled={loading}
       >
-        Đăng ký
-      </Button>
-
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Đăng ký</Text>
+        )}
+      </TouchableOpacity>
       <Text style={styles.link} onPress={() => navigation.navigate("login")}>
         Đã có tài khoản? Đăng nhập
       </Text>
@@ -94,9 +117,54 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 24 },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    padding: 24,
+    backgroundColor: "#fff",
+  },
   logo: { width: 100, height: 100, alignSelf: "center", marginBottom: 20 },
-  input: { marginBottom: 12 },
-  button: { marginVertical: 12, borderRadius: 10 },
-  link: { textAlign: "center", marginTop: 16, color: "#0066cc" },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    backgroundColor: "#f9f9f9",
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    paddingRight: 10,
+    marginBottom: 12,
+    backgroundColor: "#f9f9f9",
+  },
+  togglePassword: {
+    fontSize: 18,
+    paddingHorizontal: 8,
+    color: "#555",
+  },
+  button: {
+    backgroundColor: "#28a745",
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    marginVertical: 12,
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  link: {
+    textAlign: "center",
+    marginTop: 16,
+    color: "#0066cc",
+    textDecorationLine: "underline",
+  },
 });
