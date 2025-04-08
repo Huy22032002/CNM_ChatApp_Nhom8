@@ -14,26 +14,34 @@ import {
 } from "./middlewares/authMiddleware.js";
 
 const app = express();
-
-//ket noi socket server chung voi app
 const server = http.createServer(app);
-ConnectSocket(server); //ket noi socketio
+ConnectSocket(server); 
+
+import cors from "cors";
+
+
+
+app.use(cors({
+  origin: "http://localhost:5173", 
+  credentials: true,
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Use routes
 app.use("/auth", authRoutes);
 
 // app.use(
 //   authMiddlewareWithoutRefresh
 //   // authMiddleware
 // );
+app.use(authMiddlewareWithoutRefresh);
 
 app.use("/api/home", homeRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/userDetails", userDetailRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/messages", messageRoutes);
+
 
 export default app;
