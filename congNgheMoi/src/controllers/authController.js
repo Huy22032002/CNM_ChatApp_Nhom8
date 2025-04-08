@@ -55,6 +55,7 @@ const login = async (req, res) => {
       secure: true,
       maxAge: 15 * 60 * 1000,
     }); // 15 minutes
+    
     res.cookie("token", tokens.refreshToken, {
       httpOnly: true,
       secure: true,
