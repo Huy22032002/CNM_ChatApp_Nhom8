@@ -1,7 +1,5 @@
-import dotenv from "dotenv";
-dotenv.config();
 import AWS from "aws-sdk";
-
+import { config } from "dotenv";
 
 AWS.config.update({
   region: process.env.AWS_REGION,
@@ -9,7 +7,6 @@ AWS.config.update({
   secretAccessKey: process.env.AWS_SECRET_KEY,
 });
 
-const dynamoDB = new AWS.DynamoDB.DocumentClient();
-console.log("Connect to DynamoDB");
+const S3 = new AWS.S3();
 
-export default dynamoDB;
+export default S3;
