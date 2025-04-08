@@ -126,6 +126,7 @@ const login = async (req, res) => {
 
     //update user ONLINE
     console.log(user);
+    console.log(tokens.accessToken);
     await updateUser(user.id, { status: "ONLINE" });
 
     res.status(200).json({ message: "Login successful", accessToken: tokens.accessToken,user });

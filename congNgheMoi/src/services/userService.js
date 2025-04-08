@@ -23,15 +23,20 @@ async function updateUser(id, user_data) {
     const [updated] = await User.update(user_data, {
       where: { id },
     });
+
     if (updated === 0) {
-      throw new Error("fail to update user in userService");
+      console.warn(`Không tìm thấy user với ID: ${id} hoặc không có gì thay đổi`);
+      return null;
     }
-    return await User.findByPk(id);
+
+    const updatedUser = await User.findByPk(id);
+    return updatedUser;
   } catch (error) {
-    console.log(`Error update user service ${error}`);
-    throw new Error("err update user");
+    console.error(`Lỗi khi cập nhật user [ID: ${id}]:`, error.message);
+    throw new Error("Đã xảy ra lỗi khi cập nhật người dùng");
   }
 }
+
 async function findUser(id) {
   try {
     const user = await User.findByPk(id, {
