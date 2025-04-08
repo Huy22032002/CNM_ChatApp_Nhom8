@@ -14,7 +14,7 @@ export default function Layout() {
       <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="login">
         <Stack.Screen name="login" component={Login} />
         <Stack.Screen name="register" component={Register} />
-        <Stack.Screen name="verifyOtp" component={Register} />
+        <Stack.Screen name="verifyOtp" component={VerifyOtp} />
         <Stack.Screen name="homeChat" component={HomeChat} />
       </Stack.Navigator>
     </NavigationContainer>

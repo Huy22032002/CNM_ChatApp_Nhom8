@@ -59,7 +59,9 @@ const VerifyOtp = () => {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${process.env.API_URL}/auth/verifyOtp`, {
+      const api_url=process.env.API_URL||"http://10.0.2.2:3000";
+      console.log(api_url);
+      const response = await axios.post(`${api_url}/auth/verifyOtp`, {
         email,
         username,
         password,
