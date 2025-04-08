@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, FlatList, StyleSheet, TouchableOpacity, Alert
+  View,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  Text,
+  Alert,
+  Image,
+  Modal,
+  Button,
 } from 'react-native';
-import {
-  Text, Searchbar, Avatar, Button, Divider, Menu, Modal, Portal, TextInput
-} from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
 
 const DATA = {
@@ -20,22 +26,31 @@ const DATA = {
 };
 
 export default function HomeChat({ route }) {
-  const { user } = route.params || {};
+  const { userId, accessToken } = route.params;
   const [searchQuery, setSearchQuery] = useState('');
   const [tab, setTab] = useState('friends');
   const [menuVisible, setMenuVisible] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [userInfo, setUserInfo] = useState(null);
 
   const filteredData = DATA[tab].filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const fetchUser = async (username) => {
+  const fetchUser = async (userId) => {
     try {
-      const response = await fetch(`http://10.0.2.2:8080/api/users/${username}`);
+      const response = await fetch(`http://10.0.2.2:3000/api/users/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
       const data = await response.json();
+      if (!response.ok) throw new Error('Lỗi khi fetch user');
       setUserInfo(data);
     } catch (error) {
       console.error('Lỗi khi fetch user:', error.message);
@@ -43,26 +58,44 @@ export default function HomeChat({ route }) {
   };
 
   useEffect(() => {
-    if (user) fetchUser(user);
-  }, [user]);
+    if (userId) {
+      fetchUser(userId);
+    }
+  }, []);
 
   const changePassword = async () => {
+    if (!oldPassword || !password || !confirmPassword) {
+      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp');
+      return;
+    }
+
     try {
-      const response = await fetch(`http://10.0.2.2:8080/api/users/${user}/change-password`, {
+      const response = await fetch(`http://10.0.2.2:3000/api/users/${userId}/change-password`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newPassword: password }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ oldPassword, newPassword: password }),
       });
 
       if (response.ok) {
         Alert.alert('Thành công', 'Đã đổi mật khẩu!');
         setShowChangePassword(false);
+        setOldPassword('');
         setPassword('');
+        setConfirmPassword('');
       } else {
-        throw new Error('Thất bại');
+        const errorData = await response.json();
+        Alert.alert('Lỗi', errorData.message || 'Không thể đổi mật khẩu');
       }
     } catch (err) {
-      Alert.alert('Lỗi', 'Không thể đổi mật khẩu');
+      Alert.alert('Lỗi', 'Đã xảy ra lỗi khi đổi mật khẩu');
+      console.error(err);
     }
   };
 
@@ -87,7 +120,7 @@ export default function HomeChat({ route }) {
           type,
         });
 
-        const response = await fetch(`http://10.0.2.2:8080/api/users/${user}/avatar`, {
+        const response = await fetch(`http://10.0.2.2:8080/api/users/${userId}/avatar`, {
           method: 'POST',
           headers: {
             'Content-Type': 'multipart/form-data',
@@ -97,7 +130,7 @@ export default function HomeChat({ route }) {
 
         if (response.ok) {
           Alert.alert('Thành công', 'Đã cập nhật ảnh đại diện');
-          fetchUser(user); // Reload avatar mới
+          fetchUser(userId);
         } else {
           throw new Error('Lỗi khi upload');
         }
@@ -110,7 +143,7 @@ export default function HomeChat({ route }) {
 
   const renderItem = ({ item }) => (
     <TouchableOpacity style={styles.chatItem}>
-      <Avatar.Image source={item.avatar} size={48} />
+      <Image source={item.avatar} style={styles.avatar} />
       <View style={styles.chatContent}>
         <Text style={styles.chatName}>{item.name}</Text>
         <Text style={styles.chatMsg}>{item.message}</Text>
@@ -121,76 +154,85 @@ export default function HomeChat({ route }) {
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.header}>Xin chào, {userInfo?.fullName || user || 'User'} 👋</Text>
-        <Menu
-          visible={menuVisible}
-          onDismiss={() => setMenuVisible(false)}
-          anchor={
-            <TouchableOpacity onPress={() => setMenuVisible(true)}>
-              {userInfo?.avatarUrl ? (
-                <Avatar.Image source={{ uri: userInfo.avatarUrl }} size={40} />
-              ) : (
-                <Avatar.Icon icon="account" size={40} />
-              )}
-            </TouchableOpacity>
-          }
-        >
-          <Menu.Item
-            onPress={() => {
-              setMenuVisible(false);
-              setShowChangePassword(true);
-            }}
-            title="Đổi mật khẩu"
+        <Text style={styles.header}>Xin chào, {userInfo?.username || 'User'} 👋</Text>
+        <TouchableOpacity onPress={() => setMenuVisible(!menuVisible)}>
+          <Image
+            source={userInfo?.avatarUrl ? { uri: userInfo.avatarUrl } : require('../assets/default-avatar.png')}
+            style={styles.profileImage}
           />
-          <Menu.Item
-            onPress={() => {
-              setMenuVisible(false);
-              pickImageAndUpload();
-            }}
-            title="Đổi ảnh đại diện"
-          />
-        </Menu>
+        </TouchableOpacity>
       </View>
 
-      <Searchbar
+      {menuVisible && (
+        <View style={styles.menu}>
+          <TouchableOpacity onPress={() => { setMenuVisible(false); setShowChangePassword(true); }}>
+            <Text style={styles.menuItem}>Đổi mật khẩu</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => { setMenuVisible(false); pickImageAndUpload(); }}>
+            <Text style={styles.menuItem}>Đổi ảnh đại diện</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <TextInput
         placeholder="Tìm kiếm"
-        onChangeText={setSearchQuery}
         value={searchQuery}
-        style={styles.searchBar}
+        onChangeText={setSearchQuery}
+        style={styles.searchInput}
       />
 
       <View style={styles.tabContainer}>
-        <Button mode={tab === 'friends' ? 'contained' : 'outlined'} onPress={() => setTab('friends')}>
-          Bạn bè
-        </Button>
-        <Button mode={tab === 'groups' ? 'contained' : 'outlined'} onPress={() => setTab('groups')}>
-          Nhóm
-        </Button>
+        <TouchableOpacity
+          style={[styles.tabButton, tab === 'friends' && styles.activeTab]}
+          onPress={() => setTab('friends')}
+        >
+          <Text style={tab === 'friends' ? styles.activeTabText : styles.tabText}>Bạn bè</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabButton, tab === 'groups' && styles.activeTab]}
+          onPress={() => setTab('groups')}
+        >
+          <Text style={tab === 'groups' ? styles.activeTabText : styles.tabText}>Nhóm</Text>
+        </TouchableOpacity>
       </View>
 
       <FlatList
         data={filteredData}
         renderItem={renderItem}
         keyExtractor={item => item.id}
-        ItemSeparatorComponent={() => <Divider />}
         contentContainerStyle={{ paddingBottom: 60 }}
       />
 
-      {/* Modal: Đổi mật khẩu */}
-      <Portal>
-        <Modal visible={showChangePassword} onDismiss={() => setShowChangePassword(false)} contentContainerStyle={styles.modal}>
-          <Text style={{ marginBottom: 10 }}>Nhập mật khẩu mới:</Text>
+      <Modal visible={showChangePassword} transparent animationType="slide">
+        <View style={styles.modalView}>
+          <Text style={{ marginBottom: 10 }}>Mật khẩu cũ:</Text>
           <TextInput
+            placeholder="Mật khẩu cũ"
             secureTextEntry
-            label="Mật khẩu mới"
+            value={oldPassword}
+            onChangeText={setOldPassword}
+            style={styles.input}
+          />
+          <Text style={{ marginBottom: 10 }}>Mật khẩu mới:</Text>
+          <TextInput
+            placeholder="Mật khẩu mới"
+            secureTextEntry
             value={password}
             onChangeText={setPassword}
+            style={styles.input}
           />
-          <Button mode="contained" style={{ marginTop: 10 }} onPress={changePassword}>
-            Xác nhận
-          </Button>
-        </Modal>
-      </Portal>
+          <Text style={{ marginBottom: 10 }}>Xác nhận mật khẩu mới:</Text>
+          <TextInput
+            placeholder="Xác nhận mật khẩu mới"
+            secureTextEntry
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            style={styles.input}
+          />
+          <Button title="Xác nhận" onPress={changePassword} />
+          <Button title="Huỷ" color="gray" onPress={() => setShowChangePassword(false)} />
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -204,16 +246,62 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   header: { fontSize: 20, fontWeight: 'bold' },
-  searchBar: { marginBottom: 12, borderRadius: 30 },
+  profileImage: { width: 40, height: 40, borderRadius: 20 },
+  menu: {
+    backgroundColor: '#fff',
+    padding: 10,
+    borderRadius: 8,
+    elevation: 5,
+    position: 'absolute',
+    right: 16,
+    top: 70,
+    zIndex: 999,
+  },
+  menuItem: {
+    paddingVertical: 8,
+    fontSize: 16,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    marginBottom: 12,
+    backgroundColor: '#fff',
+  },
   tabContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginBottom: 12,
   },
+  tabButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#0066cc',
+  },
+  activeTab: {
+    backgroundColor: '#0066cc',
+  },
+  tabText: {
+    color: '#0066cc',
+  },
+  activeTabText: {
+    color: '#fff',
+  },
   chatItem: {
     flexDirection: 'row',
     paddingVertical: 10,
     alignItems: 'center',
+    borderBottomWidth: 0.5,
+    borderColor: '#ccc',
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
   chatContent: {
     marginLeft: 12,
@@ -227,10 +315,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'gray',
   },
-  modal: {
+  modalView: {
     backgroundColor: 'white',
+    marginHorizontal: 20,
     padding: 20,
-    margin: 20,
+    marginTop: '40%',
     borderRadius: 8,
+    elevation: 10,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 12,
   },
 });
