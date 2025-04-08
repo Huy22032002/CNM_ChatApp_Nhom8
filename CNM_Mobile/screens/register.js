@@ -18,6 +18,8 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const onRegister = async () => {
@@ -25,13 +27,26 @@ export default function RegisterScreen() {
       setLoading(true);
       const apiUrl = "http://10.0.2.2:3000";
 
-      if (!username || !password || !email || !phone) {
+      if (!username || !password || !email || !phone || !confirmPassword) {
         alert('Vui lòng nhập đầy đủ thông tin!');
         return;
       }
       //check phone 10 digits
       if (!/^\d{10}$/.test(phone)) {
         alert('Số điện thoại không hợp lệ!');
+        return;
+      }
+
+      //check email format
+
+      if (!/\S+@\S+\.\S+/.test(email)) {
+        alert('Email không hợp lệ!');
+        return;
+      }
+
+      //check confirm password
+      if (password !== confirmPassword) {
+        alert('Mật khẩu không khớp!');
         return;
       }
 
@@ -106,6 +121,21 @@ export default function RegisterScreen() {
         </TouchableOpacity>
       </View>
 
+      <View style={styles.passwordContainer}>
+        <TextInput
+          placeholder="Nhập lại mật khẩu"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry={!showConfirmPassword}
+          style={[styles.input, { flex: 1, marginBottom: 0 }]}
+        />
+        <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+          <Text style={styles.togglePassword}>
+            {showConfirmPassword ? '🙈' : '👁️'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+      
       <TouchableOpacity
         style={[styles.button, loading && styles.disabledButton]}
         onPress={onRegister}
