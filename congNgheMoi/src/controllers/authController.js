@@ -31,7 +31,6 @@ const register = async (req, res) => {
       // });
       // await newUser.save();//for testing
 
-
       // Chưa lưu user vào DB ngay — đợi xác thực OTP
       res.status(200).json({ message: "OTP sent to email", email,otp });
     } else {
@@ -41,7 +40,6 @@ const register = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
-
 
 const verifyOtp= async (req, res) => {
     const { email, username, password, phone, otp } = req.body;
@@ -97,7 +95,6 @@ const createNewUser = async (req, res) => {
 //   try {
 //     const { username, password, email, phone } = req.body;
 
-
 //         // Check if user already exists
 //         const existingUser = await findUser(username);
 //         if (existingUser==null) {
@@ -124,7 +121,6 @@ const createNewUser = async (req, res) => {
 // };
 
 const login = async (req, res) => {
-
   try {
     const { username, password } = req.body;
     const user = await authenticate(username, password);
@@ -154,15 +150,19 @@ const login = async (req, res) => {
     console.log(user);
     console.log(tokens.accessToken);
     await updateUser(user.id, { status: "ONLINE" });
-
-    res.status(200).json({ message: "Login successful", accessToken: tokens.accessToken,user });
+    ({ message: "Login successful", accessToken: tokens.accessToken });
+    res
+      .status(200)
+      .json({
+        message: "Login successful",
+        accessToken: tokens.accessToken,
+        user,
+      });
   } catch (error) {
     res.status(500).json({ message: "Lỗi đăng nhập" });
     console.log(error);
   }
-
 };
-
 
 const refreshToken = async (req, res) => {
   const { accessToken, refreshToken } = req.body;
@@ -182,9 +182,10 @@ const refreshToken = async (req, res) => {
 };
 
 const logout = (req, res) => {
-
   res.clearCookie("token");
   res.status(200).json({ message: "Logged out successfully" });
 };
 
+
 export { register, login, refreshToken, logout ,verifyOtp,createNewUser};
+
