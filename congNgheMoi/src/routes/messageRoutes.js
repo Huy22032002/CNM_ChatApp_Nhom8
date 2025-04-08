@@ -1,17 +1,28 @@
 import express from "express";
 import MessageController from "../controllers/messageController.js";
-import {authMiddleware,authMiddlewareWithoutRefresh} from "../middlewares/authMiddleware.js";
-
+import {
+  authMiddleware,
+  authMiddlewareWithoutRefresh,
+} from "../middlewares/authMiddleware.js";
+import { upload } from "../middlewares/uploadMiddleware.js";
 const router = express.Router();
 
-// Gửi tin nhắn (yêu cầu đăng nhập)
-router.post("/add", 
-    authMiddleware, 
-    MessageController.createMessage);
+router.post(
+  "/add",
+  authMiddlewareWithoutRefresh,
+  MessageController.createMessage
+);
 
-// Lấy tin nhắn theo `conversationId` (yêu cầu đăng nhập)
-router.get("/:converId", 
-    authMiddleware, 
-    MessageController.getAllMessageByConversationId);
+router.post(
+  "/sendImage",
+  upload.single("image"),
+  MessageController.sendImageMessage
+);
+
+router.get(
+  "/:converId",
+  authMiddlewareWithoutRefresh,
+  MessageController.getAllMessageByConversationId
+);
 
 export default router;
