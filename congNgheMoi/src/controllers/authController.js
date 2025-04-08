@@ -35,6 +35,7 @@ const register = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { username, password } = req.body;
+
         const user = await authenticate(username, password);
 
         if (!user) {
@@ -42,16 +43,28 @@ const login = async (req, res) => {
         }
 
         const tokens = generateToken(user);
-        res.json(tokens);
-        //luu token vao cookie
-        //accessToken: tokens.accessToken, refreshToken: tokens.refreshToken
-        res.cookie('accessToken', tokens.accessToken, { httpOnly: true, secure: true, maxAge: 15 * 60 * 1000 }); // 15 minutes
-        res.cookie('token', tokens.refreshToken, { httpOnly: true, secure: true, maxAge: 7 * 24 * 60 * 60 * 1000 }); // 7 days
-        return res.redirect('/home');
+
+        res.cookie('accessToken', tokens.accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',  // Chỉ sử dụng HTTPS trong môi trường production
+            maxAge: 15 * 60 * 1000  // 15 phút
+        });
+
+        res.cookie('refreshToken', tokens.refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',  // Chỉ sử dụng HTTPS trong môi trường production
+            maxAge: 7 * 24 * 60 * 60 * 1000  // 7 ngày
+        });
+
+ 
+        return res.json({ message: "Đăng nhập thành công", tokens });
+        // return res.redirect('/home');
     } catch (error) {
-        res.status(500).json({ message: "Lỗi đăng nhập" });
+        console.error(error);  
+        res.status(500).json({ message: "Lỗi đăng nhập, vui lòng thử lại sau" });
     }
 };
+
 
 const refreshToken = async (req, res) => {
     const { accessToken, refreshToken } = req.body;
