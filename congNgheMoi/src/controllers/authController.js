@@ -56,8 +56,8 @@ const login = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000  // 7 ngày
         });
 
- 
-        return res.json({ message: "Đăng nhập thành công", tokens });
+        res.json({ message: "Đăng nhập thành công", tokens });
+        return user;
         // return res.redirect('/home');
     } catch (error) {
         console.error(error);  
