@@ -5,8 +5,20 @@ import userDetailRoutes from "./routes/userDetailRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import { ConnectSocket } from "./configs/configSocketIO.js";
+import http from "http";
+
+import {
+  authMiddleware,
+  authMiddlewareWithoutRefresh,
+} from "./middlewares/authMiddleware.js";
+
+const app = express();
+const server = http.createServer(app);
+ConnectSocket(server); 
+
 import cors from "cors";
-import { authMiddleware, authMiddlewareWithoutRefresh } from "./middlewares/authMiddleware.js"; 
+
 
 
 const app = express();
@@ -16,14 +28,22 @@ app.use(cors({
   credentials: true,
 }));
 
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Use routes
 app.use("/auth", authRoutes);
 
+// app.use(
+//   authMiddlewareWithoutRefresh
+//   // authMiddleware
+// );
+
+
 // Apply authentication middleware for protected routes
 app.use(authMiddlewareWithoutRefresh);
+
 app.use("/api/home", homeRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/userDetails", userDetailRoutes);
