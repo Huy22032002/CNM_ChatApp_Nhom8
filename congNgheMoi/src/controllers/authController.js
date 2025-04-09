@@ -17,6 +17,19 @@ const register = async (req, res) => {
   try {
     const { username, password, email, phone } = req.body;
 
+    // const existUsername = await User.findOne({ username });
+    // if (existUsername) {
+    //   return res.status(401).json({ message: "Username da ton tai!" });
+    // }
+    // const existMail = await User.findOne({ mail });
+    // if (existMail) {
+    //   return res.status(402).json({ message: "Mail da ton tai!" });
+    // }
+    // const existPhone = await User.findOne({ phone });
+    // if (existPhone) {
+    //   return res.status(401).json({ message: "Phone da ton tai!" });
+    // }
+
     const existingUser = await findUser(username);
     if (existingUser == null) {
       // const hashedPassword = await bcrypt.hash(password, 10);
