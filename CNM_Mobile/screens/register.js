@@ -14,10 +14,13 @@ import axios from "axios";
 export default function RegisterScreen() {
   const navigation = useNavigation();
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [loading, setLoading] = useState(false);
 
   const API_URL = "http://10.0.2.2:3000";
@@ -25,10 +28,28 @@ export default function RegisterScreen() {
   const onRegister = async () => {
     try {
       setLoading(true);
-      const apiUrl = process.env.API_URL || "http://10.0.2.2:3000";
+      const apiUrl = "http://10.0.2.2:3000";
+      if (!username || !password || !email || !phone || !confirmPassword) {
+        alert('Vui lòng nhập đầy đủ thông tin!');
 
-      if (!username || !password || !email || !phone) {
-        alert("Vui lòng nhập đầy đủ thông tin!");
+        return;
+      }
+      //check phone 10 digits
+      if (!/^\d{10}$/.test(phone)) {
+        alert('Số điện thoại không hợp lệ!');
+        return;
+      }
+
+      //check email format
+
+      if (!/\S+@\S+\.\S+/.test(email)) {
+        alert('Email không hợp lệ!');
+        return;
+      }
+
+      //check confirm password
+      if (password !== confirmPassword) {
+        alert('Mật khẩu không khớp!');
         return;
       }
 
@@ -44,12 +65,13 @@ export default function RegisterScreen() {
         return;
       }
 
-      navigation.navigate("verifyOtp", {
+      console.log(response.data);
+      navigation.navigate('verifyOtp', {
         username,
         password,
         email,
         phone,
-        otp: response.data.otp,
+        otpGen: response.data.otp,
       });
     } catch (err) {
       console.error(err.response?.data || err.message);
@@ -95,6 +117,22 @@ export default function RegisterScreen() {
         <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
           <Text style={styles.togglePassword}>
             {showPassword ? "🙈" : "👁️"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+
+      <View style={styles.passwordContainer}>
+        <TextInput
+          placeholder="Nhập lại mật khẩu"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry={!showConfirmPassword}
+          style={[styles.input, { flex: 1, marginBottom: 0 }]}
+        />
+        <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+          <Text style={styles.togglePassword}>
+            {showConfirmPassword ? '🙈' : '👁️'}
           </Text>
         </TouchableOpacity>
       </View>

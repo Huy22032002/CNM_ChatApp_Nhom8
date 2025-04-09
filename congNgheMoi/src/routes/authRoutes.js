@@ -1,5 +1,5 @@
 import express from "express";
-import { login, refreshToken,register,logout,verifyOtp } from "../controllers/authController.js";
+import { login, refreshToken,register,logout,verifyOtp,createNewUser } from "../controllers/authController.js";
 import {authMiddleware,authMiddlewareWithoutRefresh} from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -14,5 +14,7 @@ router.post("/verifyOtp", verifyOtp);
 router.post("/logout", logout);
 // Lấy token mới
 router.post("/refresh", authMiddleware, refreshToken);
+// Tạo người dùng mới (không cần xác thực)
+router.post("/createNewUser", createNewUser);
 
 export default router;

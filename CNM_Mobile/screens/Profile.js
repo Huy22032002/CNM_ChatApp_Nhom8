@@ -12,16 +12,18 @@ import {
   Button,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { useNavigation } from "@react-navigation/native";
 
 export default function UserDetail({ route }) {
   const { userId, accessToken } = route.params;
+  const navigation = useNavigation();
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  // ✅ Xin quyền truy cập thư viện ảnh
   useEffect(() => {
     (async () => {
       const { status } =
@@ -61,7 +63,6 @@ export default function UserDetail({ route }) {
   };
 
   const pickImage = async () => {
-    console.log("Clicked avatar"); // ✅ kiểm tra click
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -117,8 +118,6 @@ export default function UserDetail({ route }) {
       );
 
       const text = await response.text();
-      console.log("Raw response:", text);
-
       let result;
       try {
         result = JSON.parse(text);
@@ -162,6 +161,17 @@ export default function UserDetail({ route }) {
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
+      {/* Nút quay lại HomeChat */}
+      <TouchableOpacity
+        onPress={() => navigation.navigate("homeChat", {
+          userId: userId,
+          accessToken:accessToken,
+        })}
+        style={styles.backButton}
+      >
+        <Text style={styles.backText}>← Quay lại</Text>
+      </TouchableOpacity>
+
       <View style={styles.avatarContainer}>
         <TouchableOpacity onPress={pickImage}>
           <Image
@@ -193,15 +203,30 @@ export default function UserDetail({ route }) {
             keyboardType="numeric"
             placeholder="Tuổi"
           />
-          <TextInput
-            style={styles.input}
-            value={user.gender ? "Nam" : "Nữ"}
-            onChangeText={(text) => {
-              const genderInput = text.trim().toLowerCase();
-              setUser({ ...user, gender: genderInput === "nam" });
-            }}
-            placeholder="Giới tính (Nam/Nữ)"
-          />
+
+          {/* Giới tính radio */}
+          <View style={styles.radioGroup}>
+            <TouchableOpacity
+              style={styles.radioButton}
+              onPress={() => setUser({ ...user, gender: true })}
+            >
+              <View style={styles.radioCircle}>
+                {user.gender === true && <View style={styles.selectedDot} />}
+              </View>
+              <Text style={styles.radioText}>Nam</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.radioButton}
+              onPress={() => setUser({ ...user, gender: false })}
+            >
+              <View style={styles.radioCircle}>
+                {user.gender === false && <View style={styles.selectedDot} />}
+              </View>
+              <Text style={styles.radioText}>Nữ</Text>
+            </TouchableOpacity>
+          </View>
+
           <Button
             title={saving ? "Đang lưu..." : "Lưu thông tin"}
             onPress={handleSave}
@@ -233,6 +258,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  backButton: {
+    alignSelf: "flex-start",
+    marginBottom: 16,
+    backgroundColor: "#eee",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  backText: {
+    fontSize: 16,
   },
   avatarContainer: {
     alignItems: "center",
@@ -267,5 +303,34 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 8,
+  },
+  radioGroup: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
+    marginBottom: 12,
+  },
+  radioButton: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  radioCircle: {
+    height: 20,
+    width: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#007bff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  selectedDot: {
+    height: 10,
+    width: 10,
+    borderRadius: 5,
+    backgroundColor: "#007bff",
+  },
+  radioText: {
+    fontSize: 16,
   },
 });
