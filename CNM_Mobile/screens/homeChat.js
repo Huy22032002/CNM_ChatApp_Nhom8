@@ -10,8 +10,12 @@ import {
   Image,
   Modal,
   Button,
-} from "react-native";
-import * as ImagePicker from "expo-image-picker";
+
+} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { useNavigation } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
+import axios from 'axios';
 
 const DATA = {
   friends: [
@@ -87,44 +91,166 @@ export default function HomeChat({ route, navigation }) {
       fetchUser(userId);
     }
   }, []);
-
+  
   const changePassword = async () => {
-    if (!oldPassword || !password || !confirmPassword) {
-      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin");
-      return;
-    }
-    if (password !== confirmPassword) {
-      Alert.alert("Lỗi", "Mật khẩu xác nhận không khớp");
-      return;
-    }
 
     try {
-      const response = await fetch(
-        `http://10.0.2.2:3000/api/users/${userId}/change-password`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ oldPassword, newPassword: password }),
-        }
-      );
-
-      if (response.ok) {
-        Alert.alert("Thành công", "Đã đổi mật khẩu!");
-        setShowChangePassword(false);
-        setOldPassword("");
-        setPassword("");
-        setConfirmPassword("");
-      } else {
-        const errorData = await response.json();
-        Alert.alert("Lỗi", errorData.message || "Không thể đổi mật khẩu");
+      const id = userId;
+      if (!id) {
+        Alert.alert('Lỗi', 'Không tìm thấy ID người dùng');
+        return;
       }
+      if (!oldPassword || !password || !confirmPassword) {
+        Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
+        return;
+      }
+  
+      if (password !== confirmPassword) {
+        Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp');
+        return;
+      }
+  
+      try {
+        // Gọi check mật khẩu cũ
+        const res = await axios.post(
+          "http://10.0.2.2:3000/api/users/checkMatchPassword",
+          {
+            username: userInfo?.username,
+            password: oldPassword,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        )
+        if (res.status !== 200) {
+          Alert.alert('Lỗi', 'Mật khẩu cũ không chính xác!');
+          return;
+        }
+        
+      } catch (error) {
+        if (error.response?.status === 401) {
+          Alert.alert('Lỗi', 'Mật khẩu cũ không chính xác!');
+          return;
+        } else {
+          Alert.alert('Lỗi', 'Đã xảy ra lỗi, vui lòng thử lại!');
+          return;
+        }
+      }
+
+  
+    
+        
+        await axios.post(`http://10.0.2.2:3000/api/users/updatePassword/`, 
+          {
+            id: userInfo?.id,
+            password: password,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+  
+        Alert.alert('Thành công', 'Đã đổi mật khẩu thành công');
+        setShowChangePassword(false);
+        setOldPassword('');
+        setPassword('');
+        setConfirmPassword('');
+      
     } catch (err) {
-      Alert.alert("Lỗi", "Đã xảy ra lỗi khi đổi mật khẩu");
+      if (err.response?.status === 401 || err.response?.status === 400) {
+        Alert.alert('Lỗi', err.response.data.message || 'Mật khẩu cũ không chính xác!');
+      } else {
+        Alert.alert('Lỗi', 'Đã xảy ra lỗi khi đổi mật khẩu');
+      }
       console.error(err);
     }
+  };
+  
+
+  const pickImageAndUpload = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        const localUri = result.assets[0].uri;
+        const filename = localUri.split('/').pop();
+        const match = /\.(\w+)$/.exec(filename ?? '');
+        const type = match ? `image/${match[1]}` : `image`;
+
+        const formData = new FormData();
+        formData.append('avatar', {
+          uri: localUri,
+          name: filename,
+          type,
+        });
+
+        const response = await fetch(`http://10.0.2.2:8080/api/users/${userId}/avatar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          body: formData,
+        });
+
+        if (response.ok) {
+          Alert.alert('Thành công', 'Đã cập nhật ảnh đại diện');
+          fetchUser(userId);
+        } else {
+          throw new Error('Lỗi khi upload');
+        }
+      }
+    } catch (err) {
+      Alert.alert('Lỗi', 'Không thể tải ảnh');
+
+      console.error(err);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await axios.post("http://10.0.2.2:3000/auth/logout", 
+        {
+          id: userInfo?.id,
+        },
+        {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      Alert.alert("Thành công", "Đã đăng xuất thành công");
+      navigation.navigate("login");
+    } catch (error) {
+      console.error("Lỗi khi đăng xuất:", error.message);
+      Alert.alert("Lỗi", "Không thể đăng xuất");
+    }
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      "Đăng xuất",
+      "Bạn có chắc chắn muốn đăng xuất không?",
+      [
+        {
+          text: "Huỷ",
+          onPress: () => console.log("Huỷ"),
+          style: "cancel",
+        },
+        {
+          text: "Đăng xuất",
+          onPress: () => {
+            logout();
+          },
+        },
+      ]
+    );
   };
 
   const renderItem = ({ item }) => (
@@ -172,6 +298,15 @@ export default function HomeChat({ route, navigation }) {
             }}
           >
             <Text style={styles.menuItem}>Trang cá nhân</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            onPress={() => {
+              setMenuVisible(false);
+              handleLogout();
+            }}
+          >
+            <Text style={styles.menuItem}>Đăng xuất</Text>
           </TouchableOpacity>
         </View>
       )}
