@@ -1,6 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import User from "../models/userModel.js";
+import UserDetail from "../models/userDetail.js";
 const router = Router();
 import {
   findUser,
@@ -64,6 +65,17 @@ const verifyOtp = async (req, res) => {
     status: "OFFLINE",
   });
   await newUser.save();
+  const userId = newUser.id;
+  // Create user detail
+  const userDetail = new UserDetail({
+    user_id: userId,
+    fullname: null,
+    age: null,
+    gender: null,
+    avatar_url: null,
+  });
+  await userDetail.save();
+
   otpCache.delete(email);
 
   res.status(201).json({ message: "Đăng ký thành công" });
@@ -87,6 +99,19 @@ const createNewUser = async (req, res) => {
       status: "OFFLINE",
     });
     await newUser.save();
+    //get the user id of the new user
+    const userId = newUser.id;
+    console.log("New uid:" + userId);
+    // Create user detail
+    const userDetail = new UserDetail({
+      user_id: userId,
+      fullname: null,
+      age: null,
+      gender: null,
+      avatar_url: null,
+    });
+    await userDetail.save();
+
     res.status(201).json({ message: "User created successfully" });
   } catch (error) {
     res
@@ -185,6 +210,10 @@ const refreshToken = async (req, res) => {
 };
 
 const logout = (req, res) => {
+  //chuyen status qua OFFLINE
+  const { id } = req.body;
+  updateUser(id, { status: "OFFLINE" });
+
   res.clearCookie("token");
   res.status(200).json({ message: "Logged out successfully" });
 };
