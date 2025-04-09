@@ -21,7 +21,7 @@ export default function UserDetail({ route }) {
   const [selectedAvatar, setSelectedAvatar] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  // ✅ Xin quyền truy cập thư viện ảnh
+  // Xin quyền truy cập thư viện ảnh
   useEffect(() => {
     (async () => {
       const { status } =
@@ -61,7 +61,7 @@ export default function UserDetail({ route }) {
   };
 
   const pickImage = async () => {
-    console.log("Clicked avatar"); // ✅ kiểm tra click
+    console.log("Clicked avatar"); // kiểm tra click
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,

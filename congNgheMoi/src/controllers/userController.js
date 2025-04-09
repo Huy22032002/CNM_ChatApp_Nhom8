@@ -3,7 +3,7 @@ import {
   getAllUSer,
   updateUser as _updateUser,
   findUser as _findUser,
-  authenticate
+  authenticate,
 } from "../services/userService.js";
 import bcrypt from "bcrypt";
 
@@ -55,8 +55,8 @@ const updateUser = async (req, res) => {
 
 const updatePassword = async (req, res) => {
   try {
-    const {id, password } = req.body;
-    console.log('req.body:', req.body);
+    const { id, password } = req.body;
+    console.log("req.body:", req.body);
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const updatedUser = await _updateUser(id, { pass_hash: hashedPassword });
@@ -69,8 +69,7 @@ const updatePassword = async (req, res) => {
       .status(500)
       .json({ message: "Error updating password", error: error.message });
   }
-}
-
+};
 
 const findUser = async (req, res) => {
   try {
@@ -99,4 +98,11 @@ const checkMatchPassword = async (req, res) => {
     res.status(500).json({ message: "Error authenticating user", error });
   }
 };
-export default { createUser, getAllUser, updateUser, findUser,checkMatchPassword ,updatePassword};
+export default {
+  createUser,
+  getAllUser,
+  updateUser,
+  findUser,
+  checkMatchPassword,
+  updatePassword,
+};
