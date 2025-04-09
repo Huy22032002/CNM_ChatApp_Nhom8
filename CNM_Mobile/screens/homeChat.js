@@ -214,6 +214,45 @@ export default function HomeChat({ route, navigation }) {
     }
   };
 
+  const logout = async () => {
+    try {
+      await axios.post("http://10.0.2.2:3000/auth/logout", 
+        {
+          id: userInfo?.id,
+        },
+        {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      Alert.alert("Thành công", "Đã đăng xuất thành công");
+      navigation.navigate("login");
+    } catch (error) {
+      console.error("Lỗi khi đăng xuất:", error.message);
+      Alert.alert("Lỗi", "Không thể đăng xuất");
+    }
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      "Đăng xuất",
+      "Bạn có chắc chắn muốn đăng xuất không?",
+      [
+        {
+          text: "Huỷ",
+          onPress: () => console.log("Huỷ"),
+          style: "cancel",
+        },
+        {
+          text: "Đăng xuất",
+          onPress: () => {
+            logout();
+          },
+        },
+      ]
+    );
+  };
+
   const renderItem = ({ item }) => (
     <TouchableOpacity style={styles.chatItem}>
       <Image source={item.avatar} style={styles.avatar} />
@@ -259,6 +298,15 @@ export default function HomeChat({ route, navigation }) {
             }}
           >
             <Text style={styles.menuItem}>Trang cá nhân</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            onPress={() => {
+              setMenuVisible(false);
+              handleLogout();
+            }}
+          >
+            <Text style={styles.menuItem}>Đăng xuất</Text>
           </TouchableOpacity>
         </View>
       )}
