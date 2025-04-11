@@ -81,6 +81,7 @@ export default function HomeChat({ route, navigation }) {
       const data = await response.json();
       if (!response.ok) throw new Error("Lỗi khi fetch user");
       setUserInfo(data);
+      
     } catch (error) {
       console.error("Lỗi khi fetch user:", error.message);
     }
