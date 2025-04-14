@@ -10,14 +10,16 @@ import {
   Image,
   Modal,
   Button,
+  ScrollView,
 } from "react-native";
 import axios from "axios";
 import { useSelector } from "react-redux";
+import Icon from "react-native-vector-icons/Feather";
+import { useNavigation } from '@react-navigation/native';
+
 
 
 import { fetchUserDetail } from "../api/userDetailApi";
-
-import * as ImagePicker from 'expo-image-picker';
 
 
 const DATA = {
@@ -58,6 +60,7 @@ const DATA = {
 };
 
 export default function HomeChat({ navigation }) {
+  navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   const [tab, setTab] = useState("friends");
   const [menuVisible, setMenuVisible] = useState(false);
@@ -69,6 +72,122 @@ export default function HomeChat({ navigation }) {
   const [userInfo, setUserInfo] = useState(null);
   const [userDetail, setUserDetail] = useState(null);
 
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showFriendRequests, setShowFriendRequests] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [friendRequestsDetails, setFriendRequestsDetails] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await axios.get(`http://10.0.2.2:3000/api/notifications/${user.id}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      setNotifications(res.data); // [{ message, type, status }]
+    } catch (err) {
+      console.error("Lỗi khi lấy thông báo:", err);
+    }
+  };
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await axios.get(`http://10.0.2.2:3000/api/notifications/unread-count/${user.id}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      setUnreadCount(res.data); // [{ message, type, status }]
+    } catch (err) {
+      console.error("Lỗi khi lấy thông báo:", err);
+    }
+  };
+  
+  const markAllAsRead = async () => {
+    try {
+      await axios.put(`http://10.0.2.2:3000/api/notifications/mark-read/${user.id}`, {}, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Lỗi khi đánh dấu đã đọc:", err);
+    }
+  };
+
+  const handleBellPress = () => {
+    const newShow = !showNotifications;
+    setShowNotifications(newShow);
+    if (!showNotifications) {
+      markAllAsRead();
+    }
+  };
+
+  const handleFriendPress = () => {
+    const newShow = !showFriendRequests;
+    setShowFriendRequests(newShow);
+  };
+
+  const fetchFriendRequests = async () => {
+    try {
+      const res = await axios.get(`http://10.0.2.2:3000/api/friends/requests/${user.id}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      setFriendRequests(res.data); // [{ message, type, status }]
+      console.log("Lời mời kết bạn:", res.data);
+      
+      // Fetch details for each friend request
+      const detailsPromises = res.data.map(async (request) => {
+        const userDetail = await fetchUserDetail(request.friend_id, accessToken);
+        return {
+          ...request,
+          userDetail
+        };
+      });
+      
+      const details = await Promise.all(detailsPromises);
+      setFriendRequestsDetails(details);
+    } catch (err) {
+      console.error("Lỗi khi lấy lời mời kết bạn:", err);
+    }
+  };
+
+  const acceptFriendRequest = async (friend_id) => {
+    try {
+      await axios.post(`http://10.0.2.2:3000/api/friends/accept`, 
+        {
+          user_id: user.id,
+          friend_id,
+        }, 
+        {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      handleFriendPress();
+    } catch (err) {
+      console.error("Lỗi khi chấp nhận kết bạn", err);
+    }
+  };
+
+  const cancelFriendRequest = async (friend_id) => {
+    try {
+      await axios.post(`http://10.0.2.2:3000/api/friends/cancel-request`, 
+        {
+          user_id: user.id,
+          friend_id,
+        }, 
+        {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      handleFriendPress();
+    } catch (err) {
+      console.error("Lỗi khi từ chối kết bạn", err);
+    }
+  };
+  
   const filteredData = DATA[tab].filter((item) =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -78,13 +197,37 @@ export default function HomeChat({ navigation }) {
   const user = useSelector((state) => state.user.user);
   const accessToken = useSelector((state) => state.user.accessToken);
 
-
+  const handleLogout = () => {
+    Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất không?", [
+      {
+        text: "Huỷ",
+        onPress: () => console.log("Huỷ"),
+        style: "cancel",
+      },
+      {
+        text: "Đăng xuất",
+        onPress: () => {
+          logout();
+        },
+      },
+    ]);
+  };
   useEffect(() => {
     setUserInfo(user);
     getUserDetail();
+    fetchNotifications();
+    fetchUnreadCount();
+    fetchFriendRequests();
   }, [user]);
   const getUserDetail = async () => {
     const data = await fetchUserDetail(user.id, accessToken);
+    if (data.error) {
+      alert("Lỗi", data.error);
+      setUserDetail(null);
+      // navigation.navigate("login");
+      handleLogout();
+      return;
+    }
     console.log("data fetch userdetail:", data);
     setUserDetail(data);
   };
@@ -184,21 +327,7 @@ export default function HomeChat({ navigation }) {
       Alert.alert("Lỗi", "Không thể đăng xuất");
     }
   };
-  const handleLogout = () => {
-    Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất không?", [
-      {
-        text: "Huỷ",
-        onPress: () => console.log("Huỷ"),
-        style: "cancel",
-      },
-      {
-        text: "Đăng xuất",
-        onPress: () => {
-          logout();
-        },
-      },
-    ]);
-  };
+  
   const renderItem = ({ item }) => (
     <TouchableOpacity style={styles.chatItem}>
       <Image source={item.avatar} style={styles.avatar} />
@@ -214,18 +343,78 @@ export default function HomeChat({ navigation }) {
         <Text style={styles.header}>
           Xin chào, {userDetail?.fullname || "User"} 👋
         </Text>
-        <TouchableOpacity onPress={() => 
-          navigation.navigate("findUser")
-        }>
-          <Image
-            source={
-              userDetail?.avatar_url
-                ? { uri: userDetail.avatar_url }
-                : require("../assets/default-avatar.png")
-            }
-            style={styles.profileImage}
-          />
+
+        <TouchableOpacity onPress={() => navigation.navigate("findUser")}>
+          <Icon name="search" size={24} color="#000" />
         </TouchableOpacity>
+
+        <View style={{ position: "relative", marginLeft: 10 }}>
+          <TouchableOpacity onPress={handleBellPress}>
+            <Icon name="bell" size={24} color="#333" />
+            {unreadCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationText}>{unreadCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {showNotifications && (
+            <View style={styles.dropdown}>
+              <ScrollView style={{ maxHeight: 200 }}>
+                {notifications.length === 0 ? (
+                  <Text style={styles.emptyText}>Không có thông báo</Text>
+                ) : (
+                  notifications.map((noti, index) => (
+                    <View key={index} style={styles.notiItem}>
+                      <Text style={styles.notiMessage}>{noti.message}</Text>
+                      <Text style={styles.notiType}>{noti.type}</Text>
+                    </View>
+                  ))
+                )}
+              </ScrollView>
+            </View>
+          )}
+          
+          
+        </View>
+
+        <TouchableOpacity onPress={handleFriendPress}>
+            <Icon name="user-plus" size={24} color="#333" />
+          </TouchableOpacity>
+
+          {showFriendRequests && (
+            <View style={styles.dropdown}>
+              <ScrollView style={{ maxHeight: 200 }}>
+                {friendRequests.length === 0 ? (
+                  <Text style={styles.emptyText}>Không có lời mời kết bạn</Text>
+                ) : (
+                  friendRequests.map((request, index) => (
+                    <View key={index} style={styles.notiItem}>
+                      <Image
+                        source={request.userDetail?.avatar_url ? { uri: request.userDetail.avatar_url } : require("../assets/default-avatar.png")}
+                        style={{ width: 40, height: 40, borderRadius: 20 }}
+                      />
+                      <Text style={styles.notiMessage}>{request.userDetail?.fullname || request.name}</Text>
+                      <Button
+                        title="Chấp nhận"
+                        onPress={() => {
+                          acceptFriendRequest(request.friend_id);
+                          console.log("Chấp nhận lời mời từ id:", request.friend_id);
+                        }}
+                      />
+                      <Button
+                        title="Từ chối"
+                        onPress={() => {
+                          cancelFriendRequest(request.friend_id);
+                          console.log("Từ chối lời mời từ id:", request.friend_id);
+                        }}
+                      />
+                    </View>
+                  ))
+                )}
+              </ScrollView>
+            </View>
+          )}
         <TouchableOpacity onPress={() => setMenuVisible(!menuVisible)}>
           <Image
             source={
@@ -435,5 +624,53 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     marginBottom: 12,
+  },
+  notificationBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "red",
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    zIndex: 1,
+  },
+  notificationText: {
+    color: "white",
+    fontSize: 12,
+  },
+  dropdown: {
+    position: "absolute",
+    top: 30,
+    right: 0,
+    backgroundColor: "white",
+    padding: 10,
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 5,
+    width: 250,
+    zIndex: 2,
+  },
+  notiItem: {
+    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    paddingBottom: 5,
+  },
+  notiMessage: {
+    fontSize: 14,
+    color: "#333",
+  },
+  notiType: {
+    fontSize: 12,
+    color: "#888",
+  },
+  emptyText: {
+    textAlign: "center",
+    color: "#666",
+    fontStyle: "italic",
   },
 });

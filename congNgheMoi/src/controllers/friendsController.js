@@ -6,7 +6,8 @@ import {
     acceptFriendRequest,
     blockUser,
     unblockUser,
-    isFriend
+    isFriend,
+    cancelFriendRequest,
 } from "../services/friendService.js";
 
 export async function getFriends(req, res) {
@@ -29,11 +30,16 @@ export async function getFriendsWithDetails(req, res) {
 
 export async function sendFriendRequest(req, res) {
     const { user_id, friend_id } = req.body;
+    console.log("sendFriendRequest", user_id, friend_id);
+    if (!user_id || !friend_id) {
+        return res.status(400).json({ error: "Thiếu thông tin người dùng hoặc bạn bè" });
+    }
     try {
         const result = await addFriend(user_id, friend_id);
         res.status(201).json(result);
     } catch (err) {
         res.status(500).json({ error: "Lỗi khi gửi lời mời kết bạn", detail: err.message });
+        console.error("Error in sendFriendRequest:", err);
     }
 }
 
@@ -85,3 +91,16 @@ export async function checkFriendStatus(req, res) {
         res.status(500).json({ error: "Lỗi khi kiểm tra trạng thái bạn bè", detail: err.message });
     }
 }
+
+export async function cancelRequest(req, res) {
+    const { user_id, friend_id } = req.body;
+    try {
+        const result = await cancelFriendRequest(user_id, friend_id);
+        res.status(200).json(result);
+    } catch (err) {
+        res.status(500).json({ error: "Lỗi khi hủy lời mời kết bạn", detail: err.message });
+    }
+}
+
+
+
