@@ -69,9 +69,11 @@ export default function HomeChat({ navigation }) {
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+
   //lay user va token tu redux
   const user = useSelector((state) => state.user.user);
   const accessToken = useSelector((state) => state.user.accessToken);
+
 
   useEffect(() => {
     setUserInfo(user);
