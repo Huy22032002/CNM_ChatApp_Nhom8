@@ -20,32 +20,34 @@ const MessageService = {
       throw new Error(`Error fetching messages service: ${error.message}`);
     }
   },
-  async updateMessageContent(message_id, user_id, content) {
+  async updateMessageContent(message_id, user_id, conversation_id, content) {
     try {
       return await MessageModel.updateMessageContent(
         message_id,
         user_id,
+        conversation_id,
         content
       );
     } catch (err) {
-      console.error(`Err update message content service ${err.message}`);
-      throw new Error(`Err update msg content serivce: ${err.message}`);
+      throw new Error(`Err update message content serivce: ${err.message}`);
     }
   },
-  async deleteMessage(message_id, user_id) {
+  async deleteMessage(message_id, user_id, conversation_id) {
     try {
-      await MessageModel.deleteMessage(message_id, user_id);
+      await MessageModel.deleteMessage(message_id, user_id, conversation_id);
+      return true;
     } catch (err) {
-      console.error(`err delete message in message service: ${err.message}`);
       throw new Error(`err delete message in message service: ${err.message}`);
     }
   },
-  async revokeMessage(message_id, user_id) {
+  async revokeMessage(message_id, user_id, conversation_id) {
     try {
       const revokedMessage = await MessageModel.revokeMessage(
         message_id,
-        user_id
+        user_id,
+        conversation_id
       );
+      console.log(revokedMessage);
       return revokedMessage;
     } catch (err) {
       console.error(`error revoke message in message service: ${err}`);
