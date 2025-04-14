@@ -4,15 +4,20 @@ const TABLE_NAME = "User_Friends";
 
 const friendsModel = {
   async createUserFriend(user_id) {
+    if (isNaN(user_id)) {
+      console.log(`Invalid user_id: ${user_id}`);
+      return null;
+    }
     const params = {
       TableName: TABLE_NAME,
       Item: {
-        user_id: user_id,
+        user_id: Number(user_id),
         friends: [],
       },
     };
     try {
       await dynamoDB.put(params).promise();
+      console.log(`create userfriend with id: ${user_id}`);
       return params.Item;
     } catch (err) {
       console.log(`Err create userfriend: ${err}`);

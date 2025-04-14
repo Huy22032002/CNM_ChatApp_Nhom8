@@ -7,6 +7,9 @@ import {
 } from "../services/userService.js";
 import bcrypt from "bcrypt";
 import { Op } from "sequelize";
+import userDetail from "../models/userDetail.js";
+
+import user from "../models/userModel.js";
 
 const createUser = async (req, res) => {
   try {
@@ -90,12 +93,13 @@ const findUser = async (req, res) => {
 const searchUser = async (req, res) => {
   try {
     const { keyword,id: currentUserId } = req.body; // Assuming the current user's ID is passed in the request body
-
+    console.log("keyword:", keyword);
+    console.log("currentUserId:", currentUserId);
     if (!keyword || keyword.trim() === "") {
       return res.status(400).json({ message: "Keyword is required" });
     }
 
-    const users = await User.findAll({
+    const users = await user.findAll({
       where: {
         [Op.or]: [
           { email: { [Op.like]: `%${keyword}%` } },
@@ -105,8 +109,15 @@ const searchUser = async (req, res) => {
       },
       attributes: { exclude: ["password"] },
     });
+    //userdetail
+    const userDetails = await userDetail.findAll({
+      where: {
+        user_id: users.map((user) => user.id),
+      },
+    });
+    
 
-    res.status(200).json(users);
+    res.status(200).json({users, userDetails});
   } catch (error) {
     console.error("Error searching user:", error);
     res.status(500).json({ message: "Internal Server Error" });

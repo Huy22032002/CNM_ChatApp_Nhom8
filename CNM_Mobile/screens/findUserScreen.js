@@ -8,10 +8,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Image,
 } from "react-native";
 import axios from "axios";
+import { useSelector } from "react-redux";
+import { useNavigation } from "@react-navigation/native";
 
 const FindUserScreen = () => {
+  const navigation = useNavigation();
   const [keyword, setKeyword] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -19,29 +23,35 @@ const FindUserScreen = () => {
   const accessToken = useSelector((state) => state.user.accessToken);
   const API_URL = "http://10.0.2.2:3000";
 
-
   const searchUser = async () => {
     if (!keyword.trim()) {
       Alert.alert("Thông báo", "Vui lòng nhập email hoặc số điện thoại.");
       return;
     }
-  
+
     try {
       setLoading(true);
-      const response = await axios.post(
-        `${API_URL}/api/user/search`,
+      const response = await axios.post(`${API_URL}/api/users/search`,
         {
-          keyword: keyword,  
-          id: user.id,        
+          keyword: keyword,
+          id: Number(user.id),
         },
         {
           headers: {
-            Authorization: `Bearer ${accessToken}`, 
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
           },
         }
       );
-  
-      setResults(response.data);
+
+      const { users, userDetails } = response.data;
+
+      const combinedResults = users.map((u) => {
+        const detail = userDetails.find((d) => d.user_id === u.id) || {};
+        return { user: u, userDetails: detail };
+      });
+
+      setResults(combinedResults);
     } catch (error) {
       console.error("Lỗi tìm người dùng:", error);
       Alert.alert("Lỗi", "Không thể tìm kiếm người dùng.");
@@ -49,12 +59,18 @@ const FindUserScreen = () => {
       setLoading(false);
     }
   };
-  
 
   const sendFriendRequest = async (friendId) => {
     try {
-      await axios.post(`${API_URL}/api/friend/add`, {
-        receiverId: friendId,
+      await axios.post(`${API_URL}/api/friends/add`, 
+      {
+        user_id: user.id,
+        friend_id: friendId,
+      }, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        }
       });
       Alert.alert("Thành công", "Đã gửi lời mời kết bạn.");
     } catch (error) {
@@ -64,11 +80,22 @@ const FindUserScreen = () => {
   };
 
   const renderUserItem = ({ item }) => (
+    
     <View style={styles.userCard}>
-      <Text style={styles.userText}>{item.name} ({item.email || item.phone})</Text>
+      <Image
+        source={{
+          uri: item.userDetails.avatar_url || "https://via.placeholder.com/150",
+        }}
+        style={{ width: 50, height: 50, borderRadius: 25 }}
+      />
+      <View style={{ flex: 1, marginLeft: 10 }}>
+        <Text style={styles.userText}>
+          {item.userDetails.fullname || "Không tên"} ({item.user.email || item.user.phone})
+        </Text>
+      </View>
       <TouchableOpacity
         style={styles.addButton}
-        onPress={() => sendFriendRequest(item.id)}
+        onPress={() => sendFriendRequest(item.user.id)}
       >
         <Text style={styles.addButtonText}>Kết bạn</Text>
       </TouchableOpacity>
@@ -77,6 +104,13 @@ const FindUserScreen = () => {
 
   return (
     <View style={styles.container}>
+      {/* Nút quay lại HomeChat */}
+            <TouchableOpacity
+              onPress={() => navigation.navigate("homeChat")}
+              style={styles.backButton}
+            >
+              <Text style={styles.backText}>← Quay lại</Text>
+            </TouchableOpacity>
       <Text style={styles.title}>Tìm kiếm người dùng</Text>
       <TextInput
         style={styles.input}
@@ -87,10 +121,12 @@ const FindUserScreen = () => {
       <Button title="Tìm kiếm" onPress={searchUser} disabled={loading} />
       <FlatList
         data={results}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.user.id.toString()}
         renderItem={renderUserItem}
         contentContainerStyle={styles.listContainer}
-        ListEmptyComponent={<Text style={styles.noResult}>Không tìm thấy người dùng nào.</Text>}
+        ListEmptyComponent={
+          <Text style={styles.noResult}>Không tìm thấy người dùng nào.</Text>
+        }
       />
     </View>
   );
@@ -119,7 +155,7 @@ const styles = StyleSheet.create({
   },
   userCard: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "center",
     padding: 12,
     borderBottomWidth: 1,
     borderColor: "#eee",

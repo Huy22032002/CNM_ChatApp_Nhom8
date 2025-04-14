@@ -8,16 +8,17 @@ async function getAllFriends(user_id) {
 
 async function getAllFriendsWithDetails(user_id) {
     const friendsList = await getAllFriends(user_id);
-    const userDetails = await findUserDetailByUserId(user_id);
     const users = await getAllUSer();
-    const friendDetails = friendsList.map(friend => {
-        const detail = userDetails.find(d => d.user_id === friend.friend_id);
-        const user = users.find(u => u.id === friend.friend_id);
-        return {
-            ...(detail || {}),
-            ...(user || {}),
-        };
-    });
+    const friendDetails = await Promise.all(
+        friendsList.map(async (friend) => {
+            const detail = await findUserDetailByUserId(friend.friend_id);
+            const user = users.find(u => u.id === friend.friend_id);
+            return {
+                ...(detail || {}),
+                ...(user || {}),
+            };
+        })
+    );
     return friendDetails;
 }
 
