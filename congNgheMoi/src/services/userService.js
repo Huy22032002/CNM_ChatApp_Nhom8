@@ -18,6 +18,7 @@ async function createUser(username, email, pass_hash, phone) {
     // tao userFriend cho user mới tạo
     console.log("user id", user.id);
     await Friends.createUserFriend(user.id);
+    
     return user;
   } catch (error) {
     throw new Error("Lỗi khi tạo user: " + error.message);
