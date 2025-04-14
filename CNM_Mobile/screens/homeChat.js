@@ -14,7 +14,14 @@ import {
 import axios from "axios";
 import { useSelector } from "react-redux";
 
+<<<<<<< Updated upstream
 import { fetchUserDetail } from "../api/userDetailApi";
+=======
+} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+
+import axios from 'axios';
+>>>>>>> Stashed changes
 
 const DATA = {
   friends: [
