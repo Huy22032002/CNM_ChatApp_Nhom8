@@ -68,24 +68,25 @@ const verifyOtp= async (req, res) => {
   
     // Tạo user sau khi xác thực
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({
-      username,
-      pass_hash: hashedPassword,
-      email,
-      phone,
-      status: "OFFLINE",
-    });
-    await newUser.save();
-    const userId = newUser.id;
-    // Create user detail
-    const userDetail = new UserDetail({
-      user_id: userId,
-      fullname: null,
-      age: null,
-      gender: null,
-      avatar_url: null,
-    });
-    await userDetail.save();
+    // const newUser = new User({
+    //   username,
+    //   pass_hash: hashedPassword,
+    //   email,
+    //   phone,
+    //   status: "OFFLINE",
+    // });
+    // await newUser.save();
+    // const userId = newUser.id;
+    // // Create user detail
+    // const userDetail = new UserDetail({
+    //   user_id: userId,
+    //   fullname: null,
+    //   age: null,
+    //   gender: null,
+    //   avatar_url: null,
+    // });
+    // await userDetail.save();
+    await createUser(username, email, hashedPassword, phone);
 
     otpCache.delete(email);
   
@@ -102,29 +103,29 @@ const createNewUser = async (req, res) => {
     }
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({
-      username,
-      pass_hash: hashedPassword,
-      email,
-      phone,
-      status: "OFFLINE",
-    });
-    await newUser.save();
-    //get the user id of the new user
-    const userId = newUser.id;
-    console.log("New uid:"+userId);
-    // Create user detail
-    const userDetail = new UserDetail({
-      user_id: userId,
-      fullname: null,
-      age: null,
-      gender: null,
-      avatar_url: null,
-    });
-    await userDetail.save();
-
-
+    // const newUser = new User({
+    //   username,
+    //   pass_hash: hashedPassword,
+    //   email,
+    //   phone,
+    //   status: "OFFLINE",
+    // });
+    // await newUser.save();
+    // //get the user id of the new user
+    // const userId = newUser.id;
+    // console.log("New uid:"+userId);
+    // // Create user detail
+    // const userDetail = new UserDetail({
+    //   user_id: userId,
+    //   fullname: null,
+    //   age: null,
+    //   gender: null,
+    //   avatar_url: null,
+    // });
+    // await userDetail.save();
     
+    await createUser(username, email, hashedPassword, phone);
+
     res.status(201).json({ message: "User created successfully" });
   } catch (error) {
     res
@@ -132,35 +133,6 @@ const createNewUser = async (req, res) => {
       .json({ message: "Error creating user", error: error.message });
   }
 };
-
-// const register = async (req, res) => {
-//   try {
-//     const { username, password, email, phone } = req.body;
-
-//         // Check if user already exists
-//         const existingUser = await findUser(username);
-//         if (existingUser==null) {
-//             const hashedPassword = await bcrypt.hash(password,10);
-//         // console.log(hashedPassword);
-
-//       // Create a new user
-//       const newUser = new User({
-//         username,
-//         pass_hash: hashedPassword,
-//         email,
-//         phone,
-//       });
-//       await newUser.save();
-
-//       res.status(201).json({ message: "User registered successfully" });
-//     } else {
-//       return res.status(400).json({ message: "Username already exists" });
-//     }
-//     // Hash the password
-//   } catch (error) {
-//     res.status(500).json({ message: "Server error", error });
-//   }
-// };
 
 const login = async (req, res) => {
   try {
