@@ -1,6 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import User from "../models/userModel.js";
+import UserDetail from "../models/userDetail.js";
 const router = Router();
 import { findUser, authenticate, updateUser, createUser } from "../services/userService.js";
 import { generateToken, verifyAndRefreshToken } from "../configs/jwtConfig.js";
@@ -10,6 +11,21 @@ import otpCache from "../middlewares/otpCache.js";
 const register = async (req, res) => {
   try {
     const { username, password, email, phone } = req.body;
+
+    const existMail = await User.findOne({ where: { email } });
+    if (existMail) {
+      return res.status(401).json({ message: "Email already exists" });
+    }
+
+    const existPhone = await User.findOne({ where: { phone } });
+    if (existPhone) {
+      return res.status(402).json({ message: "Phone already exists" });
+    }
+
+    const existUsername = await User.findOne({ where: { username } });
+    if (existUsername) {
+      return res.status(403).json({ message: "Username already exists" });
+    }
 
     const existingUser = await findUser(username);
     if (existingUser == null) {
@@ -63,6 +79,26 @@ const verifyOtp = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    // const newUser = new User({
+    //   username,
+    //   pass_hash: hashedPassword,
+    //   email,
+    //   phone,
+    //   status: "OFFLINE",
+    // });
+    // await newUser.save();
+    // const userId = newUser.id;
+    // // Create user detail
+    // const userDetail = new UserDetail({
+    //   user_id: userId,
+    //   fullname: null,
+    //   age: null,
+    //   gender: null,
+    //   avatar_url: null,
+    // });
+    // await userDetail.save();
+    await createUser(username, email, hashedPassword, phone);
+
     console.log("Password hashed successfully");
 
     const newUser = new User({
@@ -95,14 +131,29 @@ const createNewUser = async (req, res) => {
     }
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({
-      username,
-      pass_hash: hashedPassword,
-      email,
-      phone,
-      status: "OFFLINE",
-    });
-    await newUser.save();
+    // const newUser = new User({
+    //   username,
+    //   pass_hash: hashedPassword,
+    //   email,
+    //   phone,
+    //   status: "OFFLINE",
+    // });
+    // await newUser.save();
+    // //get the user id of the new user
+    // const userId = newUser.id;
+    // console.log("New uid:"+userId);
+    // // Create user detail
+    // const userDetail = new UserDetail({
+    //   user_id: userId,
+    //   fullname: null,
+    //   age: null,
+    //   gender: null,
+    //   avatar_url: null,
+    // });
+    // await userDetail.save();
+    
+    await createUser(username, email, hashedPassword, phone);
+
     res.status(201).json({ message: "User created successfully" });
   } catch (error) {
     res
@@ -174,6 +225,10 @@ const refreshToken = async (req, res) => {
 };
 
 const logout = (req, res) => {
+  //chuyen status qua OFFLINE
+  const {id} = req.body;
+  updateUser(id, { status: "OFFLINE" });
+
   res.clearCookie("token");
   res.status(200).json({ message: "Logged out successfully" });
 };
