@@ -14,7 +14,11 @@ import {
 import axios from "axios";
 import { useSelector } from "react-redux";
 
+
 import { fetchUserDetail } from "../api/userDetailApi";
+
+import * as ImagePicker from 'expo-image-picker';
+
 
 const DATA = {
   friends: [
@@ -210,6 +214,18 @@ export default function HomeChat({ navigation }) {
         <Text style={styles.header}>
           Xin chào, {userDetail?.fullname || "User"} 👋
         </Text>
+        <TouchableOpacity onPress={() => 
+          navigation.navigate("findUser")
+        }>
+          <Image
+            source={
+              userDetail?.avatar_url
+                ? { uri: userDetail.avatar_url }
+                : require("../assets/default-avatar.png")
+            }
+            style={styles.profileImage}
+          />
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => setMenuVisible(!menuVisible)}>
           <Image
             source={
