@@ -52,8 +52,13 @@ const MessageModel = {
   },
   async updateMessageContent(message_id, user_id, conversation_id, content) {
     const message = await this.getMessage(message_id, user_id, conversation_id);
-    if (!message) throw new Error("không tìm thấy tin nhắn");
-
+    if (!message) {
+      throw new Error("khong tim thay message");
+    }
+    if (message.sender !== user_id) {
+      //check nguoi gui co hop le khong
+      throw new Error("Ban khong thể sửa tin nhan ng khác");
+    }
     const currentTime = moment();
     const createdMessage = moment(message.created_at);
     const diff = currentTime.diff(createdMessage, "days");
@@ -66,9 +71,13 @@ const MessageModel = {
       TableName: TABLE_NAME,
       Key: {
         message_id,
+        conversation_id: conversation_id,
       },
       UpdateExpression:
-        "set content = :content, updated_at = :updated_at, status = :status",
+        "set content = :content, updated_at = :updated_at, #s = :status",
+      ExpressionAttributeNames: {
+        "#s": "status",
+      },
       ExpressionAttributeValues: {
         ":content": content,
         ":updated_at": new Date().toISOString(),
@@ -85,35 +94,51 @@ const MessageModel = {
     }
   },
   async deleteMessage(message_id, user_id, conversation_id) {
-    console.log(message_id, " ", conversation_id);
-
-    const message = await this.getMessage(message_id, user_id, conversation_id);
-    if (!message) {
-      throw new Error("Không thể xóa do không tìm thấy message ");
-    }
-
-    const currentTime = moment();
-    const create_at = moment(message.created_at);
-    const diff = currentTime.diff(create_at, "minutes");
-
-    if (diff > 5) {
-      throw new Error("không thể xóa message > 5 phút");
-    }
-    const params = {
-      TableName: TABLE_NAME,
-      Key: {
-        message_id: message_id,
-      },
-    };
     try {
-      await dynamoDB.delete(params).promise();
+      const message = await this.getMessage(
+        message_id,
+        user_id,
+        conversation_id
+      );
+      if (!message) {
+        throw new Error("khong tim thay message: ", message);
+      }
+      if (message.sender !== user_id) {
+        //check nguoi gui co hop le khong
+        throw new Error("Ban khong phai nguoi gui tin nhan");
+      }
+      const currentTime = moment();
+      const create_at = moment(message.created_at);
+      const diff = currentTime.diff(create_at, "minutes");
+
+      if (diff > 5) {
+        throw new Error("không thể xóa message > 5 phút");
+      }
+      const params = {
+        TableName: TABLE_NAME,
+        Key: {
+          message_id: message_id,
+          conversation_id: conversation_id,
+        },
+      };
+      try {
+        await dynamoDB.delete(params).promise();
+      } catch (err) {
+        throw new Error(err.message);
+      }
     } catch (err) {
-      console.log(err);
+      throw new Error(err.message);
     }
   },
   async revokeMessage(message_id, user_id, conversation_id) {
     const message = await this.getMessage(message_id, user_id, conversation_id);
-    if (!message) return;
+    if (!message) {
+      throw new Error("khong tim thay message: ");
+    }
+    if (message.sender !== user_id) {
+      //check nguoi gui co hop le khong
+      throw new Error("Ban khong phai nguoi gui tin nhan");
+    }
 
     const currentTime = moment();
     const createdMessage = moment(message.created_at);
@@ -128,9 +153,14 @@ const MessageModel = {
         message_id: message_id,
         conversation_id: conversation_id,
       },
-      UpdateExpression: "set status = :status, updated_at = :updated_at",
+      UpdateExpression:
+        "set #s = :status, content = :content ,updated_at = :updated_at",
+      ExpressionAttributeNames: {
+        "#s": "status",
+      },
       ExpressionAttributeValues: {
         ":status": "REVOKED",
+        ":content": null,
         ":updated_at": new Date().toISOString(),
       },
       ReturnValues: "UPDATED_NEW",
@@ -149,17 +179,10 @@ const MessageModel = {
     try {
       const rs = await dynamoDB.get(params).promise();
       const message = rs.Item;
-      if (!message) {
-        throw new Error("khong tim thay message: ", message);
-      }
-      if (message.sender !== user_id) {
-        //check nguoi gui co hop le khong
-        throw new Error("Ban khong phai nguoi gui tin nhan");
-      }
+
       return message;
     } catch (err) {
-      console.log("Loi get message", err.message);
-      return null;
+      throw new Error("lỗi get message: ", err.message);
     }
   },
 };

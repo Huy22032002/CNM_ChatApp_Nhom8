@@ -47,7 +47,7 @@ const MessageService = {
         user_id,
         conversation_id
       );
-      console.log(revokedMessage);
+      console.log("revoke message: ", revokedMessage);
       return revokedMessage;
     } catch (err) {
       console.error(`error revoke message in message service: ${err}`);
