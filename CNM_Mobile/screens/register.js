@@ -60,10 +60,16 @@ export default function RegisterScreen() {
         phone,
       });
 
-      if (response.status !== 200) {
-        alert("Đăng ký thất bại. Vui lòng thử lại!");
-        return;
-      }
+        if(response.status === 401) {
+          alert('Mail đã tồn tại!');
+        }
+        if(response.status === 402) {
+          alert('Phone đã tồn tại!');
+        }
+        if(response.status === 403) {
+          alert('Username đã tồn tại!');
+        }
+      
 
       console.log(response.data);
       navigation.navigate('verifyOtp', {
@@ -85,7 +91,7 @@ export default function RegisterScreen() {
     <View style={styles.container}>
       <Image source={require("../assets/register.png")} style={styles.logo} />
       <TextInput
-        placeholder="Tên người dùng"
+        placeholder="Username"
         value={username}
         onChangeText={setUsername}
         style={styles.input}

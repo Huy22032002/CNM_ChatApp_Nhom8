@@ -6,6 +6,7 @@ import {
   authenticate,
 } from "../services/userService.js";
 import bcrypt from "bcrypt";
+import { Op } from "sequelize";
 
 const createUser = async (req, res) => {
   try {
@@ -86,6 +87,31 @@ const findUser = async (req, res) => {
   }
 };
 
+const searchUser = async (req, res) => {
+  try {
+    const { keyword } = req.query;
+
+    if (!keyword || keyword.trim() === "") {
+      return res.status(400).json({ message: "Keyword is required" });
+    }
+
+    const users = await User.findAll({
+      where: {
+        [Op.or]: [
+          { email: { [Op.like]: `%${keyword}%` } },
+          { phone: { [Op.like]: `%${keyword}%` } },
+        ],
+      },
+      attributes: { exclude: ["password"] },
+    });
+
+    res.status(200).json(users);
+  } catch (error) {
+    console.error("Error searching user:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 const checkMatchPassword = async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -98,11 +124,5 @@ const checkMatchPassword = async (req, res) => {
     res.status(500).json({ message: "Error authenticating user", error });
   }
 };
-export default {
-  createUser,
-  getAllUser,
-  updateUser,
-  findUser,
-  checkMatchPassword,
-  updatePassword,
-};
+
+export default { createUser, getAllUser, updateUser, findUser,checkMatchPassword ,updatePassword,searchUser};
