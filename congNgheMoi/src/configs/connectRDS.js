@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import { Sequelize } from "sequelize";
 
+
 dotenv.config();
 
 const sequelize = new Sequelize(
@@ -43,6 +44,6 @@ async function syncDB() {
     process.exit(1); // Thoát ứng dụng nếu không thể đồng bộ
   }
 }
-syncDB();
+// syncDB();
 
 export { sequelize, connectDB, syncDB };
