@@ -1,5 +1,6 @@
 import dynamoDB from "../configs/connectDynamo.js";
 import { v4 as uuidv4 } from "uuid";
+import moment from "moment";
 
 const TABLE_NAME = "Messages";
 
@@ -19,9 +20,9 @@ const MessageModel = {
         content: message.content,
         image_url: message.image_url || null,
         message_type: message.message_type || message.type,
-        status: message.status,
+        status: "SENT",
         created_at: new Date().toISOString(),
-        update_at: null,
+        updated_at: null,
       },
     };
     try {
@@ -49,17 +50,29 @@ const MessageModel = {
       return [];
     }
   },
-  async updateMessageContent(message) {
-    const { message_id, content } = message;
+  async updateMessageContent(message_id, user_id, content) {
+    const message = await this.getMessage(message_id, user_id);
+    if (!message) return;
+
+    const currentTime = moment();
+    const createdMessage = moment(message.created_at);
+    const diff = currentTime.diff(createdMessage, "days");
+
+    if (diff > 1) {
+      throw new Error("Không thể cập nhật tin nhắn sau 1 ngày.");
+    }
+
     const params = {
       TableName: TABLE_NAME,
       Key: {
         message_id,
       },
-      UpdateExpression: "set content = :content, update_at = :update_at",
+      UpdateExpression:
+        "set content = :content, updated_at = :updated_at, status = :status",
       ExpressionAttributeValues: {
         ":content": content,
-        ":update_at": new Date().toISOString(),
+        ":updated_at": new Date().toISOString(),
+        ":status": "UPDATED",
       },
       ReturnValues: "UPDATED_NEW",
     };
@@ -68,6 +81,81 @@ const MessageModel = {
       return result.Attributes;
     } catch (err) {
       console.log(`Error update message: ${err}`);
+      return null;
+    }
+  },
+  async deleteMessage(message_id, user_id) {
+    const message = await this.getMessage(message_id, user_id);
+    if (!message) return;
+    console.log("get message: ", message);
+
+    const currentTime = moment();
+    const create_at = moment(message.created_at);
+    const diff = currentTime.diff(create_at, "minutes");
+
+    if (diff > 5) {
+      console.log("You cant delete message > 5 phut");
+      return;
+    }
+    const params = {
+      TableName: TABLE_NAME,
+      Key: {
+        message_id: message_id,
+      },
+    };
+    try {
+      await dynamoDB.delete(params).promise();
+    } catch (err) {
+      console.log(err);
+    }
+  },
+  async revokeMessage(message_id, user_id) {
+    const message = await this.getMessage(message_id, user_id);
+    if (!message) return;
+
+    const currentTime = moment();
+    const createdMessage = moment(message.created_at);
+    const diff = currentTime.diff(createdMessage, "days");
+
+    if (diff > 1) {
+      console.log("Khong the thu hoi tin nhan sau 1 ngay");
+      return;
+    }
+    const params = {
+      TableName: TABLE_NAME,
+      Key: {
+        message_id: message_id,
+      },
+      UpdateExpression: "set status = :status, updated_at = :updated_at",
+      ExpressionAttributeValues: {
+        ":status": "REVOKED",
+        ":updated_at": new Date().toISOString(),
+      },
+      ReturnValues: "UPDATED_NEW",
+    };
+    const result = await dynamoDB.update(params).promise();
+    return result.Attributes;
+  },
+  async getMessage(message_id, user_id) {
+    const params = {
+      TableName: TABLE_NAME,
+      Key: {
+        message_id: message_id,
+      },
+    };
+    try {
+      const rs = await dynamoDB.get(params).promise();
+      const message = rs.Item;
+      if (!message) {
+        throw new Error("khong tim thay message");
+      }
+      if (message.sender !== user_id) {
+        //check nguoi gui co hop le khong
+        throw new Error("Ban khong phai nguoi gui tin nhan");
+      }
+      return message;
+    } catch (err) {
+      console.log("Loi get message", err.message);
       return null;
     }
   },
