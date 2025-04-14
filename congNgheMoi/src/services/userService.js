@@ -1,11 +1,22 @@
 import User from "../models/userModel.js";
 import bcrypt from "bcryptjs";
+import Friends from "../models/friendsModel.js";
 
 import UserDetail from "../models/userDetail.js";
+import {
+  createUserDetail,
+  getAllUserDetails,
+  updateUserDetail,
+  findUserDetailByUserId,
+} from "./userDetailService.js";
 
 async function createUser(username, email, pass_hash, phone) {
   try {
     const user = await User.create({ username, email, pass_hash, phone });
+    // Tạo userDetail cho user mới tạo
+    await createUserDetail({user_id: user.id,});
+    // tao userFriend cho user mới tạo
+    await Friends.createUserFriend({ user_id: user.id });
     return user;
   } catch (error) {
     throw new Error("Lỗi khi tạo user: " + error.message);
@@ -71,5 +82,15 @@ async function authenticate(username, password) {
     return null;
   }
 }
+
+async function addFriend(userId, friendId) {
+  try {
+    const friend = await Friends.addFriend({ user_id: userId, friend_id: friendId });
+    return friend;
+  } catch (error) {
+    throw new Error("Lỗi khi thêm bạn bè: " + error.message);
+  }
+}
+
 
 export { createUser, updateUser, getAllUSer, findUser, authenticate };
