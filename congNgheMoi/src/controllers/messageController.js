@@ -75,17 +75,20 @@ const MessageController = {
     try {
       const message_id = req.params.message_id;
       const content = req.body.content;
+      const conversation_id = req.body.conversation_id;
       const user_id = req.body.user_id;
 
-      if (!message_id || !content || !user_id) {
+      if (!message_id || !content || !user_id || !conversation_id) {
         return res.status(400).json({
-          error: "Vui lòng truyền đủ thông tin: message_id, user_id, content",
+          error:
+            "Vui lòng truyền đủ thông tin: message_id, user_id, conversation_id, content",
         });
       }
 
       const updatedMessage = await MessageService.updateMessageContent(
         message_id,
         user_id,
+        conversation_id,
         content
       );
       if (!updatedMessage) {
@@ -105,16 +108,24 @@ const MessageController = {
   async deleteMessage(req, res) {
     const message_id = req.params.message_id;
     const user_id = req.body.user_id;
+    const conversation_id = req.body.conversation_id;
 
-    if (!message_id || !user_id) {
-      return res.status(400).json({ error: "Thiếu message_id hoặc user_id" });
+    if (!message_id || !user_id || !conversation_id) {
+      return res
+        .status(400)
+        .json({ error: "Thiếu message_id or user_id or conversation_id" });
     }
 
     try {
-      await MessageService.deleteMessage(message_id, user_id);
-      return res
-        .status(200)
-        .json({ message: `deleted ${message_id} successfully!` });
+      const rs = await MessageService.deleteMessage(
+        message_id,
+        user_id,
+        conversation_id
+      );
+      if (rs)
+        return res
+          .status(200)
+          .json({ message: `deleted message ${message_id} successfully!` });
     } catch (err) {
       return res.status(500).json({
         message: "Error Delete Message in Message Controller",
@@ -125,6 +136,7 @@ const MessageController = {
   async revokeMessage(req, res) {
     const message_id = req.params.message_id;
     const user_id = req.body.user_id;
+    const conversation_id = req.body.conversation_id;
 
     if (!message_id || !user_id) {
       return res.status(400).json({ error: "Thiếu message_id hoặc user_id" });
@@ -133,7 +145,8 @@ const MessageController = {
     try {
       const revokedMessage = await MessageService.revokeMessage(
         message_id,
-        user_id
+        user_id,
+        conversation_id
       );
       if (!revokedMessage) {
         return res.status(400).json({ message: `Revoked Message Failed` });

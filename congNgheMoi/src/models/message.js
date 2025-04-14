@@ -50,9 +50,9 @@ const MessageModel = {
       return [];
     }
   },
-  async updateMessageContent(message_id, user_id, content) {
-    const message = await this.getMessage(message_id, user_id);
-    if (!message) return;
+  async updateMessageContent(message_id, user_id, conversation_id, content) {
+    const message = await this.getMessage(message_id, user_id, conversation_id);
+    if (!message) throw new Error("không tìm thấy tin nhắn");
 
     const currentTime = moment();
     const createdMessage = moment(message.created_at);
@@ -84,18 +84,20 @@ const MessageModel = {
       return null;
     }
   },
-  async deleteMessage(message_id, user_id) {
-    const message = await this.getMessage(message_id, user_id);
-    if (!message) return;
-    console.log("get message: ", message);
+  async deleteMessage(message_id, user_id, conversation_id) {
+    console.log(message_id, " ", conversation_id);
+
+    const message = await this.getMessage(message_id, user_id, conversation_id);
+    if (!message) {
+      throw new Error("Không thể xóa do không tìm thấy message ");
+    }
 
     const currentTime = moment();
     const create_at = moment(message.created_at);
     const diff = currentTime.diff(create_at, "minutes");
 
     if (diff > 5) {
-      console.log("You cant delete message > 5 phut");
-      return;
+      throw new Error("không thể xóa message > 5 phút");
     }
     const params = {
       TableName: TABLE_NAME,
@@ -109,8 +111,8 @@ const MessageModel = {
       console.log(err);
     }
   },
-  async revokeMessage(message_id, user_id) {
-    const message = await this.getMessage(message_id, user_id);
+  async revokeMessage(message_id, user_id, conversation_id) {
+    const message = await this.getMessage(message_id, user_id, conversation_id);
     if (!message) return;
 
     const currentTime = moment();
@@ -118,13 +120,13 @@ const MessageModel = {
     const diff = currentTime.diff(createdMessage, "days");
 
     if (diff > 1) {
-      console.log("Khong the thu hoi tin nhan sau 1 ngay");
-      return;
+      throw new Error("Không thể thu hồi tin nhắn quá 1 ngày");
     }
     const params = {
       TableName: TABLE_NAME,
       Key: {
         message_id: message_id,
+        conversation_id: conversation_id,
       },
       UpdateExpression: "set status = :status, updated_at = :updated_at",
       ExpressionAttributeValues: {
@@ -136,18 +138,19 @@ const MessageModel = {
     const result = await dynamoDB.update(params).promise();
     return result.Attributes;
   },
-  async getMessage(message_id, user_id) {
+  async getMessage(message_id, user_id, conversation_id) {
     const params = {
       TableName: TABLE_NAME,
       Key: {
         message_id: message_id,
+        conversation_id: conversation_id,
       },
     };
     try {
       const rs = await dynamoDB.get(params).promise();
       const message = rs.Item;
       if (!message) {
-        throw new Error("khong tim thay message");
+        throw new Error("khong tim thay message: ", message);
       }
       if (message.sender !== user_id) {
         //check nguoi gui co hop le khong
