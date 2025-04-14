@@ -41,17 +41,30 @@ const register = async (req, res) => {
   }
 };
 
-const verifyOtp= async (req, res) => {
+const verifyOtp = async (req, res) => {
+  try {
     const { email, username, password, phone, otp } = req.body;
+    console.log("Received data:", { email, username, otp });
+
     const storedOtp = otpCache.get(email);
-    
-  
+    console.log("Stored OTP:", storedOtp);
+
     if (storedOtp !== otp) {
+      console.warn("OTP mismatch for email:", email);
       return res.status(400).json({ message: "OTP không chính xác" });
     }
-  
-    // Tạo user sau khi xác thực
+
+    const existingUser = await User.findOne({ where: { username } });
+    console.log("Existing user check:", existingUser);
+
+    if (existingUser) {
+      console.warn("Username already exists:", username);
+      return res.status(400).json({ message: "Username already exists" });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
+    console.log("Password hashed successfully");
+
     const newUser = new User({
       username,
       pass_hash: hashedPassword,
@@ -60,9 +73,16 @@ const verifyOtp= async (req, res) => {
       status: "OFFLINE",
     });
     await newUser.save();
+    console.log("New user created successfully:", newUser);
+
     otpCache.delete(email);
-  
+    console.log("OTP deleted for email:", email);
+
     res.status(201).json({ message: "Đăng ký thành công" });
+  } catch (error) {
+    console.error("Error in verifyOtp:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
 };
 
 const createNewUser = async (req, res) => {
@@ -90,35 +110,6 @@ const createNewUser = async (req, res) => {
       .json({ message: "Error creating user", error: error.message });
   }
 };
-
-// const register = async (req, res) => {
-//   try {
-//     const { username, password, email, phone } = req.body;
-
-//         // Check if user already exists
-//         const existingUser = await findUser(username);
-//         if (existingUser==null) {
-//             const hashedPassword = await bcrypt.hash(password,10);
-//         // console.log(hashedPassword);
-
-//       // Create a new user
-//       const newUser = new User({
-//         username,
-//         pass_hash: hashedPassword,
-//         email,
-//         phone,
-//       });
-//       await newUser.save();
-
-//       res.status(201).json({ message: "User registered successfully" });
-//     } else {
-//       return res.status(400).json({ message: "Username already exists" });
-//     }
-//     // Hash the password
-//   } catch (error) {
-//     res.status(500).json({ message: "Server error", error });
-//   }
-// };
 
 const login = async (req, res) => {
   try {
