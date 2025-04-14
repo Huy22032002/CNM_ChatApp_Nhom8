@@ -5,6 +5,7 @@ import Register from "./screens/register";
 import HomeChat from "./screens/homeChat";
 import VerifyOtp from "./screens/verifyOtp";
 import Profile from "./screens/Profile";
+import FindUserScreen from "./screens/findUserScreen";
 import { Provider } from "react-redux";
 import { store } from "./redux/store";
 const Stack = createNativeStackNavigator();
@@ -21,6 +22,7 @@ export default function App() {
           <Stack.Screen name="register" component={Register} />
           <Stack.Screen name="verifyOtp" component={VerifyOtp} />
           <Stack.Screen name="homeChat" component={HomeChat} />
+          <Stack.Screen name="findUser" component={FindUserScreen} />
           <Stack.Screen name="profile" component={Profile} />
         </Stack.Navigator>
       </NavigationContainer>
