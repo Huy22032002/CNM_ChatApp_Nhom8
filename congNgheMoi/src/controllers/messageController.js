@@ -138,8 +138,10 @@ const MessageController = {
     const user_id = req.body.user_id;
     const conversation_id = req.body.conversation_id;
 
-    if (!message_id || !user_id) {
-      return res.status(400).json({ error: "Thiếu message_id hoặc user_id" });
+    if (!message_id || !user_id || !conversation_id) {
+      return res
+        .status(400)
+        .json({ error: "Thiếu message_id hoặc user_id hoặc conversation_id" });
     }
 
     try {
