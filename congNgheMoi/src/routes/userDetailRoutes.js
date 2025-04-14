@@ -16,7 +16,7 @@ router.post(
 );
 router.put(
   "/update/:user_id",
-  // authMiddlewareWithoutRefresh,
+  authMiddlewareWithoutRefresh,
   upload.single("avatar"),
   userDetailController.updateUserDetails
 );
