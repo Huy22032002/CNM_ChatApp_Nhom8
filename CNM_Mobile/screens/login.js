@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
+import { useDispatch } from "react-redux";
+import { setUser } from "../redux/userSlice";
 
 export default function LoginScreen() {
   const navigation = useNavigation();
@@ -17,6 +19,8 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+
+  const dispatch = useDispatch();
 
   const API_URL = "http://10.0.2.2:3000";
 
@@ -37,11 +41,15 @@ export default function LoginScreen() {
         alert("Đăng nhập thất bại. Vui lòng thử lại!");
         return;
       }
-      console.log(res.data.user);
-      navigation.navigate("homeChat", {
-        userId: res.data.user.id,
-        accessToken: res.data.accessToken,
-      });
+      console.log(res.data);
+      dispatch(
+        setUser({
+          user: res.data.user,
+          accessToken: res.data.accessToken,
+        })
+      );
+
+      navigation.navigate("homeChat");
     } catch (err) {
       console.error(err.response?.data || err.message);
       if (err.response?.status === 401) {
