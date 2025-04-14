@@ -10,12 +10,11 @@ import {
   Image,
   Modal,
   Button,
+} from "react-native";
+import axios from "axios";
+import { useSelector } from "react-redux";
 
-} from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { useNavigation } from '@react-navigation/native';
-import { useRoute } from '@react-navigation/native';
-import axios from 'axios';
+import { fetchUserDetail } from "../api/userDetailApi";
 
 const DATA = {
   friends: [
@@ -54,8 +53,7 @@ const DATA = {
   ],
 };
 
-export default function HomeChat({ route, navigation }) {
-  const { userId, accessToken } = route.params;
+export default function HomeChat({ navigation }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [tab, setTab] = useState("friends");
   const [menuVisible, setMenuVisible] = useState(false);
@@ -63,54 +61,46 @@ export default function HomeChat({ route, navigation }) {
   const [oldPassword, setOldPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
   const [userInfo, setUserInfo] = useState(null);
+  const [userDetail, setUserDetail] = useState(null);
 
   const filteredData = DATA[tab].filter((item) =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const fetchUser = async (userId) => {
-    try {
-      const response = await fetch(`http://10.0.2.2:3000/api/users/${userId}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error("Lỗi khi fetch user");
-      setUserInfo(data);
-      
-    } catch (error) {
-      console.error("Lỗi khi fetch user:", error.message);
-    }
-  };
+
+  //lay user va token tu redux
+  const user = useSelector((state) => state.user.user);
+  const accessToken = useSelector((state) => state.user.accessToken);
+
 
   useEffect(() => {
-    if (userId) {
-      fetchUser(userId);
-    }
-  }, []);
-  
+    setUserInfo(user);
+    getUserDetail();
+  }, [user]);
+  const getUserDetail = async () => {
+    const data = await fetchUserDetail(user.id, accessToken);
+    console.log("data fetch userdetail:", data);
+    setUserDetail(data);
+  };
   const changePassword = async () => {
-
     try {
-      const id = userId;
+      const id = user.id;
       if (!id) {
-        Alert.alert('Lỗi', 'Không tìm thấy ID người dùng');
+        Alert.alert("Lỗi", "Không tìm thấy ID người dùng");
         return;
       }
       if (!oldPassword || !password || !confirmPassword) {
-        Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
+        Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin");
         return;
       }
-  
+
       if (password !== confirmPassword) {
-        Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp');
+        Alert.alert("Lỗi", "Mật khẩu xác nhận không khớp");
         return;
       }
-  
+
       try {
         // Gọi check mật khẩu cũ
         const res = await axios.post(
@@ -124,108 +114,65 @@ export default function HomeChat({ route, navigation }) {
               Authorization: `Bearer ${accessToken}`,
             },
           }
-        )
+        );
         if (res.status !== 200) {
-          Alert.alert('Lỗi', 'Mật khẩu cũ không chính xác!');
+          Alert.alert("Lỗi", "Mật khẩu cũ không chính xác!");
           return;
         }
-        
       } catch (error) {
         if (error.response?.status === 401) {
-          Alert.alert('Lỗi', 'Mật khẩu cũ không chính xác!');
+          Alert.alert("Lỗi", "Mật khẩu cũ không chính xác!");
           return;
         } else {
-          Alert.alert('Lỗi', 'Đã xảy ra lỗi, vui lòng thử lại!');
+          Alert.alert("Lỗi", "Đã xảy ra lỗi, vui lòng thử lại!");
           return;
         }
       }
 
-  
-    
-        
-        await axios.post(`http://10.0.2.2:3000/api/users/updatePassword/`, 
-          {
-            id: userInfo?.id,
-            password: password,
+      await axios.post(
+        `http://10.0.2.2:3000/api/users/updatePassword/`,
+        {
+          id: userInfo?.id,
+          password: password,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
           },
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
-  
-        Alert.alert('Thành công', 'Đã đổi mật khẩu thành công');
-        setShowChangePassword(false);
-        setOldPassword('');
-        setPassword('');
-        setConfirmPassword('');
-      
+        }
+      );
+
+      Alert.alert("Thành công", "Đã đổi mật khẩu thành công");
+      setShowChangePassword(false);
+      setOldPassword("");
+      setPassword("");
+      setConfirmPassword("");
     } catch (err) {
       if (err.response?.status === 401 || err.response?.status === 400) {
-        Alert.alert('Lỗi', err.response.data.message || 'Mật khẩu cũ không chính xác!');
+        Alert.alert(
+          "Lỗi",
+          err.response.data.message || "Mật khẩu cũ không chính xác!"
+        );
       } else {
-        Alert.alert('Lỗi', 'Đã xảy ra lỗi khi đổi mật khẩu');
+        Alert.alert("Lỗi", "Đã xảy ra lỗi khi đổi mật khẩu");
       }
-      console.error(err);
-    }
-  };
-  
-
-  const pickImageAndUpload = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 1,
-      });
-
-      if (!result.canceled) {
-        const localUri = result.assets[0].uri;
-        const filename = localUri.split('/').pop();
-        const match = /\.(\w+)$/.exec(filename ?? '');
-        const type = match ? `image/${match[1]}` : `image`;
-
-        const formData = new FormData();
-        formData.append('avatar', {
-          uri: localUri,
-          name: filename,
-          type,
-        });
-
-        const response = await fetch(`http://10.0.2.2:8080/api/users/${userId}/avatar`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-          body: formData,
-        });
-
-        if (response.ok) {
-          Alert.alert('Thành công', 'Đã cập nhật ảnh đại diện');
-          fetchUser(userId);
-        } else {
-          throw new Error('Lỗi khi upload');
-        }
-      }
-    } catch (err) {
-      Alert.alert('Lỗi', 'Không thể tải ảnh');
-
       console.error(err);
     }
   };
 
   const logout = async () => {
     try {
-      await axios.post("http://10.0.2.2:3000/auth/logout", 
+      await axios.post(
+        "http://10.0.2.2:3000/auth/logout",
         {
           id: userInfo?.id,
         },
         {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
       Alert.alert("Thành công", "Đã đăng xuất thành công");
       navigation.navigate("login");
     } catch (error) {
@@ -233,27 +180,21 @@ export default function HomeChat({ route, navigation }) {
       Alert.alert("Lỗi", "Không thể đăng xuất");
     }
   };
-
   const handleLogout = () => {
-    Alert.alert(
-      "Đăng xuất",
-      "Bạn có chắc chắn muốn đăng xuất không?",
-      [
-        {
-          text: "Huỷ",
-          onPress: () => console.log("Huỷ"),
-          style: "cancel",
+    Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất không?", [
+      {
+        text: "Huỷ",
+        onPress: () => console.log("Huỷ"),
+        style: "cancel",
+      },
+      {
+        text: "Đăng xuất",
+        onPress: () => {
+          logout();
         },
-        {
-          text: "Đăng xuất",
-          onPress: () => {
-            logout();
-          },
-        },
-      ]
-    );
+      },
+    ]);
   };
-
   const renderItem = ({ item }) => (
     <TouchableOpacity style={styles.chatItem}>
       <Image source={item.avatar} style={styles.avatar} />
@@ -263,18 +204,17 @@ export default function HomeChat({ route, navigation }) {
       </View>
     </TouchableOpacity>
   );
-
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={styles.header}>
-          Xin chào, {userInfo?.username || "User"} 👋
+          Xin chào, {userDetail?.fullname || "User"} 👋
         </Text>
         <TouchableOpacity onPress={() => setMenuVisible(!menuVisible)}>
           <Image
             source={
-              userInfo?.avatarUrl
-                ? { uri: userInfo.avatarUrl }
+              userDetail?.avatar_url
+                ? { uri: userDetail.avatar_url }
                 : require("../assets/default-avatar.png")
             }
             style={styles.profileImage}
@@ -295,12 +235,12 @@ export default function HomeChat({ route, navigation }) {
           <TouchableOpacity
             onPress={() => {
               setMenuVisible(false);
-              navigation.navigate("profile", { userId, accessToken });
+              navigation.navigate("profile");
             }}
           >
             <Text style={styles.menuItem}>Trang cá nhân</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             onPress={() => {
               setMenuVisible(false);
@@ -386,7 +326,6 @@ export default function HomeChat({ route, navigation }) {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: "#f5f5f5" },
   headerRow: {

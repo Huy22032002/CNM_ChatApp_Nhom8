@@ -13,37 +13,39 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation } from "@react-navigation/native";
+import { useSelector } from "react-redux";
 
-export default function UserDetail({ route }) {
-  const { userId, accessToken } = route.params;
+export default function UserDetail() {
   const navigation = useNavigation();
 
-  const [user, setUser] = useState(null);
+  const [userDetail, setUserDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(null);
   const [saving, setSaving] = useState(false);
 
+  //lay user va accessToken tu redux
+  const userRedux = useSelector((state) => state.user.user);
+  const accessToken = useSelector((state) => state.user.accessToken);
+
+  // Xin quyền truy cập thư viện ảnhr
   useEffect(() => {
     (async () => {
       const { status } =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(
-          "Quyền bị từ chối",
-          "Ứng dụng cần quyền truy cập thư viện ảnh để đổi avatar."
-        );
+        Alert.alert("Quyền bị từ chối", "Ứng dụng cần quyền truy cập ảnh.");
       }
     })();
 
-    fetchUser();
+    fetchUserDetail();
   }, []);
 
-  const fetchUser = async () => {
+  const fetchUserDetail = async () => {
     try {
       setLoading(true);
       const response = await fetch(
-        `http://10.0.2.2:3000/api/userDetails/${userId}`,
+        `http://10.0.2.2:3000/api/userDetails/${userRedux.id}`,
         {
           method: "GET",
           headers: {
@@ -54,7 +56,7 @@ export default function UserDetail({ route }) {
       );
       const data = await response.json();
       if (!response.ok) throw new Error("Lỗi khi lấy thông tin người dùng");
-      setUser(data);
+      setUserDetail(data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -63,6 +65,8 @@ export default function UserDetail({ route }) {
   };
 
   const pickImage = async () => {
+    console.log("Clicked avatar"); // kiểm tra click
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -71,18 +75,18 @@ export default function UserDetail({ route }) {
 
     if (!result.canceled) {
       const selectedAsset = result.assets[0];
-      if (selectedAsset.uri === user.avatar_url) {
+      if (selectedAsset.uri === userDetail.avatar_url) {
         Alert.alert("Thông báo", "Bạn đang chọn lại ảnh cũ!");
         return;
       }
 
       setSelectedAvatar(selectedAsset);
-      setUser((prev) => ({ ...prev, avatar_url: selectedAsset.uri }));
+      setUserDetail((prev) => ({ ...prev, avatar_url: selectedAsset.uri }));
     }
   };
 
   const handleSave = async () => {
-    if (!user.fullname || isNaN(user.age)) {
+    if (!userDetail.fullname || isNaN(userDetail.age)) {
       Alert.alert(
         "Lỗi",
         "Họ tên và tuổi không được để trống hoặc sai định dạng."
@@ -91,9 +95,9 @@ export default function UserDetail({ route }) {
     }
 
     const formData = new FormData();
-    formData.append("fullname", user.fullname);
-    formData.append("age", user.age.toString());
-    formData.append("gender", user.gender ? "1" : "0");
+    formData.append("fullname", userDetail.fullname);
+    formData.append("age", userDetail.age.toString());
+    formData.append("gender", userDetail.gender ? "1" : "0");
 
     if (selectedAvatar) {
       formData.append("avatar", {
@@ -107,7 +111,7 @@ export default function UserDetail({ route }) {
       setSaving(true);
 
       const response = await fetch(
-        `http://10.0.2.2:3000/api/userDetails/update/${userId}`,
+        `http://10.0.2.2:3000/api/userDetails/update/${userRedux.id}`,
         {
           method: "PUT",
           headers: {
@@ -131,7 +135,7 @@ export default function UserDetail({ route }) {
       Alert.alert("Cập nhật thành công!");
       setEditing(false);
       setSelectedAvatar(null);
-      await fetchUser();
+      await fetchUserDetail();
     } catch (err) {
       console.error("Update user error:", err);
       Alert.alert("Lỗi", err.message);
@@ -148,7 +152,7 @@ export default function UserDetail({ route }) {
     );
   }
 
-  if (!user) {
+  if (!userDetail) {
     return (
       <View style={styles.centered}>
         <Text>Không thể tải thông tin người dùng.</Text>
@@ -163,10 +167,7 @@ export default function UserDetail({ route }) {
     >
       {/* Nút quay lại HomeChat */}
       <TouchableOpacity
-        onPress={() => navigation.navigate("homeChat", {
-          userId: userId,
-          accessToken:accessToken,
-        })}
+        onPress={() => navigation.navigate("homeChat")}
         style={styles.backButton}
       >
         <Text style={styles.backText}>← Quay lại</Text>
@@ -176,8 +177,8 @@ export default function UserDetail({ route }) {
         <TouchableOpacity onPress={pickImage}>
           <Image
             source={
-              user.avatar_url
-                ? { uri: user.avatar_url }
+              userDetail.avatar_url
+                ? { uri: userDetail.avatar_url }
                 : require("../assets/default-avatar.png")
             }
             style={styles.avatar}
@@ -190,15 +191,17 @@ export default function UserDetail({ route }) {
         <>
           <TextInput
             style={styles.input}
-            value={user.fullname}
-            onChangeText={(text) => setUser({ ...user, fullname: text })}
+            value={userDetail.fullname}
+            onChangeText={(text) =>
+              setUserDetail({ ...userDetail, fullname: text })
+            }
             placeholder="Họ tên"
           />
           <TextInput
             style={styles.input}
-            value={user.age?.toString()}
+            value={userDetail.age?.toString()}
             onChangeText={(text) =>
-              setUser({ ...user, age: parseInt(text) || 0 })
+              setUserDetail({ ...userDetail, age: parseInt(text) || 0 })
             }
             keyboardType="numeric"
             placeholder="Tuổi"
@@ -208,20 +211,24 @@ export default function UserDetail({ route }) {
           <View style={styles.radioGroup}>
             <TouchableOpacity
               style={styles.radioButton}
-              onPress={() => setUser({ ...user, gender: true })}
+              onPress={() => setUserDetail({ ...userDetail, gender: true })}
             >
               <View style={styles.radioCircle}>
-                {user.gender === true && <View style={styles.selectedDot} />}
+                {userDetail.gender === true && (
+                  <View style={styles.selectedDot} />
+                )}
               </View>
               <Text style={styles.radioText}>Nam</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.radioButton}
-              onPress={() => setUser({ ...user, gender: false })}
+              onPress={() => setUserDetail({ ...userDetail, gender: false })}
             >
               <View style={styles.radioCircle}>
-                {user.gender === false && <View style={styles.selectedDot} />}
+                {userDetail.gender === false && (
+                  <View style={styles.selectedDot} />
+                )}
               </View>
               <Text style={styles.radioText}>Nữ</Text>
             </TouchableOpacity>
@@ -235,10 +242,10 @@ export default function UserDetail({ route }) {
         </>
       ) : (
         <>
-          <Text style={styles.name}>{user.fullname}</Text>
-          <Text style={styles.detail}>Tuổi: {user.age}</Text>
+          <Text style={styles.name}>{userDetail.fullname}</Text>
+          <Text style={styles.detail}>Tuổi: {userDetail.age}</Text>
           <Text style={styles.detail}>
-            Giới tính: {user.gender ? "Nam" : "Nữ"}
+            Giới tính: {userDetail.gender ? "Nam" : "Nữ"}
           </Text>
           <Button title="Chỉnh sửa" onPress={() => setEditing(true)} />
         </>

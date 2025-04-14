@@ -34,8 +34,9 @@
     "react-native-screens": "^4.10.0",
     "react-native-vector-icons": "^10.2.0",
     "react-navigation": "^5.0.0",
-    "react-redux": "^9.2.0"
-
+    "react-redux": "^9.2.0",
+    "redux": "^5.0.1",
+    "toolkit": "^1.5.4"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
