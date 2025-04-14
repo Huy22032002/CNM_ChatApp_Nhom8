@@ -297,4 +297,4 @@ const friendsModel = {
 
 };  
 
-module.exports = friendsModel;
+export default friendsModel;

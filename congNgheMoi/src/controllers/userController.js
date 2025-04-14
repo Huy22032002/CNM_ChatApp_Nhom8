@@ -89,7 +89,7 @@ const findUser = async (req, res) => {
 
 const searchUser = async (req, res) => {
   try {
-    const { keyword } = req.query;
+    const { keyword,id: currentUserId } = req.body; // Assuming the current user's ID is passed in the request body
 
     if (!keyword || keyword.trim() === "") {
       return res.status(400).json({ message: "Keyword is required" });
@@ -101,6 +101,7 @@ const searchUser = async (req, res) => {
           { email: { [Op.like]: `%${keyword}%` } },
           { phone: { [Op.like]: `%${keyword}%` } },
         ],
+        id: { [Op.ne]: currentUserId }, // Exclude the current user from the results
       },
       attributes: { exclude: ["password"] },
     });

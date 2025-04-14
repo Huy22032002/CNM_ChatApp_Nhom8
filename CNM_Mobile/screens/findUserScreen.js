@@ -15,18 +15,32 @@ const FindUserScreen = () => {
   const [keyword, setKeyword] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const user = useSelector((state) => state.user.user);
+  const accessToken = useSelector((state) => state.user.accessToken);
+  const API_URL = "http://10.0.2.2:3000";
+
 
   const searchUser = async () => {
     if (!keyword.trim()) {
       Alert.alert("Thông báo", "Vui lòng nhập email hoặc số điện thoại.");
       return;
     }
-
+  
     try {
       setLoading(true);
-      const response = await axios.get(
-        `http://localhost:8080/api/user/search?keyword=${keyword}`
+      const response = await axios.post(
+        `${API_URL}/api/user/search`,
+        {
+          keyword: keyword,  
+          id: user.id,        
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`, 
+          },
+        }
       );
+  
       setResults(response.data);
     } catch (error) {
       console.error("Lỗi tìm người dùng:", error);
@@ -35,10 +49,11 @@ const FindUserScreen = () => {
       setLoading(false);
     }
   };
+  
 
   const sendFriendRequest = async (friendId) => {
     try {
-      await axios.post("http://localhost:8080/api/friend/add", {
+      await axios.post(`${API_URL}/api/friend/add`, {
         receiverId: friendId,
       });
       Alert.alert("Thành công", "Đã gửi lời mời kết bạn.");
