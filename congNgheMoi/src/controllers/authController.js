@@ -1,6 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import User from "../models/userModel.js";
+import UserDetail from "../models/userDetail.js";
 const router = Router();
 import { findUser, authenticate, updateUser, createUser } from "../services/userService.js";
 import { generateToken, verifyAndRefreshToken } from "../configs/jwtConfig.js";
@@ -10,6 +11,21 @@ import otpCache from "../middlewares/otpCache.js";
 const register = async (req, res) => {
   try {
     const { username, password, email, phone } = req.body;
+
+    const existMail = await User.findOne({ where: { email } });
+    if (existMail) {
+      return res.status(401).json({ message: "Email already exists" });
+    }
+
+    const existPhone = await User.findOne({ where: { phone } });
+    if (existPhone) {
+      return res.status(402).json({ message: "Phone already exists" });
+    }
+
+    const existUsername = await User.findOne({ where: { username } });
+    if (existUsername) {
+      return res.status(403).json({ message: "Username already exists" });
+    }
 
     const existingUser = await findUser(username);
     if (existingUser == null) {
@@ -31,7 +47,6 @@ const register = async (req, res) => {
       // });
       // await newUser.save();//for testing
 
-
       // Chưa lưu user vào DB ngay — đợi xác thực OTP
       res.status(200).json({ message: "OTP sent to email", email,otp });
     } else {
@@ -41,7 +56,6 @@ const register = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
-
 
 const verifyOtp= async (req, res) => {
     const { email, username, password, phone, otp } = req.body;
@@ -54,14 +68,26 @@ const verifyOtp= async (req, res) => {
   
     // Tạo user sau khi xác thực
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({
-      username,
-      pass_hash: hashedPassword,
-      email,
-      phone,
-      status: "OFFLINE",
-    });
-    await newUser.save();
+    // const newUser = new User({
+    //   username,
+    //   pass_hash: hashedPassword,
+    //   email,
+    //   phone,
+    //   status: "OFFLINE",
+    // });
+    // await newUser.save();
+    // const userId = newUser.id;
+    // // Create user detail
+    // const userDetail = new UserDetail({
+    //   user_id: userId,
+    //   fullname: null,
+    //   age: null,
+    //   gender: null,
+    //   avatar_url: null,
+    // });
+    // await userDetail.save();
+    await createUser(username, email, hashedPassword, phone);
+
     otpCache.delete(email);
   
     res.status(201).json({ message: "Đăng ký thành công" });
@@ -77,14 +103,29 @@ const createNewUser = async (req, res) => {
     }
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({
-      username,
-      pass_hash: hashedPassword,
-      email,
-      phone,
-      status: "OFFLINE",
-    });
-    await newUser.save();
+    // const newUser = new User({
+    //   username,
+    //   pass_hash: hashedPassword,
+    //   email,
+    //   phone,
+    //   status: "OFFLINE",
+    // });
+    // await newUser.save();
+    // //get the user id of the new user
+    // const userId = newUser.id;
+    // console.log("New uid:"+userId);
+    // // Create user detail
+    // const userDetail = new UserDetail({
+    //   user_id: userId,
+    //   fullname: null,
+    //   age: null,
+    //   gender: null,
+    //   avatar_url: null,
+    // });
+    // await userDetail.save();
+    
+    await createUser(username, email, hashedPassword, phone);
+
     res.status(201).json({ message: "User created successfully" });
   } catch (error) {
     res
@@ -93,38 +134,7 @@ const createNewUser = async (req, res) => {
   }
 };
 
-// const register = async (req, res) => {
-//   try {
-//     const { username, password, email, phone } = req.body;
-
-
-//         // Check if user already exists
-//         const existingUser = await findUser(username);
-//         if (existingUser==null) {
-//             const hashedPassword = await bcrypt.hash(password,10);
-//         // console.log(hashedPassword);
-
-//       // Create a new user
-//       const newUser = new User({
-//         username,
-//         pass_hash: hashedPassword,
-//         email,
-//         phone,
-//       });
-//       await newUser.save();
-
-//       res.status(201).json({ message: "User registered successfully" });
-//     } else {
-//       return res.status(400).json({ message: "Username already exists" });
-//     }
-//     // Hash the password
-//   } catch (error) {
-//     res.status(500).json({ message: "Server error", error });
-//   }
-// };
-
 const login = async (req, res) => {
-
   try {
     const { username, password } = req.body;
     const user = await authenticate(username, password);
@@ -154,15 +164,19 @@ const login = async (req, res) => {
     console.log(user);
     console.log(tokens.accessToken);
     await updateUser(user.id, { status: "ONLINE" });
-
-    res.status(200).json({ message: "Login successful", accessToken: tokens.accessToken,user });
+    ({ message: "Login successful", accessToken: tokens.accessToken });
+    res
+      .status(200)
+      .json({
+        message: "Login successful",
+        accessToken: tokens.accessToken,
+        user,
+      });
   } catch (error) {
     res.status(500).json({ message: "Lỗi đăng nhập" });
     console.log(error);
   }
-
 };
-
 
 const refreshToken = async (req, res) => {
   const { accessToken, refreshToken } = req.body;
@@ -182,9 +196,14 @@ const refreshToken = async (req, res) => {
 };
 
 const logout = (req, res) => {
+  //chuyen status qua OFFLINE
+  const {id} = req.body;
+  updateUser(id, { status: "OFFLINE" });
 
   res.clearCookie("token");
   res.status(200).json({ message: "Logged out successfully" });
 };
 
+
 export { register, login, refreshToken, logout ,verifyOtp,createNewUser};
+
