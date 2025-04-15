@@ -21,7 +21,7 @@ const FindUserScreen = () => {
   const [loading, setLoading] = useState(false);
   const user = useSelector((state) => state.user.user);
   const accessToken = useSelector((state) => state.user.accessToken);
-  const API_URL = "http://10.0.2.2:3000";
+  const API_URL = "http://192.168.31.28:3000"||"http://10.0.2.2:3000";
 
   const searchUser = async () => {
     if (!keyword.trim()) {

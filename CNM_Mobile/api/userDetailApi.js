@@ -1,4 +1,5 @@
-const USER_DETAIL_API = "http://10.0.2.2:3000/api/userDetails";
+const API_URL="http://192.168.31.28:3000"||"http://10.0.2.2:3000"
+const USER_DETAIL_API = `${API_URL}/api/userDetails`;
 
 
 export const fetchUserDetail = async (user_id, accessToken) => {

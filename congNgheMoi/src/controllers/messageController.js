@@ -55,6 +55,8 @@ const MessageController = {
   },
   async getAllMessageByConversationId(req, res) {
     const converId = req.params.converId;
+    console.log(converId);
+
     if (!converId) {
       return res.status(400).json({ error: "Vui lòng truyền conversation_id" });
     }
