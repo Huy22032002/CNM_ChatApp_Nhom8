@@ -1,2 +1,2 @@
-# CNM_ChatApp_Nhom8
+# Chat App 
 Chat App using NodeJS
