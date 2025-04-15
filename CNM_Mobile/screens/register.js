@@ -82,7 +82,7 @@ export default function RegisterScreen() {
       });
     } catch (err) {
       console.error(err.response?.data || err.message);
-      alert("Đăng ký thất bại. Vui lòng thử lại!");
+      alert(err.response?.data.message || 'Đã xảy ra lỗi, vui lòng thử lại!');
     } finally {
       setLoading(false);
     }
