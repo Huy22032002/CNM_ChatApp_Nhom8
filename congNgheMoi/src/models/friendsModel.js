@@ -2,7 +2,7 @@ import dynamoDB from "../configs/connectDynamo.js";
 
 const TABLE_NAME = "User_Friends";
 
-const friendsModel = {
+export default {
   async createUserFriend(user_id) {
     if (isNaN(user_id)) {
       console.log(`Invalid user_id: ${user_id}`);
@@ -334,4 +334,4 @@ const friendsModel = {
 
 };  
 
-export default friendsModel;
+// Removed duplicate export default

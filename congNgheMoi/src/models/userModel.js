@@ -16,7 +16,7 @@ const User = sequelize.define("User", {
     allowNull: true,
     unique: true,
     validate: {
-      len: [10, 10], // phone 10 ký tự
+      len: [10, 10], // phone 10 số 
     },
   },
   status: {

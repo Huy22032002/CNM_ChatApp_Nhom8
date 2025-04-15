@@ -63,16 +63,27 @@ const register = async (req, res) => {
   }
 };
 
-const verifyOtp= async (req, res) => {
+const verifyOtp = async (req, res) => {
+  try {
     const { email, username, password, phone, otp } = req.body;
+    console.log("Received data:", { email, username, otp });
+
     const storedOtp = otpCache.get(email);
-    
-  
+    console.log("Stored OTP:", storedOtp);
+
     if (storedOtp !== otp) {
+      console.warn("OTP mismatch for email:", email);
       return res.status(400).json({ message: "OTP không chính xác" });
     }
-  
-    // Tạo user sau khi xác thực
+
+    const existingUser = await User.findOne({ where: { username } });
+    console.log("Existing user check:", existingUser);
+
+    if (existingUser) {
+      console.warn("Username already exists:", username);
+      return res.status(400).json({ message: "Username already exists" });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     // const newUser = new User({
     //   username,
@@ -97,6 +108,9 @@ const verifyOtp= async (req, res) => {
   otpCache.delete(email);
 
   res.status(201).json({ message: "Đăng ký thành công" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
 };
 
 const createNewUser = async (req, res) => {
@@ -158,6 +172,7 @@ const login = async (req, res) => {
     res.cookie("accessToken", tokens.accessToken, {
       httpOnly: true,
       secure: true,
+      sameSite: "strict",// prevent CSRF attacks
       maxAge: 15 * 60 * 1000,
     }); // 15 minutes
 

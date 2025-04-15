@@ -10,6 +10,13 @@ import S3 from "../configs/configS3.js";
 
 const createUserDetail = async (req, res) => {
   try {
+    console.log("Request body:", req.body);
+
+    if (!req.body.user_id) {
+      console.error("Missing user_id in request body");
+      return res.status(400).json({ message: "user_id is required" });
+    }
+
     const userDetailData = {
       user_id: req.body.user_id,
       fullname: req.body.fullname,
@@ -17,14 +24,25 @@ const createUserDetail = async (req, res) => {
       gender: req.body.gender,
       avatar_url: req.body.avatar_url,
     };
-    //goi service
+
+    console.log("Constructed userDetailData:", userDetailData);
+
+    if (!Number.isInteger(userDetailData.age) || userDetailData.age <= 0) {
+      console.error("Invalid age: age must be a positive integer");
+      return res.status(400).json({ message: "Invalid age: age must be a positive integer" });
+    }
+
+    // Gọi service
     const userDetail = await _createUserDetail(userDetailData);
+
+    console.log("Service returned userDetail:", userDetail);
 
     res.status(200).json({
       message: "create userdetail successfully",
       userDetail: userDetail,
     });
   } catch (err) {
+    console.error("Error in createUserDetail controller:", err);
     res
       .status(500)
       .json({ message: "error creating user detail", error: `${err.message}` });
