@@ -8,7 +8,7 @@ import Notification from "../models/notification.js";
 import Conversation from "../models/conversation.js";
 
 async function getAllFriends(user_id) {
-    return await friends.getAllFriendOfUser(user_id);
+    return await friends.getFriends(user_id);
 }
 
 async function getAllFriendsWithDetails(user_id) {
