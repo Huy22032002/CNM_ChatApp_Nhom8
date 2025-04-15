@@ -12,7 +12,6 @@ const createConversation = async (req, res) => {
     });
   }
 };
-
 const getAllConversations = async (req, res) => {
   const user_id = Number(req.params.user_id);
   console.log(user_id, typeof user_id);
@@ -55,4 +54,27 @@ const updateConversation = async (req, res) => {
     });
   }
 };
-export default { createConversation, getAllConversations, updateConversation };
+const getConversationById = async (req, res) => {
+  const conversation_id = req.params.conversation_id;
+  if (!conversation_id) {
+    return res.status(400).json({ error: "Vui lòng truyền conversation_id" });
+  }
+  try {
+    const conversation = await ConversationService.getConversationById(
+      conversation_id
+    );
+    console.log(conversation);
+    return res.status(200).json(conversation);
+  } catch (error) {
+    return res.status(500).json({
+      message: "error get conversation with converId in conversation controler",
+      error: error.message,
+    });
+  }
+};
+export default {
+  createConversation,
+  getAllConversations,
+  updateConversation,
+  getConversationById,
+};

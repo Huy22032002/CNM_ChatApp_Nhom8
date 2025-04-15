@@ -1,4 +1,5 @@
-const USER_DETAIL_API = "http://10.0.2.2:3000/api/userDetails";
+import { API_URL } from "./apiConfig";
+const USER_DETAIL_API = `${API_URL}/api/userDetails`;
 
 
 export const fetchUserDetail = async (user_id, accessToken) => {
@@ -20,7 +21,7 @@ export const fetchUserDetail = async (user_id, accessToken) => {
       throw new Error(errorData.message || "Lỗi khi lấy thông tin người dùng");
     }
     // console.log(response);
-    console.log("User detail response:", response);
+    // console.log("User detail response:", response);
     return await response.json();
   } catch (err) {
     console.error("Fetch user detail error:",err.message || err);

@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import axios from 'axios';
+import { API_URL } from "../api/apiConfig";
+
 
 const VerifyOtp = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -59,9 +61,8 @@ const VerifyOtp = () => {
 
     setLoading(true);
     try {
-      const api_url=process.env.API_URL||"http://10.0.2.2:3000";
-      console.log(api_url);
-      await axios.post(`${api_url}/auth/createNewUser`, {
+    
+      await axios.post(`${API_URL}/auth/createNewUser`, {
         username,
         password,
         email,

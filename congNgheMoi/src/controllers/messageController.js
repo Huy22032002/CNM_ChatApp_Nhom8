@@ -8,10 +8,16 @@ const MessageController = {
       const file = req.file;
       if (!file) return res.status(400).json({ error: "Chưa gửi file" });
 
-      const image = file.originalname.split(".");
-      const fileType = image[image.length - 1];
-      const filePath = `${uuidv4()}.${fileType}`;
-
+      const fileExtension = file.originalname.split(".").pop(); // Lấy phần mở rộng file
+      const filePath = `${uuidv4()}.${fileExtension}`;
+      //check dinh dang file
+      const isImg = file.mimetype.startsWith("image/");
+      const isPdf = file.mimetype === "application/pdf";
+      if (!isImg && !isPdf) {
+        return res
+          .status(400)
+          .json({ error: "Chỉ chấp nhận hình ảnh hoặc PDF" });
+      }
       const params = {
         Bucket: "chatappnhom8",
         Key: filePath,
@@ -22,18 +28,30 @@ const MessageController = {
       const uploadedImg = await S3.upload(params).promise();
 
       const data = req.body;
+      //check coi có content gui kèm k
+      const isContent = data.content && data.content.trim() !== "";
+      console.log("isContent: ", isContent);
+      //xac dinh message_type
+      let message_type = "";
+      if (isContent && isImg) {
+        message_type = "image_text";
+      } else if (isImg) {
+        message_type = "TEXT";
+      } else message_type = "FILE";
+
       const newMessage = {
         conversation_id: data.conversation_id,
-        sender: data.sender,
+        sender: Number(data.sender),
         receivers: data.receivers,
-        message_type: "image",
+        message_type: message_type,
+        content: isContent ? data.content : null,
         image_url: uploadedImg.Location, //url s3 image
       };
       const savedMessage = await MessageService.createMessage(newMessage);
       return res.status(200).json(savedMessage);
     } catch (err) {
       console.log(`err upload img s3: ${err}`);
-      return res.status(500).json({ err: err.message });
+      return res.status(500).json({ error: err.message });
     }
   },
   async createMessage(req, res) {
@@ -55,6 +73,8 @@ const MessageController = {
   },
   async getAllMessageByConversationId(req, res) {
     const converId = req.params.converId;
+    console.log(converId);
+
     if (!converId) {
       return res.status(400).json({ error: "Vui lòng truyền conversation_id" });
     }

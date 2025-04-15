@@ -1,9 +1,23 @@
 import MessageModel from "../models/message.js";
-
+import ConversationModel from "../models/conversation.js";
 const MessageService = {
   async createMessage(message) {
     try {
-      return await MessageModel.createMessage(message);
+      const newMessage = await MessageModel.createMessage(message);
+      //update conversation
+      const lastMessage = {
+        content: newMessage.content,
+        updated_at: newMessage.created_at,
+      };
+      const updatedConversation = await ConversationModel.updateConversation(
+        newMessage.conversation_id,
+        lastMessage
+      );
+      console.log(
+        "update conversation after create new message: ",
+        updatedConversation
+      );
+      return newMessage;
     } catch (error) {
       console.error(`Err creating message: ${error.message}`);
       throw new Error(`Err creating message service: ${error.message}`);
