@@ -41,6 +41,12 @@ const ChatScreen = ({ route }) => {
   //state cho hinh anh, document
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedDocument, setSelectedDocument] = useState(null);
+  //state cho emoji
+  const [showEmojiPopUp, setShowEmojiPopUp] = useState(false);
+  const [selectedEmoji, setSelectedEmoji] = useState("");
+  const selectEmoji = () => {
+    setShowEmojiPopUp(true);
+  };
 
   const selectImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -226,7 +232,31 @@ const ChatScreen = ({ route }) => {
       alert(err.response.data.error);
     }
   };
-  const forwardMessage = async () => {};
+  const forwardMessage = async () => {
+    const currentMessage = messages.find(
+      (message) => message.message_id == selectMessage
+    );
+    if (!currentMessage) {
+      alert("khong tim thay tin nhan");
+      return;
+    }
+    const receivers = [3];
+
+    const data = {
+      conversation_id: "eed7637a-ac78-4d87-baa6-f2a821029e07",
+      sender: user.id,
+      receivers: receivers,
+      content: currentMessage.content,
+      type: currentMessage.message_type,
+      image_url: currentMessage.image_url || null,
+    };
+    try {
+      const forwardMessage = await MessageAPI.sendMessage(data, accessToken);
+      console.log("da forward: ", forwardMessage);
+    } catch (err) {
+      console.error("Send message failed: ", err.message);
+    }
+  };
   //-------------------------
   const renderMessage = ({ item }) => {
     const isMyMessage = item.sender === user.id;
@@ -268,7 +298,8 @@ const ChatScreen = ({ route }) => {
                 //     {item.content || "📄 Tệp đính kèm"}
                 //   </Text>
                 // </TouchableOpacity>
-                <Text>{item.image_url}</Text>
+
+                <Text style={{ color: "blue" }}>{item.image_url}</Text>
               )}
             </>
           )}
@@ -417,6 +448,7 @@ const ChatScreen = ({ route }) => {
           <Text>{selectedDocument.uri}</Text>
         </View>
       )}
+
       <View style={styles.footer}>
         <TouchableOpacity onPress={selectDocument}>
           <Image
@@ -430,7 +462,7 @@ const ChatScreen = ({ route }) => {
             style={{ width: 30, height: 30 }}
           />
         </TouchableOpacity>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={selectEmoji}>
           <Image
             source={require("../assets/emoji.png")}
             style={{ width: 30, height: 30 }}
@@ -484,9 +516,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 2,
-    // fit content
-    maxWidth: "80%", // tránh quá dài
-    width: "auto", // fit theo nội dung
+    maxWidth: "80%",
+    width: "auto",
   },
   footer: {
     display: "flex",
