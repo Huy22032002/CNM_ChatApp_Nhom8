@@ -12,9 +12,13 @@ router.post(
   authMiddlewareWithoutRefresh,
   ConversationController.createConversation
 );
-
 router.get(
-  "/:user_id",
+  "/:conversation_id",
+  authMiddlewareWithoutRefresh,
+  ConversationController.getConversationById
+);
+router.get(
+  "/user/:user_id",
   authMiddlewareWithoutRefresh,
   ConversationController.getAllConversations
 );
