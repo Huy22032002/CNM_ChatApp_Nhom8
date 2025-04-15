@@ -5,6 +5,7 @@ import { Op } from "sequelize";
 import {createFriendRequestNotification} from "./notificationService.js";
 import User from "../models/userModel.js";
 import Notification from "../models/notification.js";
+import Conversation from "../models/conversation.js";
 
 async function getAllFriends(user_id) {
     return await friends.getAllFriendOfUser(user_id);
@@ -56,6 +57,26 @@ async function getFriendRequests(user_id) {
 }
 
 async function acceptFriendRequest(user_id, friend_id) {
+    const type = "SINGLE";
+    const participants = [user_id, friend_id];
+    const conversation = await Conversation.findOne({
+        where: {
+            type,
+            participants: {
+                [Op.contains]: participants,
+            },
+        },
+    });
+    if (!conversation) {
+        console.log("No conversation found, creating a new one.");
+        await Conversation.create({
+            type,
+            participants,
+        });
+    } else {
+        console.log("Conversation already exists:", conversation);
+    }
+    Conversation.createConversation(type, participants);
     return await friends.acceptFriendRequest(user_id, friend_id);
 }
 

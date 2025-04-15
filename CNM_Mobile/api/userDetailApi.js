@@ -1,4 +1,4 @@
-const API_URL="http://192.168.31.28:3000"||"http://10.0.2.2:3000"
+import { API_URL } from "./apiConfig";
 const USER_DETAIL_API = `${API_URL}/api/userDetails`;
 
 

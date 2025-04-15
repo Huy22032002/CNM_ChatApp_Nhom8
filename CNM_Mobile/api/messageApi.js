@@ -1,5 +1,6 @@
 import axios from "axios";
-const MESSAGES_API = "http://10.0.2.2:3000/api/messages";
+import { API_URL } from "./apiConfig";
+const MESSAGES_API = `${API_URL}/api/messages`;
 
 const MessageAPI = {
   async fetchMessages(conversation_id, accessToken) {
@@ -94,6 +95,25 @@ const MessageAPI = {
         const result = res.data;
         console.log("Delete message: ", result);
         return result;
+      }
+    } catch (err) {
+      throw err;
+    }
+  },
+  async sendImageAndText(formData, accessToken) {
+    if (!formData || !accessToken) {
+      throw new Error("Invalid formData or accessToken");
+    }
+    try {
+      const respone = await axios.post(`${MESSAGES_API}/sendImage`, formData, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      if (respone) {
+        console.log("upload image and text: ", respone.data);
+        return respone.data;
       }
     } catch (err) {
       throw err;
