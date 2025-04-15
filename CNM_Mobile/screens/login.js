@@ -22,7 +22,7 @@ export default function LoginScreen() {
 
   const dispatch = useDispatch();
 
-  const API_URL = "http://10.0.2.2:3000";
+  const API_URL = "http://192.168.31.28:3000"||"http://10.0.2.2:3000";
 
   const onLogin = async () => {
     try {
@@ -32,7 +32,7 @@ export default function LoginScreen() {
       }
 
       setLoading(true);
-      const res = await axios.post("http://10.0.2.2:3000/auth/login", {
+      const res = await axios.post(`${API_URL}/auth/login`, {
         username,
         password,
       });
