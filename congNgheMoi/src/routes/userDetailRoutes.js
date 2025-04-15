@@ -1,5 +1,6 @@
 import { Router } from "express";
 import userDetailController from "../controllers/userDetailController.js";
+import { upload } from "../middlewares/uploadMiddleware.js";
 
 const router = Router();
 
@@ -15,7 +16,8 @@ router.post(
 );
 router.put(
   "/update/:user_id",
-  authMiddlewareWithoutRefresh,
+  // authMiddlewareWithoutRefresh,
+  upload.single("avatar"),
   userDetailController.updateUserDetails
 );
 router.get(
@@ -23,5 +25,7 @@ router.get(
   authMiddlewareWithoutRefresh,
   userDetailController.getAllUserDetail
 );
+
+router.get("/:id", userDetailController.getUserDetailByUserId);
 
 export default router;
