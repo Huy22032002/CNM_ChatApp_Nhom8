@@ -19,6 +19,8 @@ import { fetchUserDetail } from "../api/userDetailApi";
 import ConversationApi from "../api/conversationApi";
 import Icon from "react-native-vector-icons/Feather";
 import { useNavigation } from '@react-navigation/native';
+import { API_URL } from "../api/apiConfig";
+
 
 export default function HomeChat({ navigation }) {
   navigation = useNavigation();
@@ -28,6 +30,7 @@ export default function HomeChat({ navigation }) {
   const [oldPassword, setOldPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [tab, setTab] = useState("friends");
 
   const [userInfo, setUserInfo] = useState(null);
   const [userDetail, setUserDetail] = useState(null);
@@ -40,7 +43,6 @@ export default function HomeChat({ navigation }) {
   const [friendRequestsDetails, setFriendRequestsDetails] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const API_URL="http://192.168.31.28:3000"||"http://10.0.2.2:3000";
   const fetchNotifications = async () => {
     try {
       const res = await axios.get(`${API_URL}/api/notifications/${user.id}`, {
@@ -95,7 +97,7 @@ export default function HomeChat({ navigation }) {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       setFriendRequests(res.data); // [{ message, type, status }]
-      console.log("Lời mời kết bạn:", res.data);
+      console.log("Lời mời kết bạn:", friendRequests);
       
       // Fetch details for each friend request
       const detailsPromises = res.data.map(async (request) => {
@@ -150,9 +152,10 @@ export default function HomeChat({ navigation }) {
     }
   };
   
-  const filteredData = DATA[tab].filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredData = conversations.filter((item) =>
+    item.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  
 
 
 
@@ -496,7 +499,7 @@ export default function HomeChat({ navigation }) {
         style={styles.searchInput}
       />
       <FlatList
-        data={conversations}
+        data={searchQuery ? filteredData : conversations}
         renderItem={renderItem}
         keyExtractor={(item) => item.conversation_id.toString()}
         contentContainerStyle={{ paddingBottom: 60 }}

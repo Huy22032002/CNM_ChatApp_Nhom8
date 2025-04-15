@@ -22,18 +22,23 @@ const MessageController = {
       const uploadedImg = await S3.upload(params).promise();
 
       const data = req.body;
+      //check coi có content gui kèm k
+      const isContent = data.content && data.content.trim() !== "";
+      console.log("isContent: ", isContent);
+
       const newMessage = {
         conversation_id: data.conversation_id,
-        sender: data.sender,
+        sender: Number(data.sender),
         receivers: data.receivers,
-        message_type: "image",
+        message_type: isContent ? "image_text" : "image",
+        content: isContent ? data.content : null,
         image_url: uploadedImg.Location, //url s3 image
       };
       const savedMessage = await MessageService.createMessage(newMessage);
       return res.status(200).json(savedMessage);
     } catch (err) {
       console.log(`err upload img s3: ${err}`);
-      return res.status(500).json({ err: err.message });
+      return res.status(500).json({ error: err.message });
     }
   },
   async createMessage(req, res) {

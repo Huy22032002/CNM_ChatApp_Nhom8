@@ -12,6 +12,8 @@ import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import { useDispatch } from "react-redux";
 import { setUser } from "../redux/userSlice";
+import { API_URL } from "../api/apiConfig";
+
 
 export default function LoginScreen() {
   const navigation = useNavigation();
@@ -22,7 +24,6 @@ export default function LoginScreen() {
 
   const dispatch = useDispatch();
 
-  const API_URL = "http://192.168.31.28:3000"||"http://10.0.2.2:3000";
 
   const onLogin = async () => {
     try {

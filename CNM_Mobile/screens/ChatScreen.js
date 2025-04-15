@@ -8,12 +8,14 @@ import {
   TouchableOpacity,
   FlatList,
   Modal,
-  Alert,
 } from "react-native";
 import MessageAPI from "../api/messageApi";
 import ConversationApi from "../api/conversationApi";
 import { useSelector } from "react-redux";
 import { useNavigation } from "@react-navigation/native";
+
+import * as ImagePicker from "expo-image-picker";
+// import * as DocumentPicker from "expo-document-picker";
 
 const ChatScreen = ({ route }) => {
   const { conversation_id } = route.params;
@@ -28,6 +30,43 @@ const ChatScreen = ({ route }) => {
   //state xu ly cac su kien message
   const [selectMessage, setSelectMessage] = useState(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
+  //state cập nhật tin nhắn
+  const [edit, setEdit] = useState(false);
+  const [editContent, setEditContent] = useState("");
+  const openEditContent = () => {
+    setEdit(true);
+  };
+
+  //state cho hinh anh, document
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedDocument, setSelectedDocument] = useState(null);
+
+  const selectImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
+    if (!result.canceled) {
+      const selectedImg = result.assets[0];
+      setSelectedImage(selectedImg);
+    }
+  };
+  // const selectDocument = async () => {
+  //   try {
+  //     const result = await DocumentPicker.getDocumentAsync({
+  //       type: "*/*",
+  //     });
+
+  //     if (result.assets && result.assets.length > 0) {
+  //       const file = result.assets[0];
+  //       console.log("Document: ", file);
+  //       setSelectedDocument(file);
+  //     }
+  //   } catch (err) {
+  //     console.log("err select document: ", err);
+  //   }
+  // };
 
   const navigation = useNavigation();
 
@@ -46,14 +85,35 @@ const ChatScreen = ({ route }) => {
       console.error("Error fetching conversation: ", error);
     }
   };
+
+  //message function
+  const handleSend = async () => {
+    if (!selectedImage && !newMessage.trim()) {
+      alert("Vui lòng nhập nội dung gui");
+      return;
+    }
+    if (selectedImage) {
+      console.log("Gui ca text va image");
+      await sendImageAndText();
+      setNewMessage("");
+      setSelectedImage(null);
+      return;
+    }
+    if (newMessage) {
+      console.log("chi gui text");
+      await sendMessage();
+      setNewMessage("");
+      return;
+    }
+  };
   const sendMessage = async () => {
     if (newMessage == "" || newMessage == null) {
       alert("vui lòng nhập nội dung để gửi");
       return;
     }
-    const receivers = conversation.participants.filter(
-      (participant) => participant != user.id
-    );
+    const receivers = conversation.participants
+      .filter((participant) => participant != user.id)
+      .map(Number);
     console.log("receivers: ", receivers);
 
     const data = {
@@ -71,12 +131,39 @@ const ChatScreen = ({ route }) => {
       console.error("Send message failed: ", err.message);
     }
   };
+  const sendImageAndText = async () => {
+    const receivers = conversation.participants.filter(
+      (participant) => participant != user.id
+    );
+
+    const formData = new FormData();
+    formData.append("conversation_id", conversation_id);
+    formData.append("sender", user.id);
+    receivers.forEach((id) => {
+      formData.append("receivers[]", id);
+    });
+    if (newMessage) {
+      formData.append("content", newMessage);
+    }
+    formData.append("image", {
+      uri: selectedImage.uri,
+      name: "image.jpg",
+      type: "image/jpeg",
+    });
+    try {
+      const response = await MessageAPI.sendImageAndText(formData, accessToken);
+      return response;
+    } catch (err) {
+      alert(err.response.data.error);
+    }
+  };
+
   const handleMessage = (message_id) => {
     console.log("select message id: ", message_id);
     setSelectMessage(message_id);
     setShowMessageModal(true);
   };
-
+  //--------------------------------
   //Sửa, Thu hồi, Xóa message
   const deleteMessage = async () => {
     const data = {
@@ -95,9 +182,19 @@ const ChatScreen = ({ route }) => {
     const data = {
       conversation_id: conversation_id,
       user_id: user.id,
-      content: newMessage,
+      content: editContent,
     };
-    await MessageAPI.updateMessage(selectMessage, data, accessToken);
+    try {
+      await MessageAPI.updateMessage(selectMessage, data, accessToken);
+      await fetchMessages();
+
+      setEdit(false); //dong Moddal update
+      setEditContent("");
+
+      alert("Cập nhật tin nhắn thành công");
+    } catch (err) {
+      alert(err.response.data.error);
+    }
   };
   const revokeMessage = async () => {
     const data = {
@@ -114,18 +211,16 @@ const ChatScreen = ({ route }) => {
   };
   const forwardMessage = async () => {};
   //-------------------------
-
   const renderMessage = ({ item }) => {
     const isMyMessage = item.sender === user.id;
-    //kiem tra tin nhan REVOKED chua
     const isRevoked = item.status === "REVOKED";
     const isUpdated = item.status === "UPDATED";
+    const isContent =
+      item.content && item.content !== null && item.content !== "null";
+    const textStyle = isUpdated ? { fontWeight: "bold" } : {};
+
     return (
-      <TouchableOpacity
-        onLongPress={() => {
-          handleMessage(item.message_id);
-        }}
-      >
+      <TouchableOpacity onLongPress={() => handleMessage(item.message_id)}>
         <View
           style={[
             styles.message,
@@ -136,15 +231,17 @@ const ChatScreen = ({ route }) => {
             <Text style={{ color: "gray" }}>Tin nhắn đã thu hồi</Text>
           ) : (
             <>
-              {item.content && <Text>{item.content}</Text>}
+              {isContent && <Text style={textStyle}>{item.content}</Text>}
               {item.image_url && (
                 <Image
                   source={{ uri: item.image_url }}
-                  style={{ width: 80, height: 80, borderRadius: 20 }}
+                  style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 20,
+                    marginTop: item.content ? 5 : 0,
+                  }}
                 />
-              )}
-              {item.content && item.status === "UPDATED" && (
-                <Text style={{ fontWeight: "bold" }}>{item.content}</Text>
               )}
             </>
           )}
@@ -157,6 +254,17 @@ const ChatScreen = ({ route }) => {
     fetchConversation();
     fetchMessages();
   }, [conversation_id, user]);
+  //xin quyen truy cap anh tren dien thoai
+  useEffect(() => {
+    const requestPermission = async () => {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        alert("Quyền truy cap anh bị từ chối!");
+      }
+    };
+    requestPermission();
+  }, []);
 
   const backToHomeChat = () => {
     navigation.goBack();
@@ -164,8 +272,26 @@ const ChatScreen = ({ route }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{conversation_id}</Text>
-        <Text>Hoạt động 10 phút trước</Text>
+        <TouchableOpacity onPress={backToHomeChat}>
+          <Image
+            source={require("../assets/back.png")}
+            style={{ width: 24, height: 24 }}
+          />
+        </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Image
+            source={require("../assets/user1.png")}
+            style={{ width: 40, height: 40, borderRadius: 20, marginRight: 10 }}
+          />
+          <View>
+            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
+              {conversation_id}
+            </Text>
+            <Text style={{ color: "#eee", fontSize: 12 }}>
+              Hoạt động 10 phút trước
+            </Text>
+          </View>
+        </View>
       </View>
       <View style={styles.listMessage}>
         <FlatList
@@ -177,7 +303,7 @@ const ChatScreen = ({ route }) => {
           transparent={true}
           animationType="fade"
           visible={showMessageModal}
-          onRequestClose={() => setShowActions(false)}
+          onRequestClose={() => setShowMessageModal(false)}
         >
           <View style={styles.modalBackground}>
             <View style={styles.modalContainer}>
@@ -194,11 +320,39 @@ const ChatScreen = ({ route }) => {
                 <Text style={styles.modalButtonText}>Thu hồi</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={updateMessage}
+                onPress={openEditContent}
                 style={styles.modalButton}
               >
                 <Text style={styles.modalButtonText}>Sửa</Text>
               </TouchableOpacity>
+              {edit && (
+                <View
+                  style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    justifyContent: "center",
+                  }}
+                >
+                  <TextInput
+                    value={editContent}
+                    onChangeText={setEditContent}
+                    style={{
+                      height: 40,
+                      width: 200,
+                      borderRadius: 20,
+                      borderWidth: 1,
+                      padding: 10,
+                      marginBottom: 10,
+                    }}
+                  />
+                  <TouchableOpacity
+                    style={styles.modalButton}
+                    onPress={updateMessage}
+                  >
+                    <Text style={{ color: "red" }}>Xác nhận</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
               <TouchableOpacity
                 onPress={forwardMessage}
                 style={styles.modalButton}
@@ -215,20 +369,35 @@ const ChatScreen = ({ route }) => {
           </View>
         </Modal>
       </View>
-      <View style={styles.footer}>
-        <TouchableOpacity onPress={backToHomeChat}>
+      {selectedImage && (
+        <View
+          style={{
+            width: "100%",
+            height: 80,
+            padding: 10,
+            backgroundColor: "gray",
+          }}
+        >
           <Image
-            source={require("../assets/microphone.png")}
-            style={{ width: 30, height: 30 }}
+            source={{ uri: selectedImage.uri }}
+            style={{ width: 60, height: 60 }}
           />
-        </TouchableOpacity>
+        </View>
+      )}
+      {/* {selectedDocument && (
+        <View>
+          <Text>{selectedDocument.name}</Text>
+          <Text>{selectedDocument.uri}</Text>
+        </View>
+      )} */}
+      <View style={styles.footer}>
         <TouchableOpacity>
           <Image
             source={require("../assets/documents.png")}
             style={{ width: 30, height: 30 }}
           />
         </TouchableOpacity>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={selectImage}>
           <Image
             source={require("../assets/image.png")}
             style={{ width: 30, height: 30 }}
@@ -253,7 +422,7 @@ const ChatScreen = ({ route }) => {
           placeholder="Type a message..."
           placeholderTextColor="#888"
         />
-        <TouchableOpacity onPress={sendMessage}>
+        <TouchableOpacity onPress={handleSend}>
           <Image
             source={require("../assets/send.png")}
             style={{ width: 30, height: 30 }}
@@ -271,8 +440,10 @@ const styles = StyleSheet.create({
   header: {
     height: 60,
     backgroundColor: "#6200ea",
-    justifyContent: "center",
+    flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 10,
+    justifyContent: "space-between",
   },
   listMessage: { flex: 1, padding: 10 },
   message: {
