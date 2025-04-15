@@ -10,6 +10,7 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 
 import { ConnectSocket } from "./configs/configSocketIO.js";
 import http from "http";
+import cors from "cors";
 
 import {
   authMiddleware,
@@ -19,13 +20,10 @@ import {
 const app = express();
 const server = http.createServer(app);
 ConnectSocket(server); 
-
-import cors from "cors";
-
-
-
 app.use(cors({
+
   origin: "http://localhost:5173"||"192.168.31.28:5173", 
+
   credentials: true,
 }));
 
