@@ -1,7 +1,7 @@
 import path from "path";
 
 export const checkFileType = (file, cb) => {
-  const fileTypes = /jpeg|png|gif|jpg/;
+  const fileTypes = /jpeg|png|gif|jpg|pdf/;
   //kiem tra file co duoi khop nhu yeu cau
   const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
   //kiem tra loai file thong qua myimetype
@@ -10,5 +10,5 @@ export const checkFileType = (file, cb) => {
   if (extname && mimitype) {
     return cb(null, true);
   }
-  return cb("Err: Image only");
+  return cb("Err: Image or Pdf only");
 };

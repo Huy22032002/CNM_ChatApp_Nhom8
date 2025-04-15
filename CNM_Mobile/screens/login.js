@@ -12,6 +12,8 @@ import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import { useDispatch } from "react-redux";
 import { setUser } from "../redux/userSlice";
+import { API_URL } from "../api/apiConfig";
+
 
 export default function LoginScreen() {
   const navigation = useNavigation();
@@ -22,7 +24,6 @@ export default function LoginScreen() {
 
   const dispatch = useDispatch();
 
-  const API_URL = "http://10.0.2.2:3000";
 
   const onLogin = async () => {
     try {
@@ -32,7 +33,7 @@ export default function LoginScreen() {
       }
 
       setLoading(true);
-      const res = await axios.post("http://10.0.2.2:3000/auth/login", {
+      const res = await axios.post(`${API_URL}/auth/login`, {
         username,
         password,
       });
