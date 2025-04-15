@@ -12,7 +12,7 @@ const storage = multer.memoryStorage({
 //tạo middlewware
 export const upload = multer({
   storage,
-  limits: { fileSize: 2000000 },
+  limits: { fileSize: 20000000 }, //20MB
   //filter để check trước khi upload
   fileFilter(req, file, cb) {
     checkFileType(file, cb);
