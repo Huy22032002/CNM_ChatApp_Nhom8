@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+    addSampleData,
     getFriends,
     getFriendsWithDetails,
     sendFriendRequest,
@@ -21,5 +22,5 @@ router.get("/:userId/requests", authMiddlewareWithoutRefresh, getRequests);
 router.post("/block", authMiddlewareWithoutRefresh, block);
 router.post("/unblock", authMiddlewareWithoutRefresh, unblock);
 router.get("/isFriend", authMiddlewareWithoutRefresh, checkFriendStatus);
-
+router.post("/addSampleData", addSampleData);
 export default router;
