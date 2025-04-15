@@ -163,7 +163,7 @@ const FindUserScreen = () => {
   );
 
   const backToHomeChat = () => {
-    navigation.goBack();
+    navigation.navigate("homeChat");
   };
 
   return (

@@ -34,6 +34,7 @@ const ChatScreen = ({ route }) => {
   //state xu ly cac su kien message
   const [selectMessage, setSelectMessage] = useState(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   //state cập nhật tin nhắn
   const [edit, setEdit] = useState(false);
   const [editContent, setEditContent] = useState("");
@@ -453,7 +454,9 @@ const ChatScreen = ({ route }) => {
             style={{ width: 30, height: 30 }}
           />
         </TouchableOpacity>
-        <TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setShowEmojiPicker(true)} // Show emoji picker
+        >
           <Image
             source={require("../assets/emoji.png")}
             style={{ width: 30, height: 30 }}
@@ -479,6 +482,38 @@ const ChatScreen = ({ route }) => {
           />
         </TouchableOpacity>
       </View>
+      <Modal
+        transparent={true}
+        animationType="slide"
+        visible={showEmojiPicker}
+        onRequestClose={() => setShowEmojiPicker(false)}
+      >
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContainer}>
+            <FlatList
+              data={["😀", "😂", "😍", "😎", "😭", "😡", "👍", "🎉", "❤️", "🔥"]}
+              numColumns={5}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => {
+                    setNewMessage((prev) => prev + item);
+                    setShowEmojiPicker(false);
+                  }}
+                >
+                  <Text style={{ fontSize: 30, margin: 10 }}>{item}</Text>
+                </TouchableOpacity>
+              )}
+              keyExtractor={(item, index) => index.toString()}
+            />
+            <TouchableOpacity
+              onPress={() => setShowEmojiPicker(false)}
+              style={styles.modalButton}
+            >
+              <Text style={styles.modalButtonText}>Đóng</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
