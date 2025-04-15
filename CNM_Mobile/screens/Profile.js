@@ -24,6 +24,7 @@ export default function UserDetail() {
   const [selectedAvatar, setSelectedAvatar] = useState(null);
   const [saving, setSaving] = useState(false);
 
+  const API_URL="http://192.168.31.28:3000"||"http://10.0.2.2:3000"
   //lay user va accessToken tu redux
   const userRedux = useSelector((state) => state.user.user);
   const accessToken = useSelector((state) => state.user.accessToken);
@@ -45,7 +46,7 @@ export default function UserDetail() {
     try {
       setLoading(true);
       const response = await fetch(
-        `http://10.0.2.2:3000/api/userDetails/${userRedux.id}`,
+        `${API_URL}/api/userDetails/${userRedux.id}`,
         {
           method: "GET",
           headers: {
@@ -111,7 +112,7 @@ export default function UserDetail() {
       setSaving(true);
 
       const response = await fetch(
-        `http://10.0.2.2:3000/api/userDetails/update/${userRedux.id}`,
+        `${API_URL}/api/userDetails/update/${userRedux.id}`,
         {
           method: "PUT",
           headers: {
