@@ -167,6 +167,7 @@ export default function UserDetail() {
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
+    
       {/* Nút quay lại HomeChat */}
       <TouchableOpacity
         onPress={() => navigation.navigate("homeChat")}
