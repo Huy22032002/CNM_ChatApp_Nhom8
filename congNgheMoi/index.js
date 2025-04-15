@@ -10,6 +10,8 @@ import http from "http";
 import dotenv from "dotenv";
 import { connectDB } from "./src/configs/connectRDS.js";
 import cookieParser from "cookie-parser";
+import cors from "cors";
+
 dotenv.config();
 
 const app = express();
@@ -21,6 +23,12 @@ ConnectSocket(server);
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 
 app.use("/auth", authRoutes);
 app.use("/api/home", homeRoutes);
