@@ -13,6 +13,7 @@ const ConversationModel = {
         participants: dynamoDB.createSet(participants),
         created_at: new Date().toISOString(),
         status: "ACTIVE", //chua can luu lastMessage
+        lastMessage:"Chưa có tin nhắn nào",
       },
     };
     await dynamoDB.put(params).promise();
@@ -75,6 +76,43 @@ const ConversationModel = {
       return null;
     }
   },
+
+  async getConversationByParticipants(type, participants) {
+    const params = {
+      TableName: TABLE_NAME,
+      FilterExpression: "#type = :typeVal",
+      ExpressionAttributeNames: {
+        "#type": "type",
+      },
+      ExpressionAttributeValues: {
+        ":typeVal": type,
+      },
+    };
+  
+    try {
+      const result = await dynamoDB.scan(params).promise();
+      const allConversations = result.Items || [];
+  
+      // Tìm cuộc hội thoại có đủ participants (giả định chỉ là 1-1 chat)
+      for (const convo of allConversations) {
+        const convoParticipants = convo.participants.values.sort();
+        const inputParticipants = [...participants].sort();
+  
+        if (
+          convoParticipants.length === inputParticipants.length &&
+          convoParticipants.every((val, idx) => val === inputParticipants[idx])
+        ) {
+          return convo;
+        }
+      }
+  
+      return null;
+    } catch (error) {
+      console.error("Error getConversationByParticipants:", error);
+      throw new Error("Failed to fetch conversation by participants");
+    }
+  },
+  
 };
 
 export default ConversationModel;

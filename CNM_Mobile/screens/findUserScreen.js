@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   View,
   Text,
@@ -14,14 +14,41 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import { useNavigation } from "@react-navigation/native";
 import { API_URL } from "../api/apiConfig";
+import ConversationApi from "../api/conversationApi";
 
 const FindUserScreen = () => {
   const navigation = useNavigation();
   const [keyword, setKeyword] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [friends, setFriends] = useState([]);
   const user = useSelector((state) => state.user.user);
   const accessToken = useSelector((state) => state.user.accessToken);
+
+  const fetchFriends = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/friends/${user.id}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+      // Tách friend_id thành mảng mới
+      const friendIds = response.data.map(item => item.friend_id);
+      console.log("Danh sách friend_id:", friendIds);
+      setFriends(friendIds);
+    } catch (error) {
+      console.error("Lỗi lấy danh sách bạn bè:", error);
+      Alert.alert("Lỗi", "Không thể lấy danh sách bạn bè.");
+    }
+  };
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      fetchFriends();
+    });
+    return unsubscribe;
+  }, [navigation]);
+
 
   const searchUser = async () => {
     if (!keyword.trim()) {
@@ -81,8 +108,30 @@ const FindUserScreen = () => {
     }
   };
 
+  const handleChatPress = async (otherUserId, otherUserDetail) => {
+    try {
+      // Lấy tất cả các cuộc trò chuyện của user hiện tại
+      const conversations = await ConversationApi.fetchConversationsByUserId(user.id, accessToken);
+      // Tìm cuộc trò chuyện với user cần nhắn tin
+      const conversation = conversations.find(conv =>
+        Array.isArray(conv.participants) &&
+        conv.participants.includes(otherUserId)
+      );
+      if (conversation) {
+        navigation.navigate("chatScreen", {
+          conversation_id: conversation.conversation_id,
+          otherUserDetail: otherUserDetail,
+        });
+      } else {
+        Alert.alert("Thông báo", "Chưa có cuộc trò chuyện với người này.");
+        // Hoặc có thể tạo mới conversation ở đây nếu muốn
+      }
+    } catch (error) {
+      Alert.alert("Lỗi", "Không thể lấy thông tin cuộc trò chuyện.");
+    }
+  };
+
   const renderUserItem = ({ item }) => (
-    
     <View style={styles.userCard}>
       <Image
         source={{
@@ -95,24 +144,36 @@ const FindUserScreen = () => {
           {item.userDetails.fullname || "Không tên"} ({item.user.email || item.user.phone})
         </Text>
       </View>
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => sendFriendRequest(item.user.id)}
-      >
-        <Text style={styles.addButtonText}>Kết bạn</Text>
-      </TouchableOpacity>
+      {friends.includes(item.user.id) ? (
+        <TouchableOpacity
+          style={[styles.addButton, { backgroundColor: "#4CAF50" }]}
+          onPress={() => handleChatPress(item.user.id, item.userDetails)}
+        >
+          <Text style={styles.addButtonText}>Nhắn tin</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => sendFriendRequest(item.user.id)}
+        >
+          <Text style={styles.addButtonText}>Kết bạn</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
+  const backToHomeChat = () => {
+    navigation.navigate("homeChat");
+  };
+
   return (
     <View style={styles.container}>
-      {/* Nút quay lại HomeChat */}
-            <TouchableOpacity
-              onPress={() => navigation.navigate("homeChat")}
-              style={styles.backButton}
-            >
-              <Text style={styles.backText}>← Quay lại</Text>
-            </TouchableOpacity>
+      <TouchableOpacity onPress={backToHomeChat}>
+        <Image
+          source={require("../assets/back.png")}
+          style={{ width: 24, height: 24,marginTop:20 }}
+        />
+      </TouchableOpacity>
       <Text style={styles.title}>Tìm kiếm người dùng</Text>
       <TextInput
         style={styles.input}
