@@ -9,7 +9,6 @@ const MessageModel = {
     if (!message.conversation_id) {
       throw new Error("conversation_id is required to create a message.");
     }
-
     const params = {
       TableName: TABLE_NAME,
       Item: {
@@ -53,11 +52,11 @@ const MessageModel = {
   async updateMessageContent(message_id, user_id, conversation_id, content) {
     const message = await this.getMessage(message_id, user_id, conversation_id);
     if (!message) {
-      throw new Error("khong tim thay message");
+      throw new Error("không tìm thấy message");
     }
     if (message.sender !== user_id) {
       //check nguoi gui co hop le khong
-      throw new Error("Ban khong thể sửa tin nhan ng khác");
+      throw new Error("Bạn không thể sửa tin nhắn người khác");
     }
     const currentTime = moment();
     const createdMessage = moment(message.created_at);
@@ -105,7 +104,7 @@ const MessageModel = {
       }
       if (message.sender !== user_id) {
         //check nguoi gui co hop le khong
-        throw new Error("Ban khong phai nguoi gui tin nhan");
+        throw new Error("Bạn không thể sửa tin nhắn người khác");
       }
       const currentTime = moment();
       const create_at = moment(message.created_at);
@@ -137,7 +136,7 @@ const MessageModel = {
     }
     if (message.sender !== user_id) {
       //check nguoi gui co hop le khong
-      throw new Error("Ban khong phai nguoi gui tin nhan");
+      throw new Error("Bạn không thể sửa tin nhắn người khác");
     }
 
     const currentTime = moment();

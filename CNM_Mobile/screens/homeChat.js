@@ -13,53 +13,11 @@ import {
 } from "react-native";
 import axios from "axios";
 import { useSelector } from "react-redux";
-
-
 import { fetchUserDetail } from "../api/userDetailApi";
-
-import * as ImagePicker from 'expo-image-picker';
-
-
-const DATA = {
-  friends: [
-    {
-      id: "1",
-      name: "Huy",
-      message: "Hình ảnh nè!",
-      avatar: require("../assets/user1.png"),
-    },
-    {
-      id: "2",
-      name: "Hoàng",
-      message: "Đã gọi cho con rồi nha",
-      avatar: require("../assets/user2.png"),
-    },
-    {
-      id: "3",
-      name: "Hải",
-      message: "Gửi hình hôm qua",
-      avatar: require("../assets/user3.png"),
-    },
-  ],
-  groups: [
-    {
-      id: "101",
-      name: "111 Lê Đức Thọ - 1",
-      message: "Thanh Vy: Hình ảnh nè!",
-      avatar: require("../assets/group1.png"),
-    },
-    {
-      id: "102",
-      name: "Le and Friends English Club",
-      message: "Chị Hằng: Ảnh đẹp nè!",
-      avatar: require("../assets/group2.png"),
-    },
-  ],
-};
+import ConversationApi from "../api/conversationApi";
 
 export default function HomeChat({ navigation }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [tab, setTab] = useState("friends");
   const [menuVisible, setMenuVisible] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
@@ -69,20 +27,26 @@ export default function HomeChat({ navigation }) {
   const [userInfo, setUserInfo] = useState(null);
   const [userDetail, setUserDetail] = useState(null);
 
-  const filteredData = DATA[tab].filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
+  const [conversations, setConversations] = useState([]);
 
   //lay user va token tu redux
   const user = useSelector((state) => state.user.user);
   const accessToken = useSelector((state) => state.user.accessToken);
 
-
   useEffect(() => {
     setUserInfo(user);
     getUserDetail();
+    getListConversation();
   }, [user]);
+  const getListConversation = async () => {
+    const data = await ConversationApi.fetchConversationsByUserId(
+      user.id,
+      accessToken
+    );
+    if (data) {
+      setConversations(data);
+    }
+  };
   const getUserDetail = async () => {
     const data = await fetchUserDetail(user.id, accessToken);
     console.log("data fetch userdetail:", data);
@@ -163,7 +127,6 @@ export default function HomeChat({ navigation }) {
       console.error(err);
     }
   };
-
   const logout = async () => {
     try {
       await axios.post(
@@ -200,11 +163,22 @@ export default function HomeChat({ navigation }) {
     ]);
   };
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.chatItem}>
-      <Image source={item.avatar} style={styles.avatar} />
+    <TouchableOpacity
+      style={styles.chatItem}
+      onPress={() => {
+        navigation.navigate("chatScreen", {
+          conversation_id: item.conversation_id,
+        });
+      }}
+    >
+      <Image
+        source={item.avatar || require("../assets/user1.png")}
+        style={styles.avatar}
+      />
       <View style={styles.chatContent}>
-        <Text style={styles.chatName}>{item.name}</Text>
-        <Text style={styles.chatMsg}>{item.message}</Text>
+        <Text style={styles.chatName}>{item.conversation_id}</Text>
+        <Text style={styles.chatMsg}>{item.lastMessage.content}</Text>
+        <Text>{item.lastMessage.updated_at}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -214,9 +188,7 @@ export default function HomeChat({ navigation }) {
         <Text style={styles.header}>
           Xin chào, {userDetail?.fullname || "User"} 👋
         </Text>
-        <TouchableOpacity onPress={() => 
-          navigation.navigate("findUser")
-        }>
+        <TouchableOpacity onPress={() => navigation.navigate("findUser")}>
           <Image
             source={
               userDetail?.avatar_url
@@ -274,37 +246,12 @@ export default function HomeChat({ navigation }) {
         onChangeText={setSearchQuery}
         style={styles.searchInput}
       />
-
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tabButton, tab === "friends" && styles.activeTab]}
-          onPress={() => setTab("friends")}
-        >
-          <Text
-            style={tab === "friends" ? styles.activeTabText : styles.tabText}
-          >
-            Bạn bè
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabButton, tab === "groups" && styles.activeTab]}
-          onPress={() => setTab("groups")}
-        >
-          <Text
-            style={tab === "groups" ? styles.activeTabText : styles.tabText}
-          >
-            Nhóm
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       <FlatList
-        data={filteredData}
+        data={conversations}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.conversation_id.toString()}
         contentContainerStyle={{ paddingBottom: 60 }}
       />
-
       <Modal visible={showChangePassword} transparent animationType="slide">
         <View style={styles.modalView}>
           <Text style={{ marginBottom: 10 }}>Mật khẩu cũ:</Text>
