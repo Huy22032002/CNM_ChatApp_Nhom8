@@ -20,13 +20,8 @@ import {
 const app = express();
 const server = http.createServer(app);
 ConnectSocket(server); 
-
-
-
-
-
 app.use(cors({
-  origin: "http://localhost:5173", 
+  origin: "*", 
   credentials: true,
 }));
 
@@ -48,6 +43,6 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/userDetails", userDetailRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/messages", messageRoutes);
-app.use("/api/friends/addSampleData", friendRoutes);
+
 
 export default app;

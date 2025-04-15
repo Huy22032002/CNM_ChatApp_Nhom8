@@ -18,15 +18,6 @@ export async function getFriends(req, res) {
         res.status(500).json({ error: "Lỗi khi lấy danh sách bạn bè", detail: err.message });
     }
 }
-export async function addSampleData(req, res) {
-    const { user_id } = req.body;
-    try {
-        const result = await friendsModel.createUserFriend(user_id);
-        res.status(201).json({ message: "Sample data added successfully", data: result });
-    } catch (err) {
-        res.status(500).json({ error: "Error adding sample data", detail: err.message });
-    }
-}
 export async function getFriendsWithDetails(req, res) {
     try {
         const details = await getAllFriendsWithDetails(req.params.userId);
