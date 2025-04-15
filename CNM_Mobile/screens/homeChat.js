@@ -14,55 +14,15 @@ import {
 } from "react-native";
 import axios from "axios";
 import { useSelector } from "react-redux";
-import Icon from "react-native-vector-icons/Feather";
-import { useNavigation } from '@react-navigation/native';
-
-
 
 import { fetchUserDetail } from "../api/userDetailApi";
-
-
-const DATA = {
-  friends: [
-    {
-      id: "1",
-      name: "Huy",
-      message: "Hình ảnh nè!",
-      avatar: require("../assets/user1.png"),
-    },
-    {
-      id: "2",
-      name: "Hoàng",
-      message: "Đã gọi cho con rồi nha",
-      avatar: require("../assets/user2.png"),
-    },
-    {
-      id: "3",
-      name: "Hải",
-      message: "Gửi hình hôm qua",
-      avatar: require("../assets/user3.png"),
-    },
-  ],
-  groups: [
-    {
-      id: "101",
-      name: "111 Lê Đức Thọ - 1",
-      message: "Thanh Vy: Hình ảnh nè!",
-      avatar: require("../assets/group1.png"),
-    },
-    {
-      id: "102",
-      name: "Le and Friends English Club",
-      message: "Chị Hằng: Ảnh đẹp nè!",
-      avatar: require("../assets/group2.png"),
-    },
-  ],
-};
+import ConversationApi from "../api/conversationApi";
+import Icon from "react-native-vector-icons/Feather";
+import { useNavigation } from '@react-navigation/native';
 
 export default function HomeChat({ navigation }) {
   navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [tab, setTab] = useState("friends");
   const [menuVisible, setMenuVisible] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
@@ -71,6 +31,7 @@ export default function HomeChat({ navigation }) {
 
   const [userInfo, setUserInfo] = useState(null);
   const [userDetail, setUserDetail] = useState(null);
+  const [conversations, setConversations] = useState([]);
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showFriendRequests, setShowFriendRequests] = useState(false);
@@ -79,10 +40,10 @@ export default function HomeChat({ navigation }) {
   const [friendRequestsDetails, setFriendRequestsDetails] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-
+  const API_URL="http://192.168.31.28:3000"||"http://10.0.2.2:3000";
   const fetchNotifications = async () => {
     try {
-      const res = await axios.get(`http://10.0.2.2:3000/api/notifications/${user.id}`, {
+      const res = await axios.get(`${API_URL}/api/notifications/${user.id}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       setNotifications(res.data); // [{ message, type, status }]
@@ -93,7 +54,7 @@ export default function HomeChat({ navigation }) {
 
   const fetchUnreadCount = async () => {
     try {
-      const res = await axios.get(`http://10.0.2.2:3000/api/notifications/unread-count/${user.id}`, {
+      const res = await axios.get(`${API_URL}/api/notifications/unread-count/${user.id}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       setUnreadCount(res.data); // [{ message, type, status }]
@@ -104,7 +65,7 @@ export default function HomeChat({ navigation }) {
   
   const markAllAsRead = async () => {
     try {
-      await axios.put(`http://10.0.2.2:3000/api/notifications/mark-read/${user.id}`, {}, {
+      await axios.put(`${API_URL}/api/notifications/mark-read/${user.id}`, {}, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -130,7 +91,7 @@ export default function HomeChat({ navigation }) {
 
   const fetchFriendRequests = async () => {
     try {
-      const res = await axios.get(`http://10.0.2.2:3000/api/friends/requests/${user.id}`, {
+      const res = await axios.get(`${API_URL}/api/friends/requests/${user.id}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       setFriendRequests(res.data); // [{ message, type, status }]
@@ -146,6 +107,7 @@ export default function HomeChat({ navigation }) {
       });
       
       const details = await Promise.all(detailsPromises);
+      console.log("Chi tiết lời mời kết bạn:", details);
       setFriendRequestsDetails(details);
     } catch (err) {
       console.error("Lỗi khi lấy lời mời kết bạn:", err);
@@ -154,7 +116,7 @@ export default function HomeChat({ navigation }) {
 
   const acceptFriendRequest = async (friend_id) => {
     try {
-      await axios.post(`http://10.0.2.2:3000/api/friends/accept`, 
+      await axios.post(`${API_URL}/api/friends/accept`, 
         {
           user_id: user.id,
           friend_id,
@@ -172,7 +134,7 @@ export default function HomeChat({ navigation }) {
 
   const cancelFriendRequest = async (friend_id) => {
     try {
-      await axios.post(`http://10.0.2.2:3000/api/friends/cancel-request`, 
+      await axios.post(`${API_URL}/api/friends/cancel-request`, 
         {
           user_id: user.id,
           friend_id,
@@ -193,9 +155,12 @@ export default function HomeChat({ navigation }) {
   );
 
 
+
   //lay user va token tu redux
   const user = useSelector((state) => state.user.user);
   const accessToken = useSelector((state) => state.user.accessToken);
+
+
 
   const handleLogout = () => {
     Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất không?", [
@@ -212,25 +177,74 @@ export default function HomeChat({ navigation }) {
       },
     ]);
   };
+
+  const getUserDetail = async () => {
+    try {
+      const data = await fetchUserDetail(user.id, accessToken);
+      if (data.error) {
+        Alert.alert("Lỗi", data.error);
+        setUserDetail(null);
+        logout();
+        return;
+      }
+      console.log("data fetch userdetail:", data);
+      setUserDetail(data);
+    } catch (error) {
+      console.error("Lỗi khi lấy thông tin người dùng:", error);
+      // Alert.alert("Lỗi", "Không thể lấy thông tin người dùng");
+      alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+      // Xóa thông tin người dùng và token trong Redux
+      justLogout();
+      // logout();
+    }
+  };
+
+  const justLogout = async () => {
+    try {
+      await axios.post(
+        `${API_URL}/auth/logout`,
+        {
+          id: userInfo?.id,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      // Alert.alert("Thành công", "Đã đăng xuất thành công");
+      navigation.navigate("login");
+    } catch (error) {
+      console.error("Lỗi khi đăng xuất:", error.message);
+      Alert.alert("Lỗi", "Không thể đăng xuất");
+    }
+  };
+  
+   const getListConversation = async () => {
+    const data = await ConversationApi.fetchConversationsByUserId(
+      user.id,
+      accessToken
+    );
+    if (data) {
+      setConversations(data);
+    }
+  };
+//   const getUserDetail = async () => {
+//     const data = await fetchUserDetail(user.id, accessToken);
+//     console.log("data fetch userdetail:", data);
+//     setUserDetail(data);
+//   };
+  
   useEffect(() => {
     setUserInfo(user);
     getUserDetail();
+    getListConversation();
     fetchNotifications();
     fetchUnreadCount();
     fetchFriendRequests();
+    
   }, [user]);
-  const getUserDetail = async () => {
-    const data = await fetchUserDetail(user.id, accessToken);
-    if (data.error) {
-      alert("Lỗi", data.error);
-      setUserDetail(null);
-      // navigation.navigate("login");
-      handleLogout();
-      return;
-    }
-    console.log("data fetch userdetail:", data);
-    setUserDetail(data);
-  };
+
   const changePassword = async () => {
     try {
       const id = user.id;
@@ -251,7 +265,7 @@ export default function HomeChat({ navigation }) {
       try {
         // Gọi check mật khẩu cũ
         const res = await axios.post(
-          "http://10.0.2.2:3000/api/users/checkMatchPassword",
+          `${API_URL}/api/users/checkMatchPassword`,
           {
             username: userInfo?.username,
             password: oldPassword,
@@ -277,7 +291,7 @@ export default function HomeChat({ navigation }) {
       }
 
       await axios.post(
-        `http://10.0.2.2:3000/api/users/updatePassword/`,
+        `${API_URL}/api/users/updatePassword/`,
         {
           id: userInfo?.id,
           password: password,
@@ -306,11 +320,10 @@ export default function HomeChat({ navigation }) {
       console.error(err);
     }
   };
-
   const logout = async () => {
     try {
       await axios.post(
-        "http://10.0.2.2:3000/auth/logout",
+        `${API_URL}/auth/logout`,
         {
           id: userInfo?.id,
         },
@@ -329,20 +342,34 @@ export default function HomeChat({ navigation }) {
   };
   
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.chatItem}>
-      <Image source={item.avatar} style={styles.avatar} />
+    <TouchableOpacity
+      style={styles.chatItem}
+      onPress={() => {
+        navigation.navigate("chatScreen", {
+          conversation_id: item.conversation_id,
+        });
+      }}
+    >
+      <Image
+        source={item.avatar || require("../assets/user1.png")}
+        style={styles.avatar}
+      />
       <View style={styles.chatContent}>
-        <Text style={styles.chatName}>{item.name}</Text>
-        <Text style={styles.chatMsg}>{item.message}</Text>
+        <Text style={styles.chatName}>{item.conversation_id}</Text>
+        <Text style={styles.chatMsg}>{item.lastMessage.content}</Text>
+        <Text>{item.lastMessage.updated_at}</Text>
       </View>
     </TouchableOpacity>
   );
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
+      </View>
+      <View style={styles.headerRow}>
         <Text style={styles.header}>
           Xin chào, {userDetail?.fullname || "User"} 👋
         </Text>
+
 
         <TouchableOpacity onPress={() => navigation.navigate("findUser")}>
           <Icon name="search" size={24} color="#000" />
@@ -360,6 +387,7 @@ export default function HomeChat({ navigation }) {
 
           {showNotifications && (
             <View style={styles.dropdown}>
+              <Text style={styles.header}>Thông báo</Text>
               <ScrollView style={{ maxHeight: 200 }}>
                 {notifications.length === 0 ? (
                   <Text style={styles.emptyText}>Không có thông báo</Text>
@@ -384,32 +412,36 @@ export default function HomeChat({ navigation }) {
 
           {showFriendRequests && (
             <View style={styles.dropdown}>
+              <Text style={styles.header}>Lời mời kết bạn</Text>
               <ScrollView style={{ maxHeight: 200 }}>
-                {friendRequests.length === 0 ? (
+                {friendRequestsDetails.length === 0 ? (
                   <Text style={styles.emptyText}>Không có lời mời kết bạn</Text>
                 ) : (
-                  friendRequests.map((request, index) => (
-                    <View key={index} style={styles.notiItem}>
+                  friendRequestsDetails.map((request, index) => (
+                    <View key={index} style={styles.requestCard}>
                       <Image
                         source={request.userDetail?.avatar_url ? { uri: request.userDetail.avatar_url } : require("../assets/default-avatar.png")}
-                        style={{ width: 40, height: 40, borderRadius: 20 }}
+                        style={styles.requestAvatar}
                       />
-                      <Text style={styles.notiMessage}>{request.userDetail?.fullname || request.name}</Text>
-                      <Button
-                        title="Chấp nhận"
-                        onPress={() => {
-                          acceptFriendRequest(request.friend_id);
-                          console.log("Chấp nhận lời mời từ id:", request.friend_id);
-                        }}
-                      />
-                      <Button
-                        title="Từ chối"
-                        onPress={() => {
-                          cancelFriendRequest(request.friend_id);
-                          console.log("Từ chối lời mời từ id:", request.friend_id);
-                        }}
-                      />
+                      <View style={styles.requestInfo}>
+                        <Text style={styles.requestName}>{request.userDetail?.fullname || request.name}</Text>
+                        <View style={styles.requestActions}>
+                          <TouchableOpacity
+                            style={[styles.requestButton, styles.requestAcceptButton]}
+                            onPress={() => acceptFriendRequest(request.friend_id)}
+                          >
+                            <Text style={styles.requestButtonText}>Chấp nhận</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.requestButton, styles.requestDeclineButton]}
+                            onPress={() => cancelFriendRequest(request.friend_id)}
+                          >
+                            <Text style={styles.requestButtonText}>Từ chối</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
                     </View>
+
                   ))
                 )}
               </ScrollView>
@@ -463,37 +495,12 @@ export default function HomeChat({ navigation }) {
         onChangeText={setSearchQuery}
         style={styles.searchInput}
       />
-
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tabButton, tab === "friends" && styles.activeTab]}
-          onPress={() => setTab("friends")}
-        >
-          <Text
-            style={tab === "friends" ? styles.activeTabText : styles.tabText}
-          >
-            Bạn bè
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabButton, tab === "groups" && styles.activeTab]}
-          onPress={() => setTab("groups")}
-        >
-          <Text
-            style={tab === "groups" ? styles.activeTabText : styles.tabText}
-          >
-            Nhóm
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       <FlatList
-        data={filteredData}
+        data={conversations}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.conversation_id.toString()}
         contentContainerStyle={{ paddingBottom: 60 }}
       />
-
       <Modal visible={showChangePassword} transparent animationType="slide">
         <View style={styles.modalView}>
           <Text style={{ marginBottom: 10 }}>Mật khẩu cũ:</Text>
@@ -651,7 +658,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 5,
-    width: 250,
+    width: 300,
     zIndex: 2,
   },
   notiItem: {
@@ -673,4 +680,61 @@ const styles = StyleSheet.create({
     color: "#666",
     fontStyle: "italic",
   },
+  requestCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: 10,
+    borderRadius: 12,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  
+  requestAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 10,
+  },
+  
+  requestInfo: {
+    flex: 1,
+  },
+  
+  requestName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 6,
+  },
+  
+  requestActions: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  
+  requestButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  
+  requestAcceptButton: {
+    backgroundColor: "#4CAF50",
+    
+  },
+  
+  requestDeclineButton: {
+    backgroundColor: "#f44336",
+  },
+  
+  requestButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  
 });
