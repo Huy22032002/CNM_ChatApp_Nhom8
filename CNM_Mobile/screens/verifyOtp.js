@@ -59,7 +59,7 @@ const VerifyOtp = () => {
 
     setLoading(true);
     try {
-      const api_url=process.env.API_URL||"http://10.0.2.2:3000";
+      const api_url="http://192.168.31.28:3000"||"http://10.0.2.2:3000";
       console.log(api_url);
       await axios.post(`${api_url}/auth/createNewUser`, {
         username,

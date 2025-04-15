@@ -23,12 +23,12 @@ export default function RegisterScreen() {
 
   const [loading, setLoading] = useState(false);
 
-  const API_URL = "http://10.0.2.2:3000";
+  const API_URL = "http://192.168.31.28:3000"||"http://10.0.2.2:3000";
 
   const onRegister = async () => {
     try {
       setLoading(true);
-      const apiUrl = "http://10.0.2.2:3000";
+      // const apiUrl = "http://10.0.2.2:3000";
       if (!username || !password || !email || !phone || !confirmPassword) {
         alert('Vui lòng nhập đầy đủ thông tin!');
 
@@ -53,7 +53,7 @@ export default function RegisterScreen() {
         return;
       }
 
-      const response = await axios.post(`${apiUrl}/auth/register`, {
+      const response = await axios.post(`${API_URL}/auth/register`, {
         username,
         password,
         email,
