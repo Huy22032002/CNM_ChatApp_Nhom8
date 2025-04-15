@@ -21,7 +21,7 @@ const FindUserScreen = () => {
   const [loading, setLoading] = useState(false);
   const user = useSelector((state) => state.user.user);
   const accessToken = useSelector((state) => state.user.accessToken);
-  const API_URL = "http://10.0.2.2:3000";
+  const API_URL = "http://192.168.31.28:3000"||"http://10.0.2.2:3000";
 
   const searchUser = async () => {
     if (!keyword.trim()) {
@@ -62,7 +62,8 @@ const FindUserScreen = () => {
 
   const sendFriendRequest = async (friendId) => {
     try {
-      await axios.post(`${API_URL}/api/friends/add`, 
+      console.log("Gửi lời mời kết bạn cho ID:", friendId);
+      const res= await axios.post(`${API_URL}/api/friends/add`, 
       {
         user_id: user.id,
         friend_id: friendId,
@@ -73,6 +74,7 @@ const FindUserScreen = () => {
         }
       });
       Alert.alert("Thành công", "Đã gửi lời mời kết bạn.");
+      
     } catch (error) {
       console.error("Lỗi gửi lời mời:", error);
       Alert.alert("Lỗi", "Không thể gửi lời mời kết bạn.");

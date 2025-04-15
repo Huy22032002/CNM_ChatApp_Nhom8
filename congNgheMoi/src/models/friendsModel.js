@@ -25,7 +25,7 @@ const friendsModel = {
     }
   },
 
-  async addFriend(user_id, friend_id) {
+  async createFriendRequest(user_id,friend_id,isSender) {
     const params = {
       TableName: TABLE_NAME,
       Key: { user_id },
@@ -34,6 +34,7 @@ const friendsModel = {
         ":empty_list": [],
         ":friends": [
           {
+            isSender: isSender,
             friend_id: friend_id,
             status: "PENDING",
             created_at: new Date().toISOString(),
@@ -43,9 +44,39 @@ const friendsModel = {
       },
       ReturnValues: "ALL_NEW",
     };
+    
+    const result = await dynamoDB.update(params).promise();
+    if (!result.Attributes) {
+      console.log(`Error creating friend request: ${user_id} to ${friend_id}`);
+      return null;
+    }
+    console.log(`Friend request created from ${user_id} to ${friend_id}`);
+    return result.Attributes;
+  },
+
+
+  async addFriend(user_id, friend_id) {
     try {
-      const result = await dynamoDB.update(params).promise();
-      return result.Attributes;
+      // First check if friend request already exists
+      const getParams = {
+        TableName: TABLE_NAME,
+        Key: { user_id },
+      };
+      const data = await dynamoDB.get(getParams).promise();
+      const friends = data.Item?.friends || [];
+      
+      // Check if friend already exists in the list
+      const existingFriend = friends.find(f => f.friend_id === friend_id);
+      if (existingFriend) {
+        console.log(`Friend userid:${friend_id} already exists with status: ${existingFriend.status}`);
+        return { error: `Friend userid:${friend_id} already exists with status: ${existingFriend.status}`};
+      }
+      
+      // If no existing request, proceed with adding friend
+      await this.createFriendRequest(user_id, friend_id, true);
+      await this.createFriendRequest(friend_id, user_id, false);
+      console.log(`Friend request sent from ${user_id} to ${friend_id}`);
+      return { message: `Friend request sent from ${user_id} to ${friend_id}` };
     } catch (err) {
       console.log(`err try catch add friend ${err}`);
       return null;
@@ -199,15 +230,16 @@ const friendsModel = {
     try {
       const params = {
         TableName: TABLE_NAME,
-        Key: { user_id },
+        Key: { user_id: Number(user_id) },
       };
       const data = await dynamoDB.get(params).promise();
-      return data.Item?.friends?.filter(f => f.status === "PENDING") || [];
+      return data.Item?.friends?.filter(f => f.status === "PENDING" && f.isSender === false) || [];
     } catch (err) {
       console.log(`Error getPendingRequests ${err}`);
       return [];
     }
   },
+  
 
   async cancelFriendRequest(user_id, friend_id) {
     try {

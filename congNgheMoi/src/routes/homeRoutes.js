@@ -7,6 +7,6 @@ import {
   authMiddlewareWithoutRefresh,
 } from "../middlewares/authMiddleware.js";
 
-router.get("/", authMiddlewareWithoutRefresh, getHome);
+router.get("/",  getHome);
 
 export default router;
