@@ -14,23 +14,28 @@ import MessageAPI from "../api/messageApi";
 import ConversationApi from "../api/conversationApi";
 import { useSelector } from "react-redux";
 import { useNavigation } from "@react-navigation/native";
+import { API_URL } from "../api/apiConfig";
+
 
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 
 const ChatScreen = ({ route }) => {
-  const { conversation_id } = route.params;
+  const { conversation_id ,otherUserDetail} = route.params;
 
   //lay user tu redux
   const user = useSelector((state) => state.user.user);
   const accessToken = useSelector((state) => state.user.accessToken);
 
+  const [friendStatus, setFriendStatus] = useState("");
+  const [LastActive, setLastActive] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [conversation, setConversation] = useState(null);
   //state xu ly cac su kien message
   const [selectMessage, setSelectMessage] = useState(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   //state cập nhật tin nhắn
   const [edit, setEdit] = useState(false);
   const [editContent, setEditContent] = useState("");
@@ -309,6 +314,7 @@ const ChatScreen = ({ route }) => {
   };
 
   useEffect(() => {
+    fetchFriendStatus();
     fetchConversation();
     fetchMessages();
   }, [conversation_id, user]);
@@ -327,27 +333,78 @@ const ChatScreen = ({ route }) => {
   const backToHomeChat = () => {
     navigation.goBack();
   };
+
+  const fetchFriendStatus = async () => {
+    try {
+      const response = await fetch(
+        `${API_URL}/api/users/${otherUserDetail.user_id}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      const data = await response.json();
+      console.log("Friend status: ", data.status);
+      console.log("Last active: ", data.updatedAt);
+      setFriendStatus(data.status);
+      setLastActive(data.updatedAt);
+    } catch (error) {
+      console.error("Error fetching friend status: ", error);
+    }
+  }
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchFriendStatus();
+    }, 5000);
+
+    return () => clearInterval(interval); 
+  }, [otherUserDetail.id, accessToken]);
+
   return (
     <View style={styles.container}>
+      <View style={{ height: 30 }}></View>
       <View style={styles.header}>
-        <TouchableOpacity onPress={backToHomeChat}>
+        <View style={{ flexDirection: "row" }}>
+          <TouchableOpacity onPress={backToHomeChat}>
+            <Image
+              source={require("../assets/back.png")}
+              style={{ width: 24, height: 24 }}
+            />
+          </TouchableOpacity>
           <Image
-            source={require("../assets/back.png")}
-            style={{ width: 24, height: 24 }}
+            source={
+              otherUserDetail?.avatar_url
+                ? { uri: otherUserDetail.avatar_url }
+                : require("../assets/user1.png")
+            }
+            style={{ width: 40, height: 40, borderRadius: 20, marginLeft: 10 }}
           />
-        </TouchableOpacity>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Image
-            source={require("../assets/user1.png")}
-            style={{ width: 40, height: 40, borderRadius: 20, marginRight: 10 }}
-          />
-          <View>
+          <View style={{ marginLeft: 10 }}>
             <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
-              {conversation_id}
+              {otherUserDetail?.fullname || item.conversation_id}
             </Text>
-            <Text style={{ color: "#eee", fontSize: 12 }}>
-              Hoạt động 10 phút trước
-            </Text>
+            {friendStatus === "ONLINE" ? (
+              <Text style={{ color: "green", fontSize: 12 }}>Trực tuyến</Text>
+            ) : (
+              <Text style={{ color: "gray", fontSize: 12 }}>
+                {(() => {
+                  const minutesAgo = Math.floor(
+                    (Date.now() - new Date(LastActive)) / 60000
+                  );
+                  if (minutesAgo > 1440) {
+                    return `Hoạt động ${Math.floor(minutesAgo / 1440)} ngày trước`;
+                  } else if (minutesAgo > 60) {
+                    return `Hoạt động ${Math.floor(minutesAgo / 60)} giờ trước`;
+                  } else {
+                    return `Hoạt động ${minutesAgo} phút trước`;
+                  }
+                })()}
+              </Text>
+            )}
           </View>
         </View>
       </View>
@@ -442,6 +499,7 @@ const ChatScreen = ({ route }) => {
           />
         </View>
       )}
+
       {selectedDocument && (
         <View>
           <Text>{selectedDocument.name}</Text>
@@ -462,7 +520,10 @@ const ChatScreen = ({ route }) => {
             style={{ width: 30, height: 30 }}
           />
         </TouchableOpacity>
-        <TouchableOpacity onPress={selectEmoji}>
+
+        <TouchableOpacity
+          onPress={() => setShowEmojiPicker(true)} // Show emoji picker
+        >
           <Image
             source={require("../assets/emoji.png")}
             style={{ width: 30, height: 30 }}
@@ -488,6 +549,38 @@ const ChatScreen = ({ route }) => {
           />
         </TouchableOpacity>
       </View>
+      <Modal
+        transparent={true}
+        animationType="slide"
+        visible={showEmojiPicker}
+        onRequestClose={() => setShowEmojiPicker(false)}
+      >
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContainer}>
+            <FlatList
+              data={["😀", "😂", "😍", "😎", "😭", "😡", "👍", "🎉", "❤️", "🔥"]}
+              numColumns={5}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => {
+                    setNewMessage((prev) => prev + item);
+                    setShowEmojiPicker(false);
+                  }}
+                >
+                  <Text style={{ fontSize: 30, margin: 10 }}>{item}</Text>
+                </TouchableOpacity>
+              )}
+              keyExtractor={(item, index) => index.toString()}
+            />
+            <TouchableOpacity
+              onPress={() => setShowEmojiPicker(false)}
+              style={styles.modalButton}
+            >
+              <Text style={styles.modalButtonText}>Đóng</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -502,7 +595,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 10,
-    justifyContent: "space-between",
+    // justifyContent: "space-between",
   },
   listMessage: { flex: 1, padding: 10 },
   message: {

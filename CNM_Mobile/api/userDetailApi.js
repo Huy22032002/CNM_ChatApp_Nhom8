@@ -21,7 +21,7 @@ export const fetchUserDetail = async (user_id, accessToken) => {
       throw new Error(errorData.message || "Lỗi khi lấy thông tin người dùng");
     }
     // console.log(response);
-    console.log("User detail response:", response);
+    // console.log("User detail response:", response);
     return await response.json();
   } catch (err) {
     console.error("Fetch user detail error:",err.message || err);

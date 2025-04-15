@@ -216,7 +216,7 @@ const friendsModel = {
     try {
       const params = {
         TableName: TABLE_NAME,
-        Key: { user_id },
+        Key: {user_id: Number(user_id) },
       };
       const data = await dynamoDB.get(params).promise();
       return data.Item?.friends?.filter(f => f.status === "ACCEPTED") || [];
