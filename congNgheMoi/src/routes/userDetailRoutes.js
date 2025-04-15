@@ -26,6 +26,6 @@ router.get(
   userDetailController.getAllUserDetail
 );
 
-router.get("/:id", userDetailController.getUserDetailByUserId);
+router.get("/:id", authMiddlewareWithoutRefresh,userDetailController.getUserDetailByUserId);
 
 export default router;

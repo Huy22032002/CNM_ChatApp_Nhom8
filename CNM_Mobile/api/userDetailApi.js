@@ -1,6 +1,12 @@
-const USER_DETAIL_API = "http://10.0.2.2:3000/api/userDetails";
+const API_URL="http://192.168.31.28:3000"||"http://10.0.2.2:3000"
+const USER_DETAIL_API = `${API_URL}/api/userDetails`;
+
 
 export const fetchUserDetail = async (user_id, accessToken) => {
+  if (!user_id || !accessToken) {
+    throw new Error("Invalid user_id or accessToken");
+  }
+
   try {
     const response = await fetch(`${USER_DETAIL_API}/${user_id}`, {
       method: "GET",
@@ -9,13 +15,20 @@ export const fetchUserDetail = async (user_id, accessToken) => {
         "Content-Type": "application/json",
       },
     });
-    const data = await response.json();
+
     if (!response.ok) {
-      throw new Error("Lỗi khi lấy thông tin người dùng");
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Lỗi khi lấy thông tin người dùng");
     }
-    return data;
+    // console.log(response);
+    console.log("User detail response:", response);
+    return await response.json();
   } catch (err) {
-    console.error("Fetch user detail error:", err);
+    console.error("Fetch user detail error:",err.message || err);
+    //nếu status là 401 thì yêu cầu đăng nhập lại
+    if (err.response && err.response.status === 401) {
+      alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+    }
     throw err;
   }
 };
