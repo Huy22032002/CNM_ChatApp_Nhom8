@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   FlatList,
   Modal,
+  Linking,
 } from "react-native";
 import MessageAPI from "../api/messageApi";
 import ConversationApi from "../api/conversationApi";
@@ -17,7 +18,7 @@ import { API_URL } from "../api/apiConfig";
 
 
 import * as ImagePicker from "expo-image-picker";
-// import * as DocumentPicker from "expo-document-picker";
+import * as DocumentPicker from "expo-document-picker";
 
 const ChatScreen = ({ route }) => {
   const { conversation_id ,otherUserDetail} = route.params;
@@ -45,6 +46,12 @@ const ChatScreen = ({ route }) => {
   //state cho hinh anh, document
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedDocument, setSelectedDocument] = useState(null);
+  //state cho emoji
+  const [showEmojiPopUp, setShowEmojiPopUp] = useState(false);
+  const [selectedEmoji, setSelectedEmoji] = useState("");
+  const selectEmoji = () => {
+    setShowEmojiPopUp(true);
+  };
 
   const selectImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -57,21 +64,21 @@ const ChatScreen = ({ route }) => {
       setSelectedImage(selectedImg);
     }
   };
-  // const selectDocument = async () => {
-  //   try {
-  //     const result = await DocumentPicker.getDocumentAsync({
-  //       type: "*/*",
-  //     });
+  const selectDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+      });
 
-  //     if (result.assets && result.assets.length > 0) {
-  //       const file = result.assets[0];
-  //       console.log("Document: ", file);
-  //       setSelectedDocument(file);
-  //     }
-  //   } catch (err) {
-  //     console.log("err select document: ", err);
-  //   }
-  // };
+      if (result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        console.log("Document: ", file);
+        setSelectedDocument(file);
+      }
+    } catch (err) {
+      console.log("err select document: ", err);
+    }
+  };
 
   const navigation = useNavigation();
 
@@ -93,8 +100,15 @@ const ChatScreen = ({ route }) => {
 
   //message function
   const handleSend = async () => {
-    if (!selectedImage && !newMessage.trim()) {
+    if (!selectedImage && !newMessage && !selectedDocument) {
       alert("Vui lòng nhập nội dung gui");
+      return;
+    }
+    if (selectedDocument) {
+      console.log("Gui pdf");
+      await sendImageAndText();
+      setNewMessage("");
+      setSelectedDocument(null);
       return;
     }
     if (selectedImage) {
@@ -150,13 +164,22 @@ const ChatScreen = ({ route }) => {
     if (newMessage) {
       formData.append("content", newMessage);
     }
-    formData.append("image", {
-      uri: selectedImage.uri,
-      name: "image.jpg",
-      type: "image/jpeg",
-    });
+    if (selectedImage) {
+      formData.append("image", {
+        uri: selectedImage.uri,
+        name: "image.jpg",
+        type: "image/jpeg",
+      });
+    } else if (selectedDocument) {
+      formData.append("image", {
+        uri: selectedDocument.uri,
+        name: selectedDocument.name || "document.pdf",
+        type: selectedDocument.mimeType || "application/pdf",
+      });
+    }
     try {
       const response = await MessageAPI.sendImageAndText(formData, accessToken);
+      fetchMessages();
       return response;
     } catch (err) {
       alert(err.response.data.error);
@@ -214,7 +237,31 @@ const ChatScreen = ({ route }) => {
       alert(err.response.data.error);
     }
   };
-  const forwardMessage = async () => {};
+  const forwardMessage = async () => {
+    const currentMessage = messages.find(
+      (message) => message.message_id == selectMessage
+    );
+    if (!currentMessage) {
+      alert("khong tim thay tin nhan");
+      return;
+    }
+    const receivers = [3];
+
+    const data = {
+      conversation_id: "eed7637a-ac78-4d87-baa6-f2a821029e07",
+      sender: user.id,
+      receivers: receivers,
+      content: currentMessage.content,
+      type: currentMessage.message_type,
+      image_url: currentMessage.image_url || null,
+    };
+    try {
+      const forwardMessage = await MessageAPI.sendMessage(data, accessToken);
+      console.log("da forward: ", forwardMessage);
+    } catch (err) {
+      console.error("Send message failed: ", err.message);
+    }
+  };
   //-------------------------
   const renderMessage = ({ item }) => {
     const isMyMessage = item.sender === user.id;
@@ -247,6 +294,17 @@ const ChatScreen = ({ route }) => {
                     marginTop: item.content ? 5 : 0,
                   }}
                 />
+              )}
+              {item.message_type === "FILE" && (
+                // <TouchableOpacity
+                //   onPress={() => Linking.openURL(item.image_url)}
+                // >
+                //   <Text style={{ color: "red" }}>
+                //     {item.content || "📄 Tệp đính kèm"}
+                //   </Text>
+                // </TouchableOpacity>
+
+                <Text style={{ color: "blue" }}>{item.image_url}</Text>
               )}
             </>
           )}
@@ -441,8 +499,16 @@ const ChatScreen = ({ route }) => {
           />
         </View>
       )}
+
+      {selectedDocument && (
+        <View>
+          <Text>{selectedDocument.name}</Text>
+          <Text>{selectedDocument.uri}</Text>
+        </View>
+      )}
+
       <View style={styles.footer}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={selectDocument}>
           <Image
             source={require("../assets/documents.png")}
             style={{ width: 30, height: 30 }}
@@ -454,6 +520,7 @@ const ChatScreen = ({ route }) => {
             style={{ width: 30, height: 30 }}
           />
         </TouchableOpacity>
+
         <TouchableOpacity
           onPress={() => setShowEmojiPicker(true)} // Show emoji picker
         >
@@ -542,6 +609,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 2,
+    maxWidth: "80%",
+    width: "auto",
   },
   footer: {
     display: "flex",
