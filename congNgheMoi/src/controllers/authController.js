@@ -3,7 +3,12 @@ import bcrypt from "bcryptjs";
 import User from "../models/userModel.js";
 import UserDetail from "../models/userDetail.js";
 const router = Router();
-import { findUser, authenticate, updateUser, createUser } from "../services/userService.js";
+import {
+  findUser,
+  authenticate,
+  updateUser,
+  createUser,
+} from "../services/userService.js";
 import { generateToken, verifyAndRefreshToken } from "../configs/jwtConfig.js";
 import sendOtpEmail from "../utils/sendOtpEmail.js";
 import otpCache from "../middlewares/otpCache.js";
@@ -11,6 +16,7 @@ import otpCache from "../middlewares/otpCache.js";
 const register = async (req, res) => {
   try {
     const { username, password, email, phone } = req.body;
+
 
     const existMail = await User.findOne({ where: { email } });
     if (existMail) {
@@ -48,7 +54,7 @@ const register = async (req, res) => {
       // await newUser.save();//for testing
 
       // Chưa lưu user vào DB ngay — đợi xác thực OTP
-      res.status(200).json({ message: "OTP sent to email", email,otp });
+      res.status(200).json({ message: "OTP sent to email", email, otp });
     } else {
       return res.status(400).json({ message: "Username already exists" });
     }
@@ -88,9 +94,9 @@ const verifyOtp= async (req, res) => {
     // await userDetail.save();
     await createUser(username, email, hashedPassword, phone);
 
-    otpCache.delete(email);
-  
-    res.status(201).json({ message: "Đăng ký thành công" });
+  otpCache.delete(email);
+
+  res.status(201).json({ message: "Đăng ký thành công" });
 };
 
 const createNewUser = async (req, res) => {
@@ -103,6 +109,7 @@ const createNewUser = async (req, res) => {
     }
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
+
     // const newUser = new User({
     //   username,
     //   pass_hash: hashedPassword,
@@ -155,9 +162,10 @@ const login = async (req, res) => {
     }); // 15 minutes
 
     res.cookie("token", tokens.refreshToken, {
-      httpOnly: true,
-      secure: true,
+      // httpOnly: true,
+      secure: false,
       maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: "None",
     }); // 7 days
 
     //update user ONLINE
@@ -165,13 +173,11 @@ const login = async (req, res) => {
     console.log(tokens.accessToken);
     await updateUser(user.id, { status: "ONLINE" });
     ({ message: "Login successful", accessToken: tokens.accessToken });
-    res
-      .status(200)
-      .json({
-        message: "Login successful",
-        accessToken: tokens.accessToken,
-        user,
-      });
+    res.status(200).json({
+      message: "Login successful",
+      accessToken: tokens.accessToken,
+      user,
+    });
   } catch (error) {
     res.status(500).json({ message: "Lỗi đăng nhập" });
     console.log(error);
@@ -197,13 +203,11 @@ const refreshToken = async (req, res) => {
 
 const logout = (req, res) => {
   //chuyen status qua OFFLINE
-  const {id} = req.body;
+  const { id } = req.body;
   updateUser(id, { status: "OFFLINE" });
 
   res.clearCookie("token");
   res.status(200).json({ message: "Logged out successfully" });
 };
 
-
-export { register, login, refreshToken, logout ,verifyOtp,createNewUser};
-
+export { register, login, refreshToken, logout, verifyOtp, createNewUser };
