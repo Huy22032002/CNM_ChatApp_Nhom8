@@ -18,7 +18,7 @@ const ConversationModel = {
     await dynamoDB.put(params).promise();
     return params.Item;
   },
-  async getAllConversationBy(user_id) {
+  async getAllConversationByUser(user_id) {
     const params = {
       TableName: TABLE_NAME,
       FilterExpression: "contains(participants, :user_id)",
@@ -31,7 +31,7 @@ const ConversationModel = {
       return result.Items || [];
     } catch (error) {
       console.error("error get all conversations model:", error);
-      return [];
+      throw new Error("error get all conversations model:", error.message);
     }
   },
   async getConversationById(conversation_id) {
@@ -43,11 +43,13 @@ const ConversationModel = {
     };
     try {
       const result = await dynamoDB.get(params).promise();
+      console.log("type of converID: ", typeof conversation_id);
+
       console.log(`Conver ${conversation_id}: ${result.Item}`);
       return result.Item;
     } catch (err) {
       console.log("Error try catch fecth conver by id: ", err);
-      return null;
+      throw new Error("Error try catch fecth conver by id: ", err);
     }
   },
   async updateConversation(conversation_id, lastMessage) {
