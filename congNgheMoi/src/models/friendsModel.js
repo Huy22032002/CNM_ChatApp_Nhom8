@@ -2,7 +2,7 @@ import dynamoDB from "../configs/connectDynamo.js";
 
 const TABLE_NAME = "User_Friends";
 
-const friendsModel = {
+export default {
   async createUserFriend(user_id) {
     const params = {
       TableName: TABLE_NAME,
@@ -293,8 +293,4 @@ const friendsModel = {
       return false;
     }
   },  
-  
-
-};  
-
-module.exports = friendsModel;
+};

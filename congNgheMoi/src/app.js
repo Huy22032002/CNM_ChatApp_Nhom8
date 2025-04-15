@@ -45,6 +45,6 @@ app.use("/api/friends", friendRoutes);
 app.use("/api/userDetails", userDetailRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/messages", messageRoutes);
-
+app.use("/api/friends/addSampleData", friendRoutes);
 
 export default app;
