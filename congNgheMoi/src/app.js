@@ -25,7 +25,7 @@ import cors from "cors";
 
 
 app.use(cors({
-  origin: "http://localhost:5173", 
+  origin: "http://localhost:5173"||"192.168.31.28:5173", 
   credentials: true,
 }));
 
