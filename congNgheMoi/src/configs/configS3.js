@@ -1,5 +1,6 @@
 import AWS from "aws-sdk";
-import { config } from "dotenv";
+import dotenv from "dotenv";
+dotenv.config();
 
 AWS.config.update({
   region: process.env.AWS_REGION,

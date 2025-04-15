@@ -5,12 +5,21 @@ import userDetailRoutes from "./src/routes/userDetailRoutes.js";
 import conversationRoutes from "./src/routes/conversationRoutes.js";
 import messageRoutes from "./src/routes/messageRoutes.js";
 import authRoutes from "./src/routes/authRoutes.js";
+import friendRoutes from "./src/routes/friendRoutes.js";
+import notificationRoutes from "./src/routes/notificationRoutes.js";
+
 import { ConnectSocket } from "./src/configs/configSocketIO.js";
 import http from "http";
 import dotenv from "dotenv";
 import { connectDB } from "./src/configs/connectRDS.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+//import models
+import User from "./src/models/userModel.js";
+import UserDetail from "./src/models/userDetail.js";
+import Notification from "./src/models/notification.js";
+import { syncDB } from "./src/configs/connectRDS.js";
+syncDB();
 
 dotenv.config();
 
@@ -33,6 +42,8 @@ app.use(
 app.use("/auth", authRoutes);
 app.use("/api/home", homeRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/friends", friendRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.use("/api/userDetails", userDetailRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/messages", messageRoutes);
