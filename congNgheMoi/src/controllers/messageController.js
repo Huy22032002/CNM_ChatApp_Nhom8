@@ -9,6 +9,8 @@ const MessageController = {
       if (!file) return res.status(400).json({ error: "Chưa gửi file" });
 
       const fileExtension = file.originalname.split(".").pop(); // Lấy phần mở rộng file
+      console.log("fileExtendsion: ", fileExtension);
+
       const filePath = `${uuidv4()}.${fileExtension}`;
       //check dinh dang file
       const isImg = file.mimetype.startsWith("image/");
