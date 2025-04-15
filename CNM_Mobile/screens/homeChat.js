@@ -129,6 +129,8 @@ export default function HomeChat({ navigation }) {
         },
       });
       handleFriendPress();
+      fetchFriendRequests(); // Refresh the friend requests after accepting one
+      getListConversation(); // Refresh the conversations after accepting a friend request
     } catch (err) {
       console.error("Lỗi khi chấp nhận kết bạn", err);
     }

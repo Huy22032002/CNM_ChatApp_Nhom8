@@ -58,26 +58,20 @@ async function getFriendRequests(user_id) {
 
 async function acceptFriendRequest(user_id, friend_id) {
     const type = "SINGLE";
-    const participants = [user_id, friend_id];
-    const conversation = await Conversation.findOne({
-        where: {
-            type,
-            participants: {
-                [Op.contains]: participants,
-            },
-        },
-    });
+    const participants = [Number(user_id), Number(friend_id)];
+    console.log(participants)
+    const conversation = await Conversation.getConversationByParticipants(type, participants);
     if (!conversation) {
         console.log("No conversation found, creating a new one.");
-        await Conversation.create({
+        await Conversation.createConversation(
             type,
             participants,
-        });
+        );
     } else {
         console.log("Conversation already exists:", conversation);
     }
-    Conversation.createConversation(type, participants);
-    return await friends.acceptFriendRequest(user_id, friend_id);
+    await friends.acceptFriendRequest(user_id, friend_id);
+    return await friends.acceptFriendRequest(friend_id, user_id);
 }
 
 async function cancelFriendRequest(user_id, friend_id) {
