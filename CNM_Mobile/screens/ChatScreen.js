@@ -347,8 +347,8 @@ const ChatScreen = ({ route }) => {
         }
       );
       const data = await response.json();
-      console.log("Friend status: ", data.status);
-      console.log("Last active: ", data.updatedAt);
+      // console.log("Friend status: ", data.status);
+      // console.log("Last active: ", data.updatedAt);
       setFriendStatus(data.status);
       setLastActive(data.updatedAt);
     } catch (error) {
