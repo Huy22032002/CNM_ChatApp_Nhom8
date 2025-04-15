@@ -18,7 +18,6 @@ export async function getFriends(req, res) {
         res.status(500).json({ error: "Lỗi khi lấy danh sách bạn bè", detail: err.message });
     }
 }
-
 export async function getFriendsWithDetails(req, res) {
     try {
         const details = await getAllFriendsWithDetails(req.params.userId);

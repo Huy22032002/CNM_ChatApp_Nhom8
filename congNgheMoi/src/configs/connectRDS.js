@@ -32,6 +32,15 @@ async function connectDB() {
 }
 
 async function syncDB() {
+
+  await connectDB();
+
+  await sequelize.sync({
+    //  alter: true, // for dev
+    // force: true, // for prod
+  });
+  // console.log("Syn DB");
+
   try {
     await connectDB();
     await sequelize.sync({
@@ -43,6 +52,7 @@ async function syncDB() {
     console.error("Error synchronizing database:", error);
     process.exit(1); // Thoát ứng dụng nếu không thể đồng bộ
   }
+
 }
 // syncDB();
 
