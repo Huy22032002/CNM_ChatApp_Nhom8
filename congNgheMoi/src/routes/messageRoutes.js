@@ -14,8 +14,11 @@ router.post(
 );
 router.post(
   "/sendImage",
-  upload.single("image"),
-  MessageController.sendImageMessage
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "file", maxCount: 1 },
+  ]),
+  MessageController.sendFileOrImageMessage
 );
 router.get(
   "/:converId",

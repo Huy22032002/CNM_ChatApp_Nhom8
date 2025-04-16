@@ -21,7 +21,7 @@ const app = express();
 const server = http.createServer(app);
 ConnectSocket(server); 
 app.use(cors({
-  origin: "http://localhost:5173"||"192.168.31.28:5173", 
+  origin: "*", // Allow multiple origins
   credentials: true,
 }));
 
