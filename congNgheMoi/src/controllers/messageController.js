@@ -75,8 +75,6 @@ const MessageController = {
   },
   async getAllMessageByConversationId(req, res) {
     const converId = req.params.converId;
-    console.log(converId);
-
     if (!converId) {
       return res.status(400).json({ error: "Vui lòng truyền conversation_id" });
     }
@@ -116,13 +114,12 @@ const MessageController = {
       if (!updatedMessage) {
         return res
           .status(404)
-          .json({ error: "Message not found or update failed" });
+          .json({ error: "Message update failed in Message Controller" });
       }
       res.status(200).json(updatedMessage);
     } catch (err) {
       console.error("Error updating message in mesage controler:", err.message);
       return res.status(500).json({
-        message: "Error updating message in mesage controler",
         error: err.message,
       });
     }
