@@ -19,6 +19,8 @@ import { fetchUserDetail } from "../api/userDetailApi";
 import ConversationApi from "../api/conversationApi";
 import Icon from "react-native-vector-icons/Feather";
 import { useNavigation } from '@react-navigation/native';
+import { API_URL } from "../api/apiConfig";
+
 
 export default function HomeChat({ navigation }) {
   navigation = useNavigation();
@@ -32,6 +34,8 @@ export default function HomeChat({ navigation }) {
   const [userInfo, setUserInfo] = useState(null);
   const [userDetail, setUserDetail] = useState(null);
   const [conversations, setConversations] = useState([]);
+  const [conversationDetails, setConversationDetails] = useState([]);
+
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showFriendRequests, setShowFriendRequests] = useState(false);
@@ -40,7 +44,6 @@ export default function HomeChat({ navigation }) {
   const [friendRequestsDetails, setFriendRequestsDetails] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const API_URL="http://192.168.31.28:3000"||"http://10.0.2.2:3000";
   const fetchNotifications = async () => {
     try {
       const res = await axios.get(`${API_URL}/api/notifications/${user.id}`, {
@@ -57,7 +60,8 @@ export default function HomeChat({ navigation }) {
       const res = await axios.get(`${API_URL}/api/notifications/unread-count/${user.id}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      setUnreadCount(res.data); // [{ message, type, status }]
+      // console.log("res unread count:", res.data.count);
+      setUnreadCount(res.data.count); // [{ message, type, status }]
     } catch (err) {
       console.error("Lỗi khi lấy thông báo:", err);
     }
@@ -95,7 +99,7 @@ export default function HomeChat({ navigation }) {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       setFriendRequests(res.data); // [{ message, type, status }]
-      console.log("Lời mời kết bạn:", res.data);
+      // console.log("Lời mời kết bạn:", friendRequests);
       
       // Fetch details for each friend request
       const detailsPromises = res.data.map(async (request) => {
@@ -107,7 +111,7 @@ export default function HomeChat({ navigation }) {
       });
       
       const details = await Promise.all(detailsPromises);
-      console.log("Chi tiết lời mời kết bạn:", details);
+      // console.log("Chi tiết lời mời kết bạn:", details);
       setFriendRequestsDetails(details);
     } catch (err) {
       console.error("Lỗi khi lấy lời mời kết bạn:", err);
@@ -127,6 +131,8 @@ export default function HomeChat({ navigation }) {
         },
       });
       handleFriendPress();
+      fetchFriendRequests(); // Refresh the friend requests after accepting one
+      getListConversation(); // Refresh the conversations after accepting a friend request
     } catch (err) {
       console.error("Lỗi khi chấp nhận kết bạn", err);
     }
@@ -145,13 +151,17 @@ export default function HomeChat({ navigation }) {
         },
       });
       handleFriendPress();
+      fetchFriendRequests(); // Refresh the friend requests after accepting one
+      getListConversation(); 
     } catch (err) {
       console.error("Lỗi khi từ chối kết bạn", err);
     }
   };
   
-  const filteredData = DATA[tab].filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredData = conversationDetails.filter((item) =>
+    (item.otherUserDetail?.fullname || "")
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
   );
 
 
@@ -187,7 +197,7 @@ export default function HomeChat({ navigation }) {
         logout();
         return;
       }
-      console.log("data fetch userdetail:", data);
+      // console.log("data fetch userdetail:", data);
       setUserDetail(data);
     } catch (error) {
       console.error("Lỗi khi lấy thông tin người dùng:", error);
@@ -220,13 +230,33 @@ export default function HomeChat({ navigation }) {
     }
   };
   
-   const getListConversation = async () => {
+  const getListConversation = async () => {
     const data = await ConversationApi.fetchConversationsByUserId(
       user.id,
       accessToken
     );
     if (data) {
       setConversations(data);
+  
+      // Lấy user detail của người còn lại trong participants (trừ user hiện tại)
+      const detailsPromises = data.map(async (conv) => {
+        // Giả sử conv.participants là mảng các userId
+        const otherUserId = Array.isArray(conv.participants)
+          ? conv.participants.find((id) => id !== user.id)
+          : null;
+        let otherUserDetail = null;
+        if (otherUserId) {
+          otherUserDetail = await fetchUserDetail(otherUserId, accessToken);
+        }
+        return {
+          ...conv,
+          otherUserDetail,
+        };
+      });
+  
+      const details = await Promise.all(detailsPromises);
+      // console.log("Chi tiết cuộc trò chuyện:", details);
+      setConversationDetails(details);
     }
   };
 //   const getUserDetail = async () => {
@@ -347,17 +377,30 @@ export default function HomeChat({ navigation }) {
       onPress={() => {
         navigation.navigate("chatScreen", {
           conversation_id: item.conversation_id,
+          otherUserDetail: item.otherUserDetail,
         });
       }}
     >
       <Image
-        source={item.avatar || require("../assets/user1.png")}
+        source={
+          item.otherUserDetail?.avatar_url
+            ? { uri: item.otherUserDetail.avatar_url }
+            : require("../assets/user1.png")
+        }
         style={styles.avatar}
       />
       <View style={styles.chatContent}>
-        <Text style={styles.chatName}>{item.conversation_id}</Text>
-        <Text style={styles.chatMsg}>{item.lastMessage.content}</Text>
-        <Text>{item.lastMessage.updated_at}</Text>
+        <Text style={styles.chatName}>
+          {item.otherUserDetail?.fullname || item.conversation_id}
+        </Text>
+        <Text style={styles.chatMsg}>
+          {item.lastMessage?.content || "Chưa có tin nhắn"}
+        </Text>
+        <Text>
+          {item.lastMessage?.updated_at
+            ? item.lastMessage.updated_at
+            : ""}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -408,6 +451,11 @@ export default function HomeChat({ navigation }) {
 
         <TouchableOpacity onPress={handleFriendPress}>
             <Icon name="user-plus" size={24} color="#333" />
+            {friendRequests.length > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationText}>{friendRequests.length}</Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           {showFriendRequests && (
@@ -496,7 +544,7 @@ export default function HomeChat({ navigation }) {
         style={styles.searchInput}
       />
       <FlatList
-        data={conversations}
+        data={searchQuery ? filteredData : conversationDetails}
         renderItem={renderItem}
         keyExtractor={(item) => item.conversation_id.toString()}
         contentContainerStyle={{ paddingBottom: 60 }}

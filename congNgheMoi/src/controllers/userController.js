@@ -102,8 +102,8 @@ const searchUser = async (req, res) => {
     const users = await user.findAll({
       where: {
         [Op.or]: [
-          { email: { [Op.like]: `%${keyword}%` } },
-          { phone: { [Op.like]: `%${keyword}%` } },
+          { email: { [Op.like]: `${keyword}` } },
+          { phone: { [Op.like]: `${keyword}` } },
         ],
         id: { [Op.ne]: currentUserId }, // Exclude the current user from the results
       },
