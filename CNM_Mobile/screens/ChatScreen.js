@@ -276,7 +276,7 @@ const ChatScreen = ({ route }) => {
     }
 
     const data = {
-      conversation_id: "eed7637a-ac78-4d87-baa6-f2a821029e07",
+      conversation_id: conversation_id,
       sender: user.id,
       receivers: participants.filter((id) => id !== user.id),
       content: currentMessage.content,
