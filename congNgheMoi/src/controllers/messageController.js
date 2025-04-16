@@ -3,36 +3,57 @@ import S3 from "../configs/configS3.js";
 import MessageService from "../services/messageService.js";
 
 const MessageController = {
-  async sendImageMessage(req, res) {
+  async sendFileOrImageMessage(req, res) {
     try {
-      const file = req.file;
-      if (!file) return res.status(400).json({ error: "Chưa gửi file" });
+      const files = req.files;
+      if (!files || (!files.image && !files.file)) {
+        return res.status(400).json({ error: "No file or image provided" });
+      }
 
-      const image = file.originalname.split(".");
-      const fileType = image[image.length - 1];
+      const file = files.image ? files.image[0] : files.file[0];
+      const fileNameParts = file.originalname.split(".");
+      const fileType = fileNameParts[fileNameParts.length - 1];
       const filePath = `${uuidv4()}.${fileType}`;
 
       const params = {
         Bucket: "chatappnhom8",
         Key: filePath,
-        Body: req.file.buffer,
-        ContentType: req.file.mimetype,
-      };
+        Body: file.buffer,
+        ContentType: file.mimetype
+      }; // Removed ACL: "public-read"
 
-      const uploadedImg = await S3.upload(params).promise();
+      console.log("Uploading file to S3 with params:", params);
+      const uploadedFile = await S3.upload(params).promise();
+      console.log("File uploaded to S3 successfully:", uploadedFile);
+      console.log("S3 upload response:", uploadedFile);
+      if (!uploadedFile || !uploadedFile.Location) {
+        throw new Error("Failed to upload file to S3 or retrieve URL");
+      }
+      console.log("Image URL returned to frontend:", uploadedFile.Location);
 
       const data = req.body;
+      console.log("Request body data:", data);
+
       const newMessage = {
         conversation_id: data.conversation_id,
         sender: data.sender,
         receivers: data.receivers,
-        message_type: "image",
-        image_url: uploadedImg.Location, //url s3 image
+        message_type: file.mimetype.startsWith("image") ? "image" : "file",
+        file_url: uploadedFile.Location, // URL S3 của file hoặc hình ảnh
+        file_name: file.originalname, // Tên file gốc
+        image_url: uploadedFile.Location, // Ensure image_url is passed to the database
       };
+
+      console.log("Creating new message in database:", newMessage);
       const savedMessage = await MessageService.createMessage(newMessage);
-      return res.status(200).json(savedMessage);
+      console.log("Message saved successfully:", savedMessage);
+      const responseMessage = {
+        ...savedMessage,
+        image_url: savedMessage.file_url, // Map file_url to image_url for frontend compatibility
+      };
+      return res.status(200).json(responseMessage);
     } catch (err) {
-      console.log(`err upload img s3: ${err}`);
+      console.log(`err upload file or image to s3: ${err}`);
       return res.status(500).json({ err: err.message });
     }
   },

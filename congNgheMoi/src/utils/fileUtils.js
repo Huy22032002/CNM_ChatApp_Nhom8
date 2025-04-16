@@ -1,14 +1,14 @@
 import path from "path";
 
 export const checkFileType = (file, cb) => {
-  const fileTypes = /jpeg|png|gif|jpg/;
-  //kiem tra file co duoi khop nhu yeu cau
+  const fileTypes = /jpeg|png|gif|jpg|pdf|docx|txt/; // Added support for pdf, docx, and txt files
+  // Check file extension
   const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
-  //kiem tra loai file thong qua myimetype
-  const mimitype = fileTypes.test(file.mimetype);
+  // Check file mimetype
+  const mimetype = fileTypes.test(file.mimetype);
 
-  if (extname && mimitype) {
+  if (extname && mimetype) {
     return cb(null, true);
   }
-  return cb("Err: Image only");
+  return cb("Err: Unsupported file type");
 };
