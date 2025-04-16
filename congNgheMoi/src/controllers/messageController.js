@@ -36,7 +36,7 @@ const MessageController = {
 
       const newMessage = {
         conversation_id: data.conversation_id,
-        sender: data.sender,
+        sender: Number(data.sender),
         receivers: data.receivers,
         message_type: file.mimetype.startsWith("image") ? "image" : "file",
         file_url: uploadedFile.Location, // URL S3 của file hoặc hình ảnh
