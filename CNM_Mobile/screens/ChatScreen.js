@@ -331,6 +331,7 @@ const ChatScreen = ({ route }) => {
             </>
           )}
         </View>
+        {/* <Text style={{fontSize:10}}>{item.created_at}</Text> */}
       </TouchableOpacity>
     );
   };
@@ -353,7 +354,7 @@ const ChatScreen = ({ route }) => {
   }, []);
 
   const backToHomeChat = () => {
-    navigation.goBack();
+    navigation.navigate("homeChat");
   };
 
   const fetchFriendStatus = async () => {
@@ -381,6 +382,8 @@ const ChatScreen = ({ route }) => {
   useEffect(() => {
     const interval = setInterval(() => {
       fetchFriendStatus();
+      fetchMessages();
+      fetchConversation();
     }, 5000);
 
     return () => clearInterval(interval);
