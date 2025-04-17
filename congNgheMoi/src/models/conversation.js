@@ -13,7 +13,7 @@ const ConversationModel = {
         participants: dynamoDB.createSet(participants),
         created_at: new Date().toISOString(),
         status: "ACTIVE", //chua can luu lastMessage
-        lastMessage:"Chưa có tin nhắn nào",
+        lastMessage: "Chưa có tin nhắn nào",
       },
     };
     await dynamoDB.put(params).promise();
@@ -73,10 +73,11 @@ const ConversationModel = {
       return result.Attributes;
     } catch (err) {
       console.log(`Error update conver ${conversation_id}: ${err}`);
-      return null;
+      throw new Error(
+        `Error update conversation in conversation model: ${err.message}`
+      );
     }
   },
-
   async getConversationByParticipants(type, participants) {
     const params = {
       TableName: TABLE_NAME,
@@ -88,16 +89,16 @@ const ConversationModel = {
         ":typeVal": type,
       },
     };
-  
+
     try {
       const result = await dynamoDB.scan(params).promise();
       const allConversations = result.Items || [];
-  
+
       // Tìm cuộc hội thoại có đủ participants (giả định chỉ là 1-1 chat)
       for (const convo of allConversations) {
         const convoParticipants = convo.participants.values.sort();
         const inputParticipants = [...participants].sort();
-  
+
         if (
           convoParticipants.length === inputParticipants.length &&
           convoParticipants.every((val, idx) => val === inputParticipants[idx])
@@ -105,14 +106,16 @@ const ConversationModel = {
           return convo;
         }
       }
-  
+
       return null;
     } catch (error) {
       console.error("Error getConversationByParticipants:", error);
-      throw new Error("Failed to fetch conversation by participants");
+      throw new Error(
+        "Failed to fetch conversation by participants",
+        error.message
+      );
     }
   },
-  
 };
 
 export default ConversationModel;

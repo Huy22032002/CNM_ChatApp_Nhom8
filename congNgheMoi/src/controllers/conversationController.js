@@ -34,10 +34,9 @@ const updateConversation = async (req, res) => {
 
   if (!conversation_id || !lastMessage) {
     return res.status(400).json({
-      message: "Invalid data for update conversation",
+      error: "Require conversationId and lastMessage for updating conversation",
     });
   }
-
   try {
     const updatedConversation = await ConversationService.updateConver(
       conversation_id,
