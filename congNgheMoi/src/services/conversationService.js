@@ -38,7 +38,10 @@ const ConversationService = {
       );
     } catch (err) {
       console.log(`err update conversation sevice ${err}`);
-      throw new Error("Error updating conversation service");
+      throw new Error(
+        "Error update conversation in conversation service",
+        err.message
+      );
     }
   },
 };
