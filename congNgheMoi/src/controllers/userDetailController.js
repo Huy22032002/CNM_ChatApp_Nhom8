@@ -59,11 +59,25 @@ const getAllUserDetail = async (req, res) => {
 };
 const getUserDetailByUserId = async (req, res) => {
   const { id } = req.params;
+  console.log("Received user ID:", id);
+
+  if (!id) {
+    console.error("User ID is missing in the request parameters.");
+    return res.status(400).json({ message: "User ID is required." });
+  }
+
   try {
     const result = await findUserDetailByUserId(id);
+
+    if (!result) {
+      console.error(`No user detail found for ID: ${id}`);
+      return res.status(404).json({ message: "User detail not found." });
+    }
+
     res.status(200).json(result);
   } catch (err) {
-    res.status(500).json(`err get userDetail by id Controller ${err}`);
+    console.error("Error fetching user detail by ID:", err);
+    res.status(500).json({ message: "Error fetching user detail.", error: err.message });
   }
 };
 const updateUserDetails = async (req, res) => {
