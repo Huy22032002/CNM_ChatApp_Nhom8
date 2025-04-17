@@ -3,58 +3,57 @@ import S3 from "../configs/configS3.js";
 import MessageService from "../services/messageService.js";
 
 const MessageController = {
-  async sendFileOrImageMessage(req, res) {
+  async sendImageMessage(req, res) {
     try {
-      const files = req.files;
-      if (!files || (!files.image && !files.file)) {
-        return res.status(400).json({ error: "No file or image provided" });
+      const file = req.file;
+      if (!file) return res.status(400).json({ error: "Chưa gửi file" });
+
+      const fileExtension = file.originalname.split(".").pop(); // Lấy phần mở rộng file
+      console.log("fileExtendsion: ", fileExtension);
+
+      const filePath = `${uuidv4()}.${fileExtension}`;
+      //check dinh dang file
+      const isImg = file.mimetype.startsWith("image/");
+      const isPdf = file.mimetype === "application/pdf";
+      if (!isImg && !isPdf) {
+        return res
+          .status(400)
+          .json({ error: "Chỉ chấp nhận hình ảnh hoặc PDF" });
       }
-
-      const file = files.image ? files.image[0] : files.file[0];
-      const fileNameParts = file.originalname.split(".");
-      const fileType = fileNameParts[fileNameParts.length - 1];
-      const filePath = `${uuidv4()}.${fileType}`;
-
       const params = {
         Bucket: "chatappnhom8",
         Key: filePath,
-        Body: file.buffer,
-        ContentType: file.mimetype
-      }; // Removed ACL: "public-read"
+        Body: req.file.buffer,
+        ContentType: req.file.mimetype,
+      };
 
-      console.log("Uploading file to S3 with params:", params);
-      const uploadedFile = await S3.upload(params).promise();
-      console.log("File uploaded to S3 successfully:", uploadedFile);
-      console.log("S3 upload response:", uploadedFile);
-      if (!uploadedFile || !uploadedFile.Location) {
-        throw new Error("Failed to upload file to S3 or retrieve URL");
-      }
-      console.log("Image URL returned to frontend:", uploadedFile.Location);
+      const uploadedImg = await S3.upload(params).promise();
 
       const data = req.body;
-      console.log("Request body data:", data);
+      //check coi có content gui kèm k
+      const isContent = data.content && data.content.trim() !== "";
+      console.log("isContent: ", isContent);
+      //xac dinh message_type
+      let message_type = "";
+      if (isContent && isImg) {
+        message_type = "image_text";
+      } else if (isImg) {
+        message_type = "TEXT";
+      } else message_type = "FILE";
 
       const newMessage = {
         conversation_id: data.conversation_id,
         sender: Number(data.sender),
         receivers: data.receivers,
-        message_type: file.mimetype.startsWith("image") ? "image" : "file",
-        file_url: uploadedFile.Location, // URL S3 của file hoặc hình ảnh
-        file_name: file.originalname, // Tên file gốc
-        image_url: uploadedFile.Location, // Ensure image_url is passed to the database
+        message_type: message_type,
+        content: isContent ? data.content : null,
+        image_url: uploadedImg.Location, //url s3 image
       };
-
-      console.log("Creating new message in database:", newMessage);
       const savedMessage = await MessageService.createMessage(newMessage);
-      console.log("Message saved successfully:", savedMessage);
-      const responseMessage = {
-        ...savedMessage,
-        image_url: savedMessage.file_url, // Map file_url to image_url for frontend compatibility
-      };
-      return res.status(200).json(responseMessage);
+      return res.status(200).json(savedMessage);
     } catch (err) {
-      console.log(`err upload file or image to s3: ${err}`);
-      return res.status(500).json({ err: err.message });
+      console.log(`err upload img s3: ${err}`);
+      return res.status(500).json({ error: err.message });
     }
   },
   async createMessage(req, res) {

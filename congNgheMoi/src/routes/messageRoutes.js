@@ -18,7 +18,7 @@ router.post(
     { name: "image", maxCount: 1 },
     { name: "file", maxCount: 1 },
   ]),
-  MessageController.sendFileOrImageMessage
+  MessageController.sendImageMessage
 );
 router.get(
   "/:converId",

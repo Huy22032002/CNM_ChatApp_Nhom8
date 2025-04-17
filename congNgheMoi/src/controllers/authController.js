@@ -20,17 +20,17 @@ const register = async (req, res) => {
 
     const existMail = await User.findOne({ where: { email } });
     if (existMail) {
-      return res.status(401).json({ message: "Email already exists" });
+      res.status(401).json({ message: "Email already exists" });
     }
 
     const existPhone = await User.findOne({ where: { phone } });
     if (existPhone) {
-      return res.status(402).json({ message: "Phone already exists" });
+      res.status(402).json({ message: "Phone already exists" });
     }
 
     const existUsername = await User.findOne({ where: { username } });
     if (existUsername) {
-      return res.status(403).json({ message: "Username already exists" });
+      res.status(403).json({ message: "Username already exists" });
     }
 
     const existingUser = await findUser(username);
@@ -56,7 +56,7 @@ const register = async (req, res) => {
       // Chưa lưu user vào DB ngay — đợi xác thực OTP
       res.status(200).json({ message: "OTP sent to email", email, otp });
     } else {
-      return res.status(400).json({ message: "Username already exists" });
+      res.status(400).json({ message: "Username already exists" });
     }
   } catch (error) {
     res.status(500).json({ message: "Server error", error });

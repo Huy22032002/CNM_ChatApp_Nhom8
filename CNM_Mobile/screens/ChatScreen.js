@@ -8,20 +8,19 @@ import {
   TouchableOpacity,
   FlatList,
   Modal,
-  Linking,
 } from "react-native";
 import MessageAPI from "../api/messageApi";
 import ConversationApi from "../api/conversationApi";
 import { useSelector } from "react-redux";
 import { useNavigation } from "@react-navigation/native";
 import { API_URL } from "../api/apiConfig";
-
+import { fetchUserDetail } from "../api/userDetailApi";
 
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 
 const ChatScreen = ({ route }) => {
-  const { conversation_id ,otherUserDetail} = route.params;
+  const { conversation_id, otherUserDetail } = route.params;
 
   //lay user tu redux
   const user = useSelector((state) => state.user.user);
@@ -42,16 +41,43 @@ const ChatScreen = ({ route }) => {
   const openEditContent = () => {
     setEdit(true);
   };
+  //state cho forward
+  const [forwardPopUp, setForwardPopup] = useState(false);
+  const [conversationsDetail, setConversationsDetail] = useState([]);
 
+  const getListConversationDetail = async () => {
+    try {
+      const data = await ConversationApi.fetchConversationsByUserId(
+        user.id,
+        accessToken
+      );
+      // Tạo mảng các promises để lấy userDetail cho từng cuộc trò chuyện
+      const converDetailPromises = data.map(async (conver) => {
+        const receivers = Array.isArray(conver.participants)
+          ? conver.participants.filter((id) => id !== user.id)
+          : [];
+        const receiverId = receivers[0];
+        const userDetail = await fetchUserDetail(receiverId, accessToken);
+
+        return {
+          ...conver,
+          userDetail,
+        };
+      });
+      const converDetails = await Promise.all(converDetailPromises);
+      setConversationsDetail(converDetails);
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách cuộc trò chuyện: ", error);
+    }
+  };
+
+  const openForwardPopup = () => {
+    setForwardPopup(true);
+    getListConversationDetail();
+  };
   //state cho hinh anh, document
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedDocument, setSelectedDocument] = useState(null);
-  //state cho emoji
-  const [showEmojiPopUp, setShowEmojiPopUp] = useState(false);
-  const [selectedEmoji, setSelectedEmoji] = useState("");
-  const selectEmoji = () => {
-    setShowEmojiPopUp(true);
-  };
 
   const selectImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -186,6 +212,7 @@ const ChatScreen = ({ route }) => {
     }
   };
 
+  //longPress()
   const handleMessage = (message_id) => {
     console.log("select message id: ", message_id);
     setSelectMessage(message_id);
@@ -201,6 +228,7 @@ const ChatScreen = ({ route }) => {
     try {
       await MessageAPI.deleteMessage(selectMessage, data, accessToken);
       await fetchMessages();
+      setShowMessageModal(false);
       alert("Xóa thành công");
     } catch (err) {
       alert("Xóa thất bại: " + err.response.data.error);
@@ -218,7 +246,7 @@ const ChatScreen = ({ route }) => {
 
       setEdit(false); //dong Moddal update
       setEditContent("");
-
+      setShowMessageModal(false);
       alert("Cập nhật tin nhắn thành công");
     } catch (err) {
       alert(err.response.data.error);
@@ -232,12 +260,13 @@ const ChatScreen = ({ route }) => {
     try {
       await MessageAPI.revokeMessage(selectMessage, data, accessToken);
       await fetchMessages();
+      setShowMessageModal(false);
       alert("Thu hồi thành công");
     } catch (err) {
       alert(err.response.data.error);
     }
   };
-  const forwardMessage = async () => {
+  const forwardMessage = async (conversation_id, participants) => {
     const currentMessage = messages.find(
       (message) => message.message_id == selectMessage
     );
@@ -245,12 +274,11 @@ const ChatScreen = ({ route }) => {
       alert("khong tim thay tin nhan");
       return;
     }
-    const receivers = [3];
 
     const data = {
-      conversation_id: "eed7637a-ac78-4d87-baa6-f2a821029e07",
+      conversation_id: conversation_id,
       sender: user.id,
-      receivers: receivers,
+      receivers: participants.filter((id) => id !== user.id),
       content: currentMessage.content,
       type: currentMessage.message_type,
       image_url: currentMessage.image_url || null,
@@ -258,6 +286,8 @@ const ChatScreen = ({ route }) => {
     try {
       const forwardMessage = await MessageAPI.sendMessage(data, accessToken);
       console.log("da forward: ", forwardMessage);
+      alert("Chuyển tiếp tin nhắn thành công!");
+      setShowMessageModal(false);
     } catch (err) {
       console.error("Send message failed: ", err.message);
     }
@@ -296,19 +326,12 @@ const ChatScreen = ({ route }) => {
                 />
               )}
               {item.message_type === "FILE" && (
-                // <TouchableOpacity
-                //   onPress={() => Linking.openURL(item.image_url)}
-                // >
-                //   <Text style={{ color: "red" }}>
-                //     {item.content || "📄 Tệp đính kèm"}
-                //   </Text>
-                // </TouchableOpacity>
-
                 <Text style={{ color: "blue" }}>{item.image_url}</Text>
               )}
             </>
           )}
         </View>
+        {/* <Text style={{fontSize:10}}>{item.created_at}</Text> */}
       </TouchableOpacity>
     );
   };
@@ -331,7 +354,7 @@ const ChatScreen = ({ route }) => {
   }, []);
 
   const backToHomeChat = () => {
-    navigation.goBack();
+    navigation.navigate("homeChat");
   };
 
   const fetchFriendStatus = async () => {
@@ -347,21 +370,23 @@ const ChatScreen = ({ route }) => {
         }
       );
       const data = await response.json();
-      console.log("Friend status: ", data.status);
-      console.log("Last active: ", data.updatedAt);
+      // console.log("Friend status: ", data.status);
+      // console.log("Last active: ", data.updatedAt);
       setFriendStatus(data.status);
       setLastActive(data.updatedAt);
     } catch (error) {
       console.error("Error fetching friend status: ", error);
     }
-  }
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
       fetchFriendStatus();
+      fetchMessages();
+      fetchConversation();
     }, 5000);
 
-    return () => clearInterval(interval); 
+    return () => clearInterval(interval);
   }, [otherUserDetail.id, accessToken]);
 
   return (
@@ -396,7 +421,9 @@ const ChatScreen = ({ route }) => {
                     (Date.now() - new Date(LastActive)) / 60000
                   );
                   if (minutesAgo > 1440) {
-                    return `Hoạt động ${Math.floor(minutesAgo / 1440)} ngày trước`;
+                    return `Hoạt động ${Math.floor(
+                      minutesAgo / 1440
+                    )} ngày trước`;
                   } else if (minutesAgo > 60) {
                     return `Hoạt động ${Math.floor(minutesAgo / 60)} giờ trước`;
                   } else {
@@ -469,7 +496,7 @@ const ChatScreen = ({ route }) => {
                 </View>
               )}
               <TouchableOpacity
-                onPress={forwardMessage}
+                onPress={openForwardPopup}
                 style={styles.modalButton}
               >
                 <Text style={styles.modalButtonText}>Chuyển tiếp</Text>
@@ -484,6 +511,34 @@ const ChatScreen = ({ route }) => {
           </View>
         </Modal>
       </View>
+      {forwardPopUp && (
+        <Modal visible={true} transparent={true} animationType="fade">
+          <View style={styles.centeredModal}>
+            <View style={styles.modalContainer}>
+              <TouchableOpacity onPress={() => setForwardPopup(false)}>
+                <Text>X</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>
+                Chọn cuộc trò chuyện để chuyển tiếp
+              </Text>
+              {conversationsDetail.map((c) => (
+                <TouchableOpacity
+                  key={c.conversation_id}
+                  style={styles.conversationItem}
+                  onPress={() => {
+                    forwardMessage(c.conversation_id, c.participants);
+                    setForwardPopup(false);
+                  }}
+                >
+                  <Text style={styles.conversationText}>
+                    {c.userDetail.fullname || c.conversation_id}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </Modal>
+      )}
       {selectedImage && (
         <View
           style={{
@@ -499,14 +554,12 @@ const ChatScreen = ({ route }) => {
           />
         </View>
       )}
-
       {selectedDocument && (
         <View>
           <Text>{selectedDocument.name}</Text>
           <Text>{selectedDocument.uri}</Text>
         </View>
       )}
-
       <View style={styles.footer}>
         <TouchableOpacity onPress={selectDocument}>
           <Image
@@ -558,7 +611,18 @@ const ChatScreen = ({ route }) => {
         <View style={styles.modalBackground}>
           <View style={styles.modalContainer}>
             <FlatList
-              data={["😀", "😂", "😍", "😎", "😭", "😡", "👍", "🎉", "❤️", "🔥"]}
+              data={[
+                "😀",
+                "😂",
+                "😍",
+                "😎",
+                "😭",
+                "😡",
+                "👍",
+                "🎉",
+                "❤️",
+                "🔥",
+              ]}
               numColumns={5}
               renderItem={({ item }) => (
                 <TouchableOpacity
@@ -628,11 +692,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
+  centeredModal: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)", // nền mờ
+  },
   modalContainer: {
     backgroundColor: "#fff",
     padding: 20,
     borderRadius: 10,
     width: "80%",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  conversationItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+  },
+  conversationText: {
+    fontSize: 16,
   },
   modalButton: {
     padding: 10,
