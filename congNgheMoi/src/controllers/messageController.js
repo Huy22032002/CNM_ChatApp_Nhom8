@@ -5,50 +5,50 @@ import MessageService from "../services/messageService.js";
 const MessageController = {
   async sendImageMessage(req, res) {
     try {
-      const file = req.file;
+      const file = req.files?.image?.[0] || req.files?.file?.[0];
       if (!file) return res.status(400).json({ error: "Chưa gửi file" });
-
-      const fileExtension = file.originalname.split(".").pop(); // Lấy phần mở rộng file
-      console.log("fileExtendsion: ", fileExtension);
-
+  
+      const fileExtension = file.originalname.split(".").pop();
       const filePath = `${uuidv4()}.${fileExtension}`;
-      //check dinh dang file
+  
       const isImg = file.mimetype.startsWith("image/");
       const isPdf = file.mimetype === "application/pdf";
       if (!isImg && !isPdf) {
-        return res
-          .status(400)
-          .json({ error: "Chỉ chấp nhận hình ảnh hoặc PDF" });
+        return res.status(400).json({ error: "Chỉ chấp nhận hình ảnh hoặc PDF" });
       }
+  
       const params = {
         Bucket: "chatappnhom8",
         Key: filePath,
-        Body: req.file.buffer,
-        ContentType: req.file.mimetype,
+        Body: file.buffer,
+        ContentType: file.mimetype,
       };
-
+  
       const uploadedImg = await S3.upload(params).promise();
-
+  
       const data = req.body;
-      //check coi có content gui kèm k
       const isContent = data.content && data.content.trim() !== "";
-      console.log("isContent: ", isContent);
-      //xac dinh message_type
+  
       let message_type = "";
       if (isContent && isImg) {
         message_type = "image_text";
       } else if (isImg) {
-        message_type = "TEXT";
-      } else message_type = "FILE";
-
+        message_type = "image";
+      } else if (isPdf) {
+        message_type = "pdf";
+      } else {
+        message_type = "file";
+      }
+  
       const newMessage = {
         conversation_id: data.conversation_id,
         sender: Number(data.sender),
         receivers: data.receivers,
-        message_type: message_type,
+        message_type,
         content: isContent ? data.content : null,
-        image_url: uploadedImg.Location, //url s3 image
+        image_url: uploadedImg.Location,
       };
+  
       const savedMessage = await MessageService.createMessage(newMessage);
       return res.status(200).json(savedMessage);
     } catch (err) {
@@ -56,6 +56,7 @@ const MessageController = {
       return res.status(500).json({ error: err.message });
     }
   },
+  
   async createMessage(req, res) {
     try {
       const data = req.body;
