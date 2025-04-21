@@ -506,9 +506,9 @@ export default function HomeChat({ navigation }) {
             ? item.otherUserDetail?.avatar_url
               ? { uri: item.otherUserDetail.avatar_url }
               : require("../assets/user1.png")
-            : item.otherUserDetails?.[0]?.avatar_url
-            ? { uri: item.otherUserDetails[0].avatar_url }
-            : require("../assets/user1.png")
+            : item.group_avatar
+              ? { uri: item.group_avatar }
+              : {uri:item.otherUserDetails[0].avatar_url}
         }
         style={styles.avatar}
       />
