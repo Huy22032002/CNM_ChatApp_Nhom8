@@ -18,9 +18,10 @@ import { useSelector } from "react-redux";
 import { fetchUserDetail } from "../api/userDetailApi";
 import ConversationApi from "../api/conversationApi";
 import Icon from "react-native-vector-icons/Feather";
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation } from "@react-navigation/native";
 import { API_URL } from "../api/apiConfig";
 
+import { createSocket, disconnectSocket, getSocket } from "../services/socket";
 
 export default function HomeChat({ navigation }) {
   navigation = useNavigation();
@@ -35,7 +36,6 @@ export default function HomeChat({ navigation }) {
   const [userDetail, setUserDetail] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [conversationDetails, setConversationDetails] = useState([]);
-
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showFriendRequests, setShowFriendRequests] = useState(false);
@@ -57,23 +57,30 @@ export default function HomeChat({ navigation }) {
 
   const fetchUnreadCount = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/notifications/unread-count/${user.id}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const res = await axios.get(
+        `${API_URL}/api/notifications/unread-count/${user.id}`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
       // console.log("res unread count:", res.data.count);
       setUnreadCount(res.data.count); // [{ message, type, status }]
     } catch (err) {
       console.error("Lỗi khi lấy thông báo:", err);
     }
   };
-  
+
   const markAllAsRead = async () => {
     try {
-      await axios.put(`${API_URL}/api/notifications/mark-read/${user.id}`, {}, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      await axios.put(
+        `${API_URL}/api/notifications/mark-read/${user.id}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
       setUnreadCount(0);
     } catch (err) {
       console.error("Lỗi khi đánh dấu đã đọc:", err);
@@ -95,21 +102,27 @@ export default function HomeChat({ navigation }) {
 
   const fetchFriendRequests = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/friends/requests/${user.id}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const res = await axios.get(
+        `${API_URL}/api/friends/requests/${user.id}`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
       setFriendRequests(res.data); // [{ message, type, status }]
       // console.log("Lời mời kết bạn:", friendRequests);
-      
+
       // Fetch details for each friend request
       const detailsPromises = res.data.map(async (request) => {
-        const userDetail = await fetchUserDetail(request.friend_id, accessToken);
+        const userDetail = await fetchUserDetail(
+          request.friend_id,
+          accessToken
+        );
         return {
           ...request,
-          userDetail
+          userDetail,
         };
       });
-      
+
       const details = await Promise.all(detailsPromises);
       // console.log("Chi tiết lời mời kết bạn:", details);
       setFriendRequestsDetails(details);
@@ -120,16 +133,18 @@ export default function HomeChat({ navigation }) {
 
   const acceptFriendRequest = async (friend_id) => {
     try {
-      await axios.post(`${API_URL}/api/friends/accept`, 
+      await axios.post(
+        `${API_URL}/api/friends/accept`,
         {
           user_id: user.id,
           friend_id,
-        }, 
-        {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
         },
-      });
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
       handleFriendPress();
       fetchFriendRequests(); // Refresh the friend requests after accepting one
       getListConversation(); // Refresh the conversations after accepting a friend request
@@ -140,37 +155,35 @@ export default function HomeChat({ navigation }) {
 
   const cancelFriendRequest = async (friend_id) => {
     try {
-      await axios.post(`${API_URL}/api/friends/cancel-request`, 
+      await axios.post(
+        `${API_URL}/api/friends/cancel-request`,
         {
           user_id: user.id,
           friend_id,
-        }, 
-        {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
         },
-      });
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
       handleFriendPress();
       fetchFriendRequests(); // Refresh the friend requests after accepting one
-      getListConversation(); 
+      getListConversation();
     } catch (err) {
       console.error("Lỗi khi từ chối kết bạn", err);
     }
   };
-  
+
   const filteredData = conversationDetails.filter((item) =>
     (item.otherUserDetail?.fullname || "")
       .toLowerCase()
       .includes(searchQuery.toLowerCase())
   );
 
-
-
   //lay user va token tu redux
   const user = useSelector((state) => state.user.user);
   const accessToken = useSelector((state) => state.user.accessToken);
-
-
 
   const handleLogout = () => {
     Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất không?", [
@@ -229,7 +242,7 @@ export default function HomeChat({ navigation }) {
       Alert.alert("Lỗi", "Không thể đăng xuất");
     }
   };
-  
+
   const getListConversation = async () => {
     const data = await ConversationApi.fetchConversationsByUserId(
       user.id,
@@ -237,7 +250,7 @@ export default function HomeChat({ navigation }) {
     );
     if (data) {
       setConversations(data);
-  
+
       // Lấy user detail của người còn lại trong participants (trừ user hiện tại)
       const detailsPromises = data.map(async (conv) => {
         // Giả sử conv.participants là mảng các userId
@@ -253,26 +266,34 @@ export default function HomeChat({ navigation }) {
           otherUserDetail,
         };
       });
-  
+
       const details = await Promise.all(detailsPromises);
-      // console.log("Chi tiết cuộc trò chuyện:", details);
       setConversationDetails(details);
     }
   };
-//   const getUserDetail = async () => {
-//     const data = await fetchUserDetail(user.id, accessToken);
-//     console.log("data fetch userdetail:", data);
-//     setUserDetail(data);
-//   };
-  
+
   useEffect(() => {
     setUserInfo(user);
+    //tao socket
+    if (user) {
+      const socket = createSocket();
+
+      socket.on("connect", () => {
+        console.log(`User ${user.id} connected Socket`);
+        //thong bao toi server user online
+        socket.emit("online", { user: user });
+      });
+
+      socket.on("disconnect", () => {
+        console.log("disconnected socket");
+      });
+    }
+
     getUserDetail();
     getListConversation();
     fetchNotifications();
     fetchUnreadCount();
     fetchFriendRequests();
-    
   }, [user]);
 
   const changePassword = async () => {
@@ -370,7 +391,7 @@ export default function HomeChat({ navigation }) {
       Alert.alert("Lỗi", "Không thể đăng xuất");
     }
   };
-  
+
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={styles.chatItem}
@@ -381,14 +402,17 @@ export default function HomeChat({ navigation }) {
         });
       }}
     >
-      <Image
-        source={
-          item.otherUserDetail?.avatar_url
-            ? { uri: item.otherUserDetail.avatar_url }
-            : require("../assets/user1.png")
-        }
-        style={styles.avatar}
-      />
+      <View>
+        <Image
+          source={
+            item.otherUserDetail?.avatar_url
+              ? { uri: item.otherUserDetail.avatar_url }
+              : require("../assets/user1.png")
+          }
+          style={styles.avatar}
+        />
+      </View>
+
       <View style={styles.chatContent}>
         <Text style={styles.chatName}>
           {item.otherUserDetail?.fullname || item.conversation_id}
@@ -397,22 +421,18 @@ export default function HomeChat({ navigation }) {
           {item.lastMessage?.content || "Chưa có tin nhắn"}
         </Text>
         <Text>
-          {item.lastMessage?.updated_at
-            ? item.lastMessage.updated_at
-            : ""}
+          {item.lastMessage?.updated_at ? item.lastMessage.updated_at : ""}
         </Text>
       </View>
     </TouchableOpacity>
   );
   return (
     <View style={styles.container}>
-      <View style={styles.headerRow}>
-      </View>
+      <View style={styles.headerRow}></View>
       <View style={styles.headerRow}>
         <Text style={styles.header}>
           Xin chào, {userDetail?.fullname || "User"} 👋
         </Text>
-
 
         <TouchableOpacity onPress={() => navigation.navigate("findUser")}>
           <Icon name="search" size={24} color="#000" />
@@ -445,56 +465,69 @@ export default function HomeChat({ navigation }) {
               </ScrollView>
             </View>
           )}
-          
-          
         </View>
 
         <TouchableOpacity onPress={handleFriendPress}>
-            <Icon name="user-plus" size={24} color="#333" />
-            {friendRequests.length > 0 && (
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationText}>{friendRequests.length}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {showFriendRequests && (
-            <View style={styles.dropdown}>
-              <Text style={styles.header}>Lời mời kết bạn</Text>
-              <ScrollView style={{ maxHeight: 200 }}>
-                {friendRequestsDetails.length === 0 ? (
-                  <Text style={styles.emptyText}>Không có lời mời kết bạn</Text>
-                ) : (
-                  friendRequestsDetails.map((request, index) => (
-                    <View key={index} style={styles.requestCard}>
-                      <Image
-                        source={request.userDetail?.avatar_url ? { uri: request.userDetail.avatar_url } : require("../assets/default-avatar.png")}
-                        style={styles.requestAvatar}
-                      />
-                      <View style={styles.requestInfo}>
-                        <Text style={styles.requestName}>{request.userDetail?.fullname || request.name}</Text>
-                        <View style={styles.requestActions}>
-                          <TouchableOpacity
-                            style={[styles.requestButton, styles.requestAcceptButton]}
-                            onPress={() => acceptFriendRequest(request.friend_id)}
-                          >
-                            <Text style={styles.requestButtonText}>Chấp nhận</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={[styles.requestButton, styles.requestDeclineButton]}
-                            onPress={() => cancelFriendRequest(request.friend_id)}
-                          >
-                            <Text style={styles.requestButtonText}>Từ chối</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    </View>
-
-                  ))
-                )}
-              </ScrollView>
+          <Icon name="user-plus" size={24} color="#333" />
+          {friendRequests.length > 0 && (
+            <View style={styles.notificationBadge}>
+              <Text style={styles.notificationText}>
+                {friendRequests.length}
+              </Text>
             </View>
           )}
+        </TouchableOpacity>
+
+        {showFriendRequests && (
+          <View style={styles.dropdown}>
+            <Text style={styles.header}>Lời mời kết bạn</Text>
+            <ScrollView style={{ maxHeight: 200 }}>
+              {friendRequestsDetails.length === 0 ? (
+                <Text style={styles.emptyText}>Không có lời mời kết bạn</Text>
+              ) : (
+                friendRequestsDetails.map((request, index) => (
+                  <View key={index} style={styles.requestCard}>
+                    <Image
+                      source={
+                        request.userDetail?.avatar_url
+                          ? { uri: request.userDetail.avatar_url }
+                          : require("../assets/default-avatar.png")
+                      }
+                      style={styles.requestAvatar}
+                    />
+                    <View style={styles.requestInfo}>
+                      <Text style={styles.requestName}>
+                        {request.userDetail?.fullname || request.name}
+                      </Text>
+                      <View style={styles.requestActions}>
+                        <TouchableOpacity
+                          style={[
+                            styles.requestButton,
+                            styles.requestAcceptButton,
+                          ]}
+                          onPress={() => acceptFriendRequest(request.friend_id)}
+                        >
+                          <Text style={styles.requestButtonText}>
+                            Chấp nhận
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.requestButton,
+                            styles.requestDeclineButton,
+                          ]}
+                          onPress={() => cancelFriendRequest(request.friend_id)}
+                        >
+                          <Text style={styles.requestButtonText}>Từ chối</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        )}
         <TouchableOpacity onPress={() => setMenuVisible(!menuVisible)}>
           <Image
             source={
@@ -741,48 +774,46 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  
+
   requestAvatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
     marginRight: 10,
   },
-  
+
   requestInfo: {
     flex: 1,
   },
-  
+
   requestName: {
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 6,
   },
-  
+
   requestActions: {
     flexDirection: "row",
     gap: 10,
   },
-  
+
   requestButton: {
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 8,
   },
-  
+
   requestAcceptButton: {
     backgroundColor: "#4CAF50",
-    
   },
-  
+
   requestDeclineButton: {
     backgroundColor: "#f44336",
   },
-  
+
   requestButtonText: {
     color: "#fff",
     fontSize: 14,
     fontWeight: "500",
   },
-  
 });
