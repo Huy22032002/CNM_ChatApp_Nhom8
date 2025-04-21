@@ -20,19 +20,24 @@ import {
 const app = express();
 const server = http.createServer(app);
 ConnectSocket(server); 
+
+// Cấu hình CORS để xử lý preflight requests
 app.use(cors({
-  origin: "*", 
+  origin: "http://localhost:5173", // Chỉ định origin cụ thể
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+// Tăng giới hạn kích thước payload để tránh lỗi 'Payload Too Large'
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
 app.use("/auth", authRoutes);
 
 // app.use(
 //   authMiddlewareWithoutRefresh
-//   // authMiddleware
+//   // authMiddleware 
 // );
 app.use(authMiddlewareWithoutRefresh);
 
