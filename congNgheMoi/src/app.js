@@ -19,13 +19,19 @@ import {
 
 const app = express();
 const server = http.createServer(app);
-ConnectSocket(server); 
-app.use(cors({
-
-  origin: "http://localhost:5173"||"192.168.31.28:5173", 
-
-  credentials: true,
-}));
+ConnectSocket(server);
+app.use(
+  cors({
+    // origin: "http://localhost:5173"||"192.168.31.28:5173",
+    origin: [
+      "http://localhost:8081",
+      "http://localhost:5173",
+      "http://192.168.1.3:3000",
+      "http://192.168.31.28:8081",
+    ],
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -45,6 +51,5 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/userDetails", userDetailRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/messages", messageRoutes);
-
 
 export default app;

@@ -171,6 +171,9 @@ const ChatScreen = ({ route }) => {
     try {
       const newMessage = await MessageAPI.sendMessage(data, accessToken);
       setNewMessage("");
+      //truyen new message vao socket
+      socket.emit("send message", newMessage);
+
       fetchMessages();
     } catch (err) {
       console.error("Send message failed: ", err.message);
@@ -205,7 +208,10 @@ const ChatScreen = ({ route }) => {
     }
     try {
       const response = await MessageAPI.sendImageAndText(formData, accessToken);
-      fetchMessages();
+      if (response) {
+        socket.emit("send message", response);
+        fetchMessages();
+      }
       return response;
     } catch (err) {
       alert(err.response.data.error);
@@ -241,7 +247,12 @@ const ChatScreen = ({ route }) => {
       content: editContent,
     };
     try {
-      await MessageAPI.updateMessage(selectMessage, data, accessToken);
+      const updatedMessage = await MessageAPI.updateMessage(
+        selectMessage,
+        data,
+        accessToken
+      );
+      socket.emit("update message", updatedMessage);
       await fetchMessages();
 
       setEdit(false); //dong Moddal update
@@ -336,26 +347,46 @@ const ChatScreen = ({ route }) => {
   };
 
   const socket = getSocket();
+  console.log("Socket ID:", socket.id);
+
   useEffect(() => {
+    if (!socket || !conversation_id) return;
+
     fetchFriendStatus();
     fetchConversation();
     fetchMessages();
 
-    if (socket && conversation_id) {
-      //socket
-      socket.emit("single chat", { conversation_id: conversation_id });
-      socket.on("join single chat", (data) => {
-        console.log(`Someone joined to chat ${data.conversation_id} `);
-      });
-      socket.on("user status", ({ user }) => {
-        setFriendStatus(user.status);
-        setLastActive(user.updatedAt);
-      });
+    const handleReceiveMessage = (data) => {
+      console.log("Socket received message:", data);
+      setMessages((prevMessages) => [...prevMessages, data]);
+    };
 
-      return () => {
-        socket.off("user status");
-      };
-    }
+    // truyen coversation_id vao socket de user join dung conversaiton
+    socket.emit("single chat", { conversation_id: conversation_id });
+    socket.on("join single chat", (data) => {
+      console.log(`Someone joined to chat ${data.conversation_id} `);
+    });
+    // realtime user trong room online/offline
+    socket.on("user status", ({ user }) => {
+      setFriendStatus(user.status);
+      setLastActive(user.updatedAt);
+    });
+    //realtime gui tin nhan
+    socket.on("new message", handleReceiveMessage);
+
+    //realtime cap nhat tin nhan
+    socket.on("message updated", (message) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.message_id === message.message_id ? message : msg
+        )
+      );
+    });
+    return () => {
+      socket.off("user status");
+      socket.off("new message", handleReceiveMessage);
+      socket.off("message updated");
+    };
   }, [conversation_id, user]);
   //xin quyen truy cap anh tren dien thoai
   useEffect(() => {
