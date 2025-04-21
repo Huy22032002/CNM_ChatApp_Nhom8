@@ -18,6 +18,7 @@ import { fetchUserDetail } from "../api/userDetailApi";
 
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
+import { getSocket } from "../services/socket";
 
 const ChatScreen = ({ route }) => {
   const { conversation_id, otherUserDetail } = route.params;
@@ -123,7 +124,6 @@ const ChatScreen = ({ route }) => {
       console.error("Error fetching conversation: ", error);
     }
   };
-
   //message function
   const handleSend = async () => {
     if (!selectedImage && !newMessage && !selectedDocument) {
@@ -335,10 +335,27 @@ const ChatScreen = ({ route }) => {
     );
   };
 
+  const socket = getSocket();
   useEffect(() => {
     fetchFriendStatus();
     fetchConversation();
     fetchMessages();
+
+    if (socket && conversation_id) {
+      //socket
+      socket.emit("single chat", { conversation_id: conversation_id });
+      socket.on("join single chat", (data) => {
+        console.log(`Someone joined to chat ${data.conversation_id} `);
+      });
+      socket.on("user status", ({ user }) => {
+        setFriendStatus(user.status);
+        setLastActive(user.updatedAt);
+      });
+
+      return () => {
+        socket.off("user status");
+      };
+    }
   }, [conversation_id, user]);
   //xin quyen truy cap anh tren dien thoai
   useEffect(() => {
@@ -369,22 +386,14 @@ const ChatScreen = ({ route }) => {
         }
       );
       const data = await response.json();
-      console.log("Friend status: ", data.status);
-      console.log("Last active: ", data.updatedAt);
-      setFriendStatus(data.status);
-      setLastActive(data.updatedAt);
+      if (data) {
+        console.log("Friend status: ", data.status);
+        console.log("Last active: ", data.updatedAt);
+      }
     } catch (error) {
       console.error("Error fetching friend status: ", error);
     }
   };
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchFriendStatus();
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [otherUserDetail.id, accessToken]);
 
   return (
     <View style={styles.container}>
