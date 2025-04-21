@@ -144,7 +144,10 @@ const MessageController = {
       if (rs)
         return res
           .status(200)
-          .json({ message: `deleted message ${message_id} successfully!` });
+          .json({
+            message: `deleted message ${message_id} successfully!`,
+            id: `${message_id}`,
+          });
     } catch (err) {
       return res.status(500).json({
         message: "Error Delete Message in Message Controller",
