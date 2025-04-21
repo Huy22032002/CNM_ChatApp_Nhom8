@@ -14,7 +14,6 @@ import { useDispatch } from "react-redux";
 import { setUser } from "../redux/userSlice";
 import { API_URL } from "../api/apiConfig";
 
-
 export default function LoginScreen() {
   const navigation = useNavigation();
   const [showPassword, setShowPassword] = useState(false);
@@ -23,7 +22,6 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
 
   const dispatch = useDispatch();
-
 
   const onLogin = async () => {
     try {
