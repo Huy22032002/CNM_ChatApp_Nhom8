@@ -85,7 +85,7 @@ const MessageModel = {
         ":updated_at": new Date().toISOString(),
         ":status": "UPDATED",
       },
-      ReturnValues: "UPDATED_NEW",
+      ReturnValues: "ALL_NEW",
     };
     try {
       const result = await dynamoDB.update(params).promise();

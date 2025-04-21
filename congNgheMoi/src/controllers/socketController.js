@@ -1,6 +1,4 @@
 import messageService from "../services/messageService.js";
-import ConversationService from "../services/conversationService.js";
-import { updateUser, findUser } from "../services/userService.js";
 const SocketControler = {
   async singleChat(io, socket, data) {
     if (!data) return;
@@ -15,6 +13,7 @@ const SocketControler = {
     if (!message) {
       throw new Error("Required message data");
     }
+    console.log("Received message socket: ", message);
     //thong bao toi cac user khac trong room
     io.to(message.conversation_id).emit("new message", message);
   },
@@ -22,20 +21,8 @@ const SocketControler = {
     if (!message) {
       throw new Error("Required message data");
     }
-    const { message_id, user_id, conversation_id, content } = message;
-    try {
-      const updatedMessage = await messageService.updateMessageContent(
-        message_id,
-        user_id,
-        conversation_id,
-        content
-      );
-      if (!updatedMessage) throw new Error("Updated Message failed!");
-      //gui su kien den cac user trong room
-      io.to(conversation_id).emit("message updated", updatedMessage);
-    } catch (err) {
-      throw new Error(`Error update message in socket: ${err.message}`);
-    }
+    //gui su kien den cac user trong room
+    io.to(message.conversation_id).emit("message updated", message);
   },
   async deleteMessage(io, message) {
     if (!message) {
@@ -93,11 +80,7 @@ const SocketControler = {
       throw new Error("require user data");
     }
     try {
-      const user = await findUser(data);
-      if (!user) {
-        throw new Error("Get User status failed");
-      }
-      io.emit("user status", user);
+      io.emit("user status", { user: data });
     } catch (err) {
       throw new Error(`Error set OFFLINE for user in socket: ${err.message}`);
     }
