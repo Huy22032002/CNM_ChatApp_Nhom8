@@ -24,43 +24,20 @@ const SocketControler = {
     //gui su kien den cac user trong room
     io.to(message.conversation_id).emit("message updated", message);
   },
-  async deleteMessage(io, message) {
-    if (!message) {
+  async deleteMessage(io, data) {
+    if (!data) {
       throw new Error("Requied data to delete message");
     }
-    const { message_id, user_id, conversation_id } = message;
-    try {
-      const result = await messageService.deleteMessage(
-        message_id,
-        user_id,
-        conversation_id
-      );
-      if (!result) {
-        throw new Error(`Delete Message ${message_id} failed`);
-      }
-      io.to(conversation_id).emit("message deleted", result);
-    } catch (err) {
-      throw new Error(`Error delete message in socket: ${err.message}`);
-    }
+    const { message_id, conversation_id } = data;
+    console.log("message id delete: ", message_id);
+
+    io.to(conversation_id).emit("message deleted", message_id);
   },
-  async revokeMessage(io, message) {
-    if (!message) {
+  async revokeMessage(io, data) {
+    if (!data) {
       throw new Error("Require message data to revoke");
     }
-    const { message_id, user_id, conversation_id } = message;
-    try {
-      const revokedMessage = await messageService.revokeMessage(
-        message_id,
-        user_id,
-        conversation_id
-      );
-      if (!revokedMessage) {
-        throw new Error("Revoke message failed");
-      }
-      io.to(conversation_id).emit("message revoked", revokedMessage);
-    } catch (err) {
-      throw new Error(`Error revoke message in socket: ${err.message}`);
-    }
+    io.to(data.conversation_id).emit("message revoked", data);
   },
   //user
   async onlineUser(io, data) {
@@ -70,7 +47,7 @@ const SocketControler = {
     console.log(data);
 
     try {
-      io.emit("user status", { user: data });
+      io.emit("user status", data);
     } catch (err) {
       throw new Error(`Error get ONLINE for user in socket: ${err.message}`);
     }

@@ -4,8 +4,8 @@ import conversationService from "../services/conversationService.js";
 import SocketControler from "../controllers/socketController.js";
 // io.on : client tao 1 connection -> Server
 // io.emit: Server gui data den All Clients ddang connect
-//socket.on: nhan 1 event tu client
-//socket.emit: client phat ra 1 event
+//socket.on: client nhan event
+//socket.emit: client goi event ma server da tao
 export const ConnectSocket = (server) => {
   const io = new Server(server, {
     cors: {
@@ -32,12 +32,12 @@ export const ConnectSocket = (server) => {
       SocketControler.updateMessage(io, message)
     );
     //delete message < 5mins
-    socket.on("delete message", async (message) =>
-      SocketControler.deleteMessage(io, message)
+    socket.on("delete message", async (data) =>
+      SocketControler.deleteMessage(io, data)
     );
     //revoke message
-    socket.on("revoke message", async (message) =>
-      SocketControler.revokeMessage(io, message)
+    socket.on("revoke message", async (data) =>
+      SocketControler.revokeMessage(io, data)
     );
     //user online
     socket.on("online", async (data) => SocketControler.onlineUser(io, data));
