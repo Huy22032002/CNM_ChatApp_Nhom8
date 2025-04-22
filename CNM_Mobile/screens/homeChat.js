@@ -306,13 +306,13 @@ export default function HomeChat({ navigation }) {
       if (data.error) {
         Alert.alert("Lỗi", data.error);
         setUserDetail(null);
-        logout();
+        justLogout();
         return;
       }
       setUserDetail(data);
     } catch (error) {
+      alert(error.message);
       console.error("Lỗi khi lấy thông tin người dùng:", error);
-      alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
       justLogout();
     }
   };
@@ -537,7 +537,7 @@ export default function HomeChat({ navigation }) {
           navigation.navigate("chatGroupScreen", {
             conversation_id: item.conversation_id,
             groupName: item.group_name,
-            participants: item.otherUserDetails,
+            participants: [...item.otherUserDetails, userDetail],
             type: item.type,
           });
         }
