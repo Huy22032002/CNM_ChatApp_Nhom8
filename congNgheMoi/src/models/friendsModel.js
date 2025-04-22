@@ -25,11 +25,12 @@ export default {
     }
   },
 
-  async createFriendRequest(user_id,friend_id,isSender) {
+  async createFriendRequest(user_id, friend_id, isSender) {
     const params = {
       TableName: TABLE_NAME,
       Key: { user_id },
-      UpdateExpression: "SET friends = list_append(if_not_exists(friends, :empty_list), :friends)",
+      UpdateExpression:
+        "SET friends = list_append(if_not_exists(friends, :empty_list), :friends)",
       ExpressionAttributeValues: {
         ":empty_list": [],
         ":friends": [
@@ -44,7 +45,7 @@ export default {
       },
       ReturnValues: "ALL_NEW",
     };
-    
+
     const result = await dynamoDB.update(params).promise();
     if (!result.Attributes) {
       console.log(`Error creating friend request: ${user_id} to ${friend_id}`);
@@ -53,7 +54,6 @@ export default {
     console.log(`Friend request created from ${user_id} to ${friend_id}`);
     return result.Attributes;
   },
-
 
   async addFriend(user_id, friend_id) {
     try {
@@ -64,14 +64,18 @@ export default {
       };
       const data = await dynamoDB.get(getParams).promise();
       const friends = data.Item?.friends || [];
-      
+
       // Check if friend already exists in the list
-      const existingFriend = friends.find(f => f.friend_id === friend_id);
+      const existingFriend = friends.find((f) => f.friend_id === friend_id);
       if (existingFriend) {
-        console.log(`Friend userid:${friend_id} already exists with status: ${existingFriend.status}`);
-        return { error: `Friend userid:${friend_id} already exists with status: ${existingFriend.status}`};
+        console.log(
+          `Friend userid:${friend_id} already exists with status: ${existingFriend.status}`
+        );
+        return {
+          error: `Friend userid:${friend_id} already exists with status: ${existingFriend.status}`,
+        };
       }
-      
+
       // If no existing request, proceed with adding friend
       await this.createFriendRequest(user_id, friend_id, true);
       await this.createFriendRequest(friend_id, user_id, false);
@@ -91,13 +95,13 @@ export default {
       };
       const data = await dynamoDB.get(getParams).promise();
       const friends = data.Item?.friends || [];
-  
-      const updatedFriends = friends.map(f =>
+
+      const updatedFriends = friends.map((f) =>
         f.friend_id === friend_id
           ? { ...f, status: "ACCEPTED", updated_at: new Date().toISOString() }
           : f
       );
-  
+
       const updateParams = {
         TableName: TABLE_NAME,
         Key: { user_id },
@@ -107,7 +111,7 @@ export default {
         },
         ReturnValues: "ALL_NEW",
       };
-  
+
       const result = await dynamoDB.update(updateParams).promise();
       return result.Attributes;
     } catch (err) {
@@ -125,7 +129,7 @@ export default {
       const data = await dynamoDB.get(getParams).promise();
       const friends = data.Item?.friends || [];
 
-      const updatedFriends = friends.filter(f => f.friend_id !== friend_id);
+      const updatedFriends = friends.filter((f) => f.friend_id !== friend_id);
 
       const updateParams = {
         TableName: TABLE_NAME,
@@ -153,12 +157,12 @@ export default {
       };
       const data = await dynamoDB.get(getParams).promise();
       const friends = data.Item?.friends || [];
-  
-      const exists = friends.find(f => f.friend_id === friend_id);
+
+      const exists = friends.find((f) => f.friend_id === friend_id);
       let updatedFriends;
-  
+
       if (exists) {
-        updatedFriends = friends.map(f =>
+        updatedFriends = friends.map((f) =>
           f.friend_id === friend_id
             ? { ...f, status: "BLOCKED", updated_at: new Date().toISOString() }
             : f
@@ -174,7 +178,7 @@ export default {
           },
         ];
       }
-  
+
       const updateParams = {
         TableName: TABLE_NAME,
         Key: { user_id },
@@ -184,14 +188,14 @@ export default {
         },
         ReturnValues: "ALL_NEW",
       };
-  
+
       const result = await dynamoDB.update(updateParams).promise();
       return result.Attributes;
     } catch (err) {
       console.log(`Error blocking user ${err}`);
       return null;
     }
-  },  
+  },
 
   async getAllFriendOfUser(user_id) {
     const params = {
@@ -216,13 +220,13 @@ export default {
     try {
       const params = {
         TableName: TABLE_NAME,
-        Key: {user_id: Number(user_id) },
+        Key: { user_id: Number(user_id) },
       };
       const data = await dynamoDB.get(params).promise();
-      return data.Item?.friends?.filter(f => f.status === "ACCEPTED") || [];
+      return data.Item?.friends?.filter((f) => f.status === "ACCEPTED") || [];
     } catch (err) {
       console.log(`Error getFriends ${err}`);
-      return [];
+      throw new Error(`Error getFriends: ${err.message}`);
     }
   },
 
@@ -233,13 +237,16 @@ export default {
         Key: { user_id: Number(user_id) },
       };
       const data = await dynamoDB.get(params).promise();
-      return data.Item?.friends?.filter(f => f.status === "PENDING" && f.isSender === false) || [];
+      return (
+        data.Item?.friends?.filter(
+          (f) => f.status === "PENDING" && f.isSender === false
+        ) || []
+      );
     } catch (err) {
       console.log(`Error getPendingRequests ${err}`);
-      return [];
+      throw new Error(`Error getPendingRequests: ${err.message}`);
     }
   },
-  
 
   async cancelFriendRequest(user_id, friend_id) {
     try {
@@ -248,10 +255,10 @@ export default {
         Key: { user_id },
       };
       const data = await dynamoDB.get(getParams).promise();
-      const updatedFriends = (data.Item?.friends || []).filter(f =>
-        !(f.friend_id === friend_id && f.status === "PENDING")
+      const updatedFriends = (data.Item?.friends || []).filter(
+        (f) => !(f.friend_id === friend_id && f.status === "PENDING")
       );
-  
+
       const updateParams = {
         TableName: TABLE_NAME,
         Key: { user_id },
@@ -265,7 +272,7 @@ export default {
       return result.Attributes;
     } catch (err) {
       console.log(`Error canceling friend request ${err}`);
-      return null;
+      throw new Error(`Error canceling friend request: ${err.message}`);
     }
   },
 
@@ -277,13 +284,13 @@ export default {
       };
       const data = await dynamoDB.get(getParams).promise();
       const friends = data.Item?.friends || [];
-  
-      const updatedFriends = friends.map(f =>
+
+      const updatedFriends = friends.map((f) =>
         f.friend_id === friend_id && f.status === "BLOCKED"
           ? { ...f, status: "PENDING", updated_at: new Date().toISOString() } // hoặc null nếu muốn xóa hẳn
           : f
       );
-  
+
       const updateParams = {
         TableName: TABLE_NAME,
         Key: { user_id },
@@ -297,10 +304,10 @@ export default {
       return result.Attributes;
     } catch (err) {
       console.log(`Error unblocking user ${err}`);
-      return null;
+      throw new Error(`Error unblock user: ${err.message}`);
     }
   },
-  
+
   async isFriend(user_id, friend_id) {
     try {
       const params = {
@@ -308,14 +315,14 @@ export default {
         Key: { user_id },
       };
       const data = await dynamoDB.get(params).promise();
-      const friend = data.Item?.friends?.find(f => f.friend_id === friend_id);
+      const friend = data.Item?.friends?.find((f) => f.friend_id === friend_id);
       return friend?.status === "ACCEPTED";
     } catch (err) {
       console.log(`Error checking isFriend ${err}`);
       return false;
     }
-  },  
-  
+  },
+
   async isBlocked(user_id, friend_id) {
     try {
       const params = {
@@ -323,15 +330,13 @@ export default {
         Key: { user_id },
       };
       const data = await dynamoDB.get(params).promise();
-      const friend = data.Item?.friends?.find(f => f.friend_id === friend_id);
+      const friend = data.Item?.friends?.find((f) => f.friend_id === friend_id);
       return friend?.status === "BLOCKED";
     } catch (err) {
       console.log(`Error checking isBlocked ${err}`);
       return false;
     }
-  },  
-  
-
-};  
+  },
+};
 
 // Removed duplicate export default

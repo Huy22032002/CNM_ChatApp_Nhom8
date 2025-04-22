@@ -4,34 +4,26 @@ const MessageService = {
   async createMessage(message) {
     try {
       const newMessage = await MessageModel.createMessage(message);
-      //update conversation
-      const lastMessage = {
-        content: newMessage.content,
-        updated_at: newMessage.created_at,
-      };
-      const updatedConversation = await ConversationModel.updateConversation(
-        newMessage.conversation_id,
-        lastMessage
-      );
-      console.log(
-        "update conversation after create new message: ",
-        updatedConversation
-      );
+
       return newMessage;
     } catch (error) {
-      console.error(`Err creating message: ${error.message}`);
-      throw new Error(`Err creating message service: ${error.message}`);
+      console.error(`Err creating message in service: ${error.message}`);
+      throw new Error(
+        `Err creating message in message service: ${error.message}`
+      );
     }
   },
   async getAllMessageByConversationId(conversation_id) {
     if (!conversation_id) {
-      throw new Error("Invalid conversation_id in service");
+      throw new Error("Require conversation_id in service");
     }
     try {
       return await MessageModel.getAllMessageByConversationId(conversation_id);
     } catch (error) {
       console.error(`Error fetching messages: ${error.message}`);
-      throw new Error(`Error fetching messages service: ${error.message}`);
+      throw new Error(
+        `Error get all messages in message service: ${error.message}`
+      );
     }
   },
   async updateMessageContent(message_id, user_id, conversation_id, content) {
@@ -43,7 +35,9 @@ const MessageService = {
         content
       );
     } catch (err) {
-      throw new Error(`Err update message content serivce: ${err.message}`);
+      throw new Error(
+        `Err update message content in message serivce: ${err.message}`
+      );
     }
   },
   async deleteMessage(message_id, user_id, conversation_id) {
@@ -66,7 +60,7 @@ const MessageService = {
     } catch (err) {
       console.error(`error revoke message in message service: ${err}`);
       throw new Error(
-        `Error revok message in message service: ${err.message} `
+        `Error revoke message in message service: ${err.message} `
       );
     }
   },
