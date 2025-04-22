@@ -1,5 +1,6 @@
 import axios from "axios";
-const CONVERSATIONS_API = "http://10.0.2.2:3000/api/conversations";
+import { API_URL } from "../api/apiConfig";
+const CONVERSATIONS_API = `${API_URL}/api/conversations`;
 
 const ConversationApi = {
   async fetchConversationsByUserId(userId, accessToken) {

@@ -1,4 +1,4 @@
-import { sequelize } from "./connectRDS";
+import { sequelize } from "./connectRDS.js";
 
 async function syncDB() {
   try {
