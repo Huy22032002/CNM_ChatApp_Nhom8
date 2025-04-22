@@ -23,7 +23,6 @@ const ConversationService = {
       group_name
     );
   },
-  
 
   async getAllConversation(user_id) {
     if (!user_id) {
@@ -77,7 +76,9 @@ const ConversationService = {
 
   async removeParticipant(conversation_id, participant) {
     if (!conversation_id || !participant) {
-      throw new Error("Invalid data for remove participant conversation service");
+      throw new Error(
+        "Invalid data for remove participant conversation service"
+      );
     }
     try {
       return await ConversationModel.removeParticipant(
@@ -113,8 +114,6 @@ const ConversationService = {
       throw new Error("Error getting all conversations by type service");
     }
   },
-
-
 };
 
 export default ConversationService;

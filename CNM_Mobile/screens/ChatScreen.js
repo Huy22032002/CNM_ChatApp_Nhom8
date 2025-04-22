@@ -171,10 +171,13 @@ const ChatScreen = ({ route }) => {
       type: "TEXT",
     };
     try {
-      const newMessage = await MessageAPI.sendMessage(data, accessToken);
+      const result = await MessageAPI.sendMessage(data, accessToken);
+      const receiveMessage = result.message;
       setNewMessage("");
       //truyen new message vao socket
-      socket.emit("send message", newMessage);
+      socket.emit("send message", receiveMessage);
+      //truyen lastMessage vao socket
+      socket.emit("update conversation", result.updatedConversation);
 
       fetchMessages();
     } catch (err) {
@@ -316,11 +319,15 @@ const ChatScreen = ({ route }) => {
       image_url: currentMessage.image_url || null,
     };
     try {
-      const forwardMessage = await MessageAPI.sendMessage(data, accessToken);
+      const result = await MessageAPI.sendMessage(data, accessToken);
+      const forwardMessage = result.message;
       //gui event len socket server
       console.log("forward message: ", forwardMessage);
       socket.emit("send message", forwardMessage);
       console.log("da forward: ", forwardMessage);
+      //gui event update lastmessage
+      socket.emit("update conversation", result.updatedConversation);
+
       alert("Chuyển tiếp tin nhắn thành công!");
       setShowMessageModal(false);
     } catch (err) {
@@ -398,7 +405,6 @@ const ChatScreen = ({ route }) => {
         )
       );
     };
-
     // truyen coversation_id vao socket de user join dung conversaiton
     socket.emit("single chat", { conversation_id: conversation_id });
     socket.on("join single chat", (data) => {
@@ -492,8 +498,9 @@ const ChatScreen = ({ route }) => {
           />
           <View style={{ marginLeft: 10 }}>
             <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
-              {otherUserDetail?.fullname || 
-                "Người dùng ID:" + otherUserDetail.user_id+""
+              {
+                otherUserDetail?.fullname ||
+                  "Người dùng ID:" + otherUserDetail.user_id + ""
                 // conversation_id
               }
             </Text>

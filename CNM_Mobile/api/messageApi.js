@@ -31,6 +31,7 @@ const MessageAPI = {
           Authorization: `Bearer ${accessToken}`,
         },
       });
+      console.log("add message in api: ", respone.data);
       return respone.data;
     } catch (err) {
       throw err;

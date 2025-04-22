@@ -32,7 +32,7 @@ const ConversationModel = {
         status: "ACTIVE",
         lastMessage: "Chưa có tin nhắn nào",
         group_name: group_name,
-        group_avatar:null, //default avatar group
+        group_avatar: null, //default avatar group
       },
     };
     await dynamoDB.put(params).promise();
@@ -86,7 +86,7 @@ const ConversationModel = {
           updated_at: new Date().toISOString(),
         },
       },
-      ReturnValues: "UPDATED_NEW", //return gia tri moi dc update
+      ReturnValues: "ALL_NEW", //return gia tri moi dc update
     };
     try {
       const result = await dynamoDB.update(params).promise();

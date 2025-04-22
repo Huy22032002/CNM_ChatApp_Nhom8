@@ -1,10 +1,10 @@
 import { io } from "socket.io-client";
-
+import { API_URL } from "../api/apiConfig";
 let socket;
 
 export const createSocket = () => {
   if (!socket || !socket.connected) {
-    socket = io("http://192.168.100.164:3000", {
+    socket = io(`${API_URL}`, {
       transports: ["websocket"],
     });
   }

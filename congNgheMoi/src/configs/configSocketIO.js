@@ -23,9 +23,16 @@ export const ConnectSocket = (server) => {
     socket.on("single chat", (data) =>
       SocketControler.singleChat(io, socket, data)
     );
+    socket.on("group chat", (data) => {
+      SocketControler.groupChat(io, socket, data);
+    });
     //send message
     socket.on("send message", async (message) =>
       SocketControler.sendMessage(io, message)
+    );
+    //update Conver
+    socket.on("update conversation", async (conversation) =>
+      SocketControler.updateLastMessage(io, conversation)
     );
     //update message
     socket.on("update message", async (message) =>
