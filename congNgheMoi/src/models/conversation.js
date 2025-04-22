@@ -61,6 +61,48 @@ const ConversationModel = {
     }
   },
 
+  async updateGroupAvatar(conversation_id, group_avatar) {
+    const params = {
+      TableName: TABLE_NAME,
+      Key: {
+        conversation_id,
+      },
+      UpdateExpression: "set group_avatar = :group_avatar",
+      ExpressionAttributeValues: {
+        ":group_avatar": group_avatar,
+      },
+      ReturnValues: "UPDATED_NEW",
+    };
+    try {
+      const result = await dynamoDB.update(params).promise();
+      return result.Attributes;
+    } catch (err) {
+      console.log(`Error update group avatar conver ${conversation_id}: ${err}`);
+      return null;
+    }
+  },
+
+  async updateGroupName(conversation_id, group_name) {
+    const params = {
+      TableName: TABLE_NAME,
+      Key: {
+        conversation_id,
+      },
+      UpdateExpression: "set group_name = :group_name",
+      ExpressionAttributeValues: {
+        ":group_name": group_name,
+      },
+      ReturnValues: "UPDATED_NEW",
+    };
+    try {
+      const result = await dynamoDB.update(params).promise();
+      return result.Attributes;
+    } catch (err) {
+      console.log(`Error update group name conver ${conversation_id}: ${err}`);
+      return null;
+    }
+  },
+
 
   async getAllConversationByUser(user_id) {
     const params = {

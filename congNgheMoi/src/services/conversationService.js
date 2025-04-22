@@ -24,18 +24,34 @@ const ConversationService = {
     );
   },
 
-  async updateGroupConversation(data) {
-    const { conversation_id, groupDetailData} = data;
+  async updateGroupConversationDetail(data) {
+    const { conversation_id, groupDetailData } = data;
+    console.log("data update group conversation service", data);
     //kiem tra du lieu dau vao
     if (!conversation_id || !groupDetailData) {
       throw new Error("invalid data update group conversation service");
     }
-    return await ConversationModel.updateGroupConversation(
-      conversation_id,
-      group_name= groupDetailData.group_name,
-      group_avatar= groupDetailData.group_avatar
-    );
-  } ,
+
+    // Only update what is provided
+    let groupName = undefined;
+    let groupAvatar = undefined;
+    
+    if ('group_name' in groupDetailData) {
+      groupName = groupDetailData.group_name;
+      return await ConversationModel.updateGroupName(
+        conversation_id,
+        groupName,
+      );
+    }
+    
+    if ('group_avatar' in groupDetailData) {
+      groupAvatar = groupDetailData.group_avatar;
+      return await ConversationModel.updateGroupAvatar(
+        conversation_id,
+        groupAvatar
+      );
+    }
+  },
 
 
   async getAllConversation(user_id) {

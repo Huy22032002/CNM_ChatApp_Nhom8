@@ -21,19 +21,6 @@ import { Icon } from "react-native-paper";
 // Thêm import
 import { MaterialIcons } from "@expo/vector-icons";
 
-// Trong component
-<TouchableOpacity
-  onPress={() =>
-    navigation.navigate("GroupInfo", {
-      conversation_id: conversation_id,
-      groupName: groupName,
-      participants: participants,
-    })
-  }
->
-  <MaterialIcons name="info" size={24} color="#fff" />
-</TouchableOpacity>;
-
 const ChatGroupScreen = ({ route }) => {
   const { conversation_id, groupName, participants } = route.params;
   console.log(route.params);
@@ -426,7 +413,7 @@ const ChatGroupScreen = ({ route }) => {
       {/* Header */}
       <View style={{ paddingTop: 20 }}></View>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => navigation.navigate("homeChat")}>
           <Image
             source={require("../assets/back.png")}
             style={{ width: 24, height: 24 }}

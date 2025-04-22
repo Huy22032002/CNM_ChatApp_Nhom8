@@ -120,7 +120,7 @@ const GroupInfoScreen = ({ route }) => {
             const userData = await fetchUserDetail(user_id, accessToken);
             return {
               ...userData,
-              user_id: Number(user_id), // Convert to string to ensure consistent comparison
+              user_id: Number(user_id),
             };
           } catch (error) {
             console.error(`Error fetching user ${user_id} details:`, error);
@@ -207,36 +207,48 @@ const GroupInfoScreen = ({ route }) => {
   const handleUpdateGroupName = async (group_name) => {
     try {
       const formData = new FormData();
-      formData.append("group_name", {
-        group_name: group_name,
-      });
+      // Đảm bảo gửi đúng tên field mà backend mong đợi
+      formData.append("group_name", group_name);
+
+      console.log("Form data for group name:", group_name);
 
       await ConversationApi.updateGroupConversation(
         conversation_id,
         formData,
         accessToken
       );
+
+      setGroupName(group_name);
+      setIsEditingName(false);
       Alert.alert("Success", "Group name has been updated");
     } catch (error) {
       console.error("Error updating group name:", error);
-      Alert.alert("Error", "Failed to update group avatar");
+      Alert.alert("Error", "Failed to update group name");
     }
   };
 
   const handleUpdateGroupAvatar = async (imageAsset) => {
     try {
       const formData = new FormData();
-      formData.append("avatar", {
+      // Đổi tên field để phù hợp với mong đợi của backend
+      formData.append("group_avatar", {
         uri: imageAsset.uri,
-        name: "group-avatar.jpg",
+        name: `group-avatar-${Date.now()}.jpg`,
         type: "image/jpeg",
       });
+
+      console.log("Form data for avatar:");
+      for (let pair of formData.entries()) {
+        console.log(pair[0] + ": " + pair[1]);
+      }
 
       await ConversationApi.updateGroupConversation(
         conversation_id,
         formData,
         accessToken
       );
+
+      setGroupAvatar(imageAsset.uri);
       Alert.alert("Success", "Group avatar has been updated");
     } catch (error) {
       console.error("Error updating group avatar:", error);
@@ -434,8 +446,19 @@ const GroupInfoScreen = ({ route }) => {
   return (
     <View style={styles.container}>
       {/* Header */}
+      <View style={{height:20}}></View>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          onPress={() => {
+            // Navigate back to previous screen with refresh flag
+            navigation.navigate("chatGroupScreen", {
+              refresh: true,
+              conversation_id: conversation_id,
+              groupName: groupName,
+              participants: participantsDetail,
+            });
+          }}
+        >
           <Image
             source={require("../assets/back.png")}
             style={styles.backIcon}
@@ -475,7 +498,7 @@ const GroupInfoScreen = ({ route }) => {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.editButton, styles.saveButton]}
-                  onPress={()=>handleUpdateGroupName(groupName)}
+                  onPress={() => handleUpdateGroupName(groupName)}
                 >
                   <Text style={styles.editButtonText}>Save</Text>
                 </TouchableOpacity>

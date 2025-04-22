@@ -1,4 +1,7 @@
 import ConversationService from "../services/conversationService.js";
+import S3 from "../configs/configS3.js";
+import { v4 as uuidv4 } from "uuid";
+import { upload } from "../middlewares/uploadMiddleware.js"; // Import the upload middleware
 
 const createConversation = async (req, res) => {
   try {
@@ -190,11 +193,18 @@ const updateGroupConversation1 = async (req, res) => {
     });
   }
 };
+
 const updateGroupConversation = async (req, res) => {
   try {
     const conversation_id = req.params.conversation_id;
-    const groupDetailData = req.body;
-
+    const groupDetailData = {}; // Create empty object instead of using req.body directly
+    
+    // Handle group_name from request body
+    if (req.body && req.body.group_name) {
+      groupDetailData.group_name = req.body.group_name;
+    }
+    console.log("groupDetailData.group_name", groupDetailData.group_name);
+    // Handle file upload if present
     if (req.file) {
       const image = req.file.originalname.split(".");
       const fileType = image[image.length - 1];
@@ -209,13 +219,25 @@ const updateGroupConversation = async (req, res) => {
 
       const uploadedImg = await S3.upload(params).promise();
       groupDetailData.group_avatar = uploadedImg.Location;
-    } 
+      
+      // If frontend sends as "avatar" instead of "group_avatar"
+      if (!groupDetailData.group_avatar && req.body.avatar) {
+        groupDetailData.group_avatar = req.body.avatar;
+      }
+    }
+
+    // Kiểm tra có dữ liệu cập nhật không
+    if (Object.keys(groupDetailData).length === 0) {
+      return res.status(400).json({ 
+        message: "Không có thông tin để cập nhật" 
+      });
+    }
 
     // Gọi service update
-    const updatedGroupDetail = await updateGroupConversation(
+    const updatedGroupDetail = await ConversationService.updateGroupConversationDetail({
       conversation_id,
       groupDetailData
-    )
+    });
 
     res.status(200).json({
       message: "Cập nhật group thành công!",
@@ -226,6 +248,10 @@ const updateGroupConversation = async (req, res) => {
     res.status(500).json({ message: "Lỗi server", error: err.message });
   }
 };
+
+
+//updateGroupName
+
 
 
 export default {
