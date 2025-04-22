@@ -12,6 +12,21 @@ const createConversation = async (req, res) => {
     });
   }
 };
+
+const createGroupConversation = async (req, res) => {
+  try {
+    const data = req.body;
+    const newConver = await ConversationService.createGroupConversation(data);
+    res.status(200).json(newConver);
+  }
+  catch (error) {
+    res.status(400).json({
+      message: "error create group conversation controller",
+      error: error.message,
+    });
+  }
+};
+
 const getAllConversations = async (req, res) => {
   const user_id = Number(req.params.user_id);
   console.log(user_id, typeof user_id);
@@ -71,9 +86,96 @@ const getConversationById = async (req, res) => {
     });
   }
 };
+
+const addNewParticipant = async (req, res) => {
+  const { conversation_id, newParticipant } = req.body;
+  if (!conversation_id || !newParticipant) {
+    return res.status(400).json({
+      error: "Vui lòng truyền conversation_id và newParticipant",
+    });
+  }
+  try {
+    const updatedConversation = await ConversationService.addNewParticipant(
+      conversation_id,
+      newParticipant
+    );
+    return res.status(200).json(updatedConversation);
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error adding new participant to conversation",
+      error: error.message,
+    });
+  }
+};
+
+const removeParticipant = async (req, res) => {
+  const { conversation_id, participant } = req.body;
+  if (!conversation_id || !participant) {
+    return res.status(400).json({
+      error: "Vui lòng truyền conversation_id và participant",
+    });
+  }
+  try {
+    const updatedConversation = await ConversationService.removeParticipant(
+      conversation_id,
+      participant
+    );
+    return res.status(200).json(updatedConversation);
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error removing participant from conversation",
+      error: error.message,
+    });
+  }
+};
+
+const deleteConversation = async (req, res) => {
+  const conversation_id = req.params.conversation_id;
+  if (!conversation_id) {
+    return res.status(400).json({ error: "Vui lòng truyền conversation_id" });
+  }
+  try {
+    const deletedConversation = await ConversationService.deleteConversation(
+      conversation_id
+    );
+    return res.status(200).json(deletedConversation);
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error deleting conversation",
+      error: error.message,
+    });
+  }
+};
+
+const getAllConversationsByType = async (req, res) => {
+  const type = req.params.type;
+  if (!type) {
+    return res.status(400).json({ error: "Vui lòng truyền type" });
+  }
+  try {
+    const conversations = await ConversationService.getAllConversationsByType(
+      type
+    );
+    return res.status(200).json(conversations);
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error getting conversations by type",
+      error: error.message,
+    });
+  }
+};
+
+
+
 export default {
   createConversation,
   getAllConversations,
   updateConversation,
   getConversationById,
+  addNewParticipant,
+  removeParticipant,
+  deleteConversation,
+  getAllConversationsByType,
+  createGroupConversation,
+
 };

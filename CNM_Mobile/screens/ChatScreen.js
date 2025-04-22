@@ -366,6 +366,7 @@ const ChatScreen = ({ route }) => {
             </>
           )}
         </View>
+        {/* <Text style={{fontSize:10}}>{item.created_at}</Text> */}
       </TouchableOpacity>
     );
   };
@@ -445,7 +446,7 @@ const ChatScreen = ({ route }) => {
   }, []);
 
   const backToHomeChat = () => {
-    navigation.goBack();
+    navigation.navigate("homeChat");
   };
 
   const fetchFriendStatus = async () => {
