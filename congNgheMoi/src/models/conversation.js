@@ -1,3 +1,4 @@
+import { create } from "domain";
 import dynamoDB from "../configs/connectDynamo.js";
 import { v4 as uuidv4 } from "uuid"; //goi ham uuidv4
 
@@ -19,6 +20,23 @@ const ConversationModel = {
     await dynamoDB.put(params).promise();
     return params.Item;
   },
+  async createGroupConversation(type, participants, group_name) {
+    const params = {
+      TableName: TABLE_NAME,
+      Item: {
+        conversation_id: uuidv4(),
+        type,
+        participants: dynamoDB.createSet(participants),
+        created_at: new Date().toISOString(),
+        status: "ACTIVE",
+        lastMessage: "Chưa có tin nhắn nào",
+        group_name: group_name,
+      },
+    };
+    await dynamoDB.put(params).promise();
+    return params.Item;
+  },
+
   async getAllConversationByUser(user_id) {
     const params = {
       TableName: TABLE_NAME,
@@ -114,6 +132,63 @@ const ConversationModel = {
         "Failed to fetch conversation by participants",
         error.message
       );
+    }
+  },
+  async addNewParticipant(conversation_id, newParticipant) {
+    const params = {
+      TableName: TABLE_NAME,
+      Key: {
+        conversation_id,
+      },
+      UpdateExpression: "ADD participants :newParticipant",
+      ExpressionAttributeValues: {
+        ":newParticipant": dynamoDB.createSet([newParticipant]),
+      },
+      ReturnValues: "UPDATED_NEW",
+    };
+    try {
+      const result = await dynamoDB.update(params).promise();
+      return result.Attributes;
+    } catch (err) {
+      console.log(`Error add participant conver ${conversation_id}: ${err}`);
+      return null;
+    }
+  },
+
+  async deleteConversation(conversation_id) {
+    const params = {
+      TableName: TABLE_NAME,
+      Key: {
+        conversation_id,
+      },
+    };
+    try {
+      await dynamoDB.delete(params).promise();
+      return true;
+    } catch (err) {
+      console.log(`Error delete conver ${conversation_id}: ${err}`);
+      return false;
+    }
+  },
+
+  async getAllConversationsByType(type) {
+    const params = {
+      TableName: TABLE_NAME,
+      FilterExpression: "#type = :typeVal",
+      ExpressionAttributeNames: {
+        "#type": "type",
+      },
+      ExpressionAttributeValues: {
+        ":typeVal": type,
+      },
+    };
+
+    try {
+      const result = await dynamoDB.scan(params).promise();
+      return result.Items || [];
+    } catch (error) {
+      console.error("Error getAllConversationsByType:", error);
+      throw new Error("Failed to fetch conversations by type");
     }
   },
 };
