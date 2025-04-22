@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import S3 from "../configs/configS3.js";
 import MessageService from "../services/messageService.js";
+import ConversationService from "../services/conversationService.js";
 
 const MessageController = {
   async sendImageMessage(req, res) {
@@ -65,7 +66,22 @@ const MessageController = {
           .json({ error: "Vui lòng nhập đủ thông tin để tạo message" });
       }
       const message = await MessageService.createMessage(data);
-      return res.status(200).json(message);
+      console.log("create message: ", message);
+
+      //update conversation
+      const lastMessage = {
+        content: message.content,
+        updated_at: message.created_at,
+      };
+      const updatedConversation = await ConversationService.updateConver(
+        message.conversation_id,
+        lastMessage
+      );
+      console.log(
+        "update conversation after create new message: ",
+        updatedConversation
+      );
+      return res.status(200).json({ message, updatedConversation });
     } catch (error) {
       return res.status(500).json({
         message: "error create message in message controler",
@@ -142,12 +158,10 @@ const MessageController = {
         conversation_id
       );
       if (rs)
-        return res
-          .status(200)
-          .json({
-            message: `deleted message ${message_id} successfully!`,
-            id: `${message_id}`,
-          });
+        return res.status(200).json({
+          message: `deleted message ${message_id} successfully!`,
+          id: `${message_id}`,
+        });
     } catch (err) {
       return res.status(500).json({
         message: "Error Delete Message in Message Controller",

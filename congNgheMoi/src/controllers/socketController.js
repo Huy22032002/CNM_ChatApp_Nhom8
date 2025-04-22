@@ -1,4 +1,3 @@
-import messageService from "../services/messageService.js";
 const SocketControler = {
   async singleChat(io, socket, data) {
     if (!data) return;
@@ -8,6 +7,17 @@ const SocketControler = {
       conversation_id: data.conversation_id,
     });
     console.log(`User ${socket.id} joined to room ${data.conversation_id}`);
+  },
+  async groupChat(io, socket, data) {
+    if (!data) return;
+    //gan conversation_id vao socket.join de io.emit dung user
+    socket.join(data.conversation_id);
+    io.to(data.conversation_id).emit("join group chat", {
+      conversation_id: data.conversation_id,
+    });
+    console.log(
+      `User ${socket.id} joined to chat group ${data.conversation_id}`
+    );
   },
   async sendMessage(io, message) {
     if (!message) {
@@ -37,6 +47,8 @@ const SocketControler = {
     if (!data) {
       throw new Error("Require message data to revoke");
     }
+    console.log("message revoke in socket controller: ", data);
+
     io.to(data.conversation_id).emit("message revoked", data);
   },
   //user
@@ -61,6 +73,11 @@ const SocketControler = {
     } catch (err) {
       throw new Error(`Error set OFFLINE for user in socket: ${err.message}`);
     }
+  },
+  //conversation
+  async updateLastMessage(io, data) {
+    //cap nhat lastmessage cho conver o homeChat
+    io.emit("conversation updated", data);
   },
 };
 

@@ -18,6 +18,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { API_URL } from "../api/apiConfig";
 import { Alert } from "react-native";
 import { Icon } from "react-native-paper";
+import { getSocket } from "../services/socket";
 
 const ChatGroupScreen = ({ route }) => {
   const { conversation_id, groupName, participants } = route.params;
@@ -43,8 +44,6 @@ const ChatGroupScreen = ({ route }) => {
   const [forwardPopUp, setForwardPopup] = useState(false);
   const [conversationsDetail, setConversationsDetail] = useState([]);
 
- 
-
   const navigation = useNavigation();
 
   // Fetch messages for the group
@@ -58,9 +57,8 @@ const ChatGroupScreen = ({ route }) => {
   };
 
   const fetchParticipantsDetail = async () => {
-    
     setParticipantsDetail(participants);
-  }; 
+  };
 
   // Get all conversations for forward
   const getListConversationDetail = async () => {
@@ -96,7 +94,7 @@ const ChatGroupScreen = ({ route }) => {
     }
 
     const data = {
-      conversation_id,
+      conversation_id: conversation_id,
       sender: user.id,
       receivers: participants.filter((id) => id !== user.id),
       content: newMessage,
@@ -104,7 +102,11 @@ const ChatGroupScreen = ({ route }) => {
     };
 
     try {
-      await MessageAPI.sendMessage(data, accessToken);
+      const result = await MessageAPI.sendMessage(data, accessToken);
+      const receiveMessage = result.message;
+
+      socket.emit("send message", receiveMessage);
+
       setNewMessage("");
       fetchMessages();
     } catch (error) {
@@ -209,12 +211,15 @@ const ChatGroupScreen = ({ route }) => {
   // Update message
   const updateMessage = async () => {
     try {
-      await MessageAPI.updateMessage(
+      const updatedMessage = await MessageAPI.updateMessage(
         selectMessage,
         { conversation_id, user_id: user.id, content: editContent },
         accessToken
       );
       fetchMessages();
+      //socket
+      socket.emit("update message", updatedMessage);
+
       setEdit(false);
       setEditContent("");
       setShowMessageModal(false);
@@ -227,11 +232,14 @@ const ChatGroupScreen = ({ route }) => {
   // Revoke message
   const revokeMessage = async () => {
     try {
-      await MessageAPI.revokeMessage(
+      const revokedMessage = await MessageAPI.revokeMessage(
         selectMessage,
         { conversation_id, user_id: user.id },
         accessToken
       );
+      //socket
+      socket.emit("revoke message", revokedMessage);
+
       fetchMessages();
       setShowMessageModal(false);
       alert("Thu hồi thành công");
@@ -262,25 +270,73 @@ const ChatGroupScreen = ({ route }) => {
       image_url: currentMessage.image_url || null,
     };
     try {
-      await MessageAPI.sendMessage(data, accessToken);
+      const result = await MessageAPI.sendMessage(data, accessToken);
+      const forwardMessage = result.message;
       alert("Chuyển tiếp tin nhắn thành công!");
+      //socket
+      socket.emit("send message", forwardMessage);
+
       setShowMessageModal(false);
     } catch (error) {
       alert("Chuyển tiếp thất bại");
     }
   };
 
+  const socket = getSocket();
   useEffect(() => {
     (async () => {
-          const { status } =
-            await ImagePicker.requestMediaLibraryPermissionsAsync();
-          if (status !== "granted") {
-            Alert.alert("Quyền bị từ chối", "Ứng dụng cần quyền truy cập ảnh.");
-          }
-        }
-    )();
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Quyền bị từ chối", "Ứng dụng cần quyền truy cập ảnh.");
+      }
+    })();
+
     fetchMessages();
     fetchParticipantsDetail();
+    //handle socket
+    const handleReceiveMessage = (newMessage) => {
+      setMessages((prev) => [...prev, newMessage]);
+    };
+    const handleRevokeMessage = (revokedMessage) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.message_id === revokedMessage.message_id ? revokedMessage : msg
+        )
+      );
+    };
+    const handleUpdatedMessage = (updatedMessage) => {
+      setMessages((prev) =>
+        prev.map((mes) =>
+          mes.message_id === updatedMessage.message_id ? updatedMessage : mes
+        )
+      );
+    };
+    const handleDeleteMessage = (message_id) => {
+      setMessages((prev) =>
+        prev.filter((mes) => mes.message_id !== message_id)
+      );
+    };
+
+    //socket
+    socket.emit("group chat", { conversation_id: conversation_id });
+    socket.on("join group chat", ({ conversation_id }) => {
+      console.log("SO joined group", conversation_id);
+    });
+    //realtime user status
+
+    socket.on("new message", handleReceiveMessage);
+    socket.on("message revoked", handleRevokeMessage);
+    socket.on("message updated", handleUpdatedMessage);
+    //chua co chuc nang
+    socket.on("message deleted", handleDeleteMessage);
+
+    return () => {
+      socket.off("new message", handleReceiveMessage);
+      socket.off("message revoked", handleRevokeMessage);
+      socket.off("message updated", handleUpdatedMessage);
+      socket.off("message deleted", handleDeleteMessage);
+    };
   }, [conversation_id]);
 
   const renderMessage = ({ item }) => {
@@ -357,11 +413,9 @@ const ChatGroupScreen = ({ route }) => {
         </TouchableOpacity>
         <Text style={styles.groupName}>{groupName}</Text>
 
-        <TouchableOpacity onPress={() => navigation.navigate("GroupInfo")}> 
-            <Icon name="information" size={24} color="#fff" />
+        <TouchableOpacity onPress={() => navigation.navigate("GroupInfo")}>
+          <Icon name="information" size={24} color="#fff" />
         </TouchableOpacity>
-    
-
       </View>
 
       {/* Messages */}
