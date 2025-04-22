@@ -25,6 +25,8 @@ const ChatGroupScreen = ({ route }) => {
   //lay userDetail cua cac participants roi lưu vao useState
   const [participantsDetail, setParticipantsDetail] = useState([]);
 
+  const [conversation, setConversation] = useState(null);
+
   const user = useSelector((state) => state.user.user);
   const accessToken = useSelector((state) => state.user.accessToken);
 
@@ -47,6 +49,17 @@ const ChatGroupScreen = ({ route }) => {
 
   const navigation = useNavigation();
 
+  const fetchConversation = async () => {
+    try {
+      const data = await ConversationApi.fetchConversationsByConverId(
+        conversation_id,
+        accessToken
+      );
+      setConversation(data);
+    } catch (error) {
+      console.error("Error fetching conversation: ", error);
+    }
+  };
   // Fetch messages for the group
   const fetchMessages = async () => {
     try {
@@ -86,7 +99,12 @@ const ChatGroupScreen = ({ route }) => {
       alert("Vui lòng nhập nội dung để gửi");
       return;
     }
-
+  
+    if (!conversation) {
+      alert("Đang tải thông tin cuộc trò chuyện, vui lòng thử lại sau");
+      return;
+    }
+  
     if (selectedImage || selectedDocument) {
       await sendImageAndText();
       setNewMessage("");
@@ -94,7 +112,7 @@ const ChatGroupScreen = ({ route }) => {
       setSelectedDocument(null);
       return;
     }
-
+  
     const data = {
       conversation_id,
       sender: user.id,
@@ -102,18 +120,23 @@ const ChatGroupScreen = ({ route }) => {
       content: newMessage,
       type: "TEXT",
     };
-
+  
     try {
       await MessageAPI.sendMessage(data, accessToken);
       setNewMessage("");
       fetchMessages();
     } catch (error) {
       console.error("Error sending message:", error);
+      alert("Không thể gửi tin nhắn. Vui lòng thử lại sau.");
     }
   };
 
   // Send image or document
   const sendImageAndText = async () => {
+    if(!conversation){
+        alert("Đang tải thông tin cuộc trò chuyện, vui lòng thử lại sau");
+        return;
+    }
     const receivers = conversation.participants.filter(
       (participant) => participant != user.id
     );
@@ -145,7 +168,12 @@ const ChatGroupScreen = ({ route }) => {
       fetchMessages();
       return response;
     } catch (err) {
-      alert(err.response.data.error);
+        if (err.response && err.response.data && err.response.data.error) {
+            alert(err.response.data.error);
+        } else {
+            alert("Không thể gửi tin nhắn. Vui lòng thử lại sau.");
+            console.error("Error sending message:", err);
+        }
     }
   };
 
@@ -279,6 +307,7 @@ const ChatGroupScreen = ({ route }) => {
           }
         }
     )();
+    fetchConversation(); // Thêm dòng này
     fetchMessages();
     fetchParticipantsDetail();
   }, [conversation_id]);
