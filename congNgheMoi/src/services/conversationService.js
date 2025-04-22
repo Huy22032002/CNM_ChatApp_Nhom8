@@ -24,6 +24,19 @@ const ConversationService = {
     );
   },
 
+  async updateGroupConversation(data) {
+    const { conversation_id, groupDetailData } = data;
+    //kiem tra du lieu dau vao
+    if (!conversation_id || !groupDetailData) {
+      throw new Error("invalid data update group conversation service");
+    }
+    return await ConversationModel.updateGroupConversation(
+      conversation_id,
+      (group_name = groupDetailData.group_name),
+      (group_avatar = groupDetailData.group_avatar)
+    );
+  },
+
   async getAllConversation(user_id) {
     if (!user_id) {
       throw new Error("invalid user_id getAll Conversation service");

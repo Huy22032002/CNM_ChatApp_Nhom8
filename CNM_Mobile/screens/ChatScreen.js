@@ -479,7 +479,7 @@ const ChatScreen = ({ route }) => {
 
   return (
     <View style={styles.container}>
-      <View style={{ height: 30 }}></View>
+      <View style={{ height: 20 }}></View>
       <View style={styles.header}>
         <View style={{ flexDirection: "row" }}>
           <TouchableOpacity onPress={backToHomeChat}>
