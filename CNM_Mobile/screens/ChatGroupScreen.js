@@ -15,7 +15,9 @@ import { useSelector } from "react-redux";
 import { useNavigation } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
-import { fetchUserDetail } from "../api/userDetailApi";
+import { API_URL } from "../api/apiConfig";
+import { Alert } from "react-native";
+import { Icon } from "react-native-paper";
 
 const ChatGroupScreen = ({ route }) => {
   const { conversation_id, groupName, participants } = route.params;
@@ -41,6 +43,8 @@ const ChatGroupScreen = ({ route }) => {
   const [forwardPopUp, setForwardPopup] = useState(false);
   const [conversationsDetail, setConversationsDetail] = useState([]);
 
+ 
+
   const navigation = useNavigation();
 
   // Fetch messages for the group
@@ -54,16 +58,9 @@ const ChatGroupScreen = ({ route }) => {
   };
 
   const fetchParticipantsDetail = async () => {
-    // Fetch participants detail (map participants rồi fetch từng người)
-    // const participantsPromises = participants.map(async (id) => {
-    //   const userDetail = await fetchUserDetail(id, accessToken);
-    //   return userDetail;
-    // });
-    // const details = await Promise.all(participantsPromises);
-    // console.log("Chi tiết người tham gia:", details);
-    // setParticipantsDetail(details);
+    
     setParticipantsDetail(participants);
-  };
+  }; 
 
   // Get all conversations for forward
   const getListConversationDetail = async () => {
@@ -117,13 +114,16 @@ const ChatGroupScreen = ({ route }) => {
 
   // Send image or document
   const sendImageAndText = async () => {
+    const receivers = conversation.participants.filter(
+      (participant) => participant != user.id
+    );
+
     const formData = new FormData();
     formData.append("conversation_id", conversation_id);
     formData.append("sender", user.id);
-    participants
-      .filter((id) => id !== user.id)
-      .forEach((id) => formData.append("receivers[]", id));
-
+    receivers.forEach((id) => {
+      formData.append("receivers[]", id);
+    });
     if (newMessage) {
       formData.append("content", newMessage);
     }
@@ -140,12 +140,12 @@ const ChatGroupScreen = ({ route }) => {
         type: selectedDocument.mimeType || "application/pdf",
       });
     }
-
     try {
-      await MessageAPI.sendImageAndText(formData, accessToken);
+      const response = await MessageAPI.sendImageAndText(formData, accessToken);
       fetchMessages();
-    } catch (error) {
-      console.error("Error sending image or document:", error);
+      return response;
+    } catch (err) {
+      alert(err.response.data.error);
     }
   };
 
@@ -158,6 +158,17 @@ const ChatGroupScreen = ({ route }) => {
     });
     if (!result.canceled) {
       setSelectedImage(result.assets[0]);
+    }
+  };
+
+  const selectNewAvatar = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
+    if (!result.canceled) {
+      setNewAvatar(result.assets[0]);
     }
   };
 
@@ -260,6 +271,14 @@ const ChatGroupScreen = ({ route }) => {
   };
 
   useEffect(() => {
+    (async () => {
+          const { status } =
+            await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== "granted") {
+            Alert.alert("Quyền bị từ chối", "Ứng dụng cần quyền truy cập ảnh.");
+          }
+        }
+    )();
     fetchMessages();
     fetchParticipantsDetail();
   }, [conversation_id]);
@@ -337,6 +356,12 @@ const ChatGroupScreen = ({ route }) => {
           />
         </TouchableOpacity>
         <Text style={styles.groupName}>{groupName}</Text>
+
+        <TouchableOpacity onPress={() => navigation.navigate("GroupInfo")}> 
+            <Icon name="information" size={24} color="#fff" />
+        </TouchableOpacity>
+    
+
       </View>
 
       {/* Messages */}
