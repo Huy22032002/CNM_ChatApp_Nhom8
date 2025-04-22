@@ -18,6 +18,7 @@ import { fetchUserDetail } from "../api/userDetailApi";
 
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
+import { getSocket } from "../services/socket";
 
 const ChatScreen = ({ route }) => {
   const { conversation_id, otherUserDetail } = route.params;
@@ -65,6 +66,8 @@ const ChatScreen = ({ route }) => {
         };
       });
       const converDetails = await Promise.all(converDetailPromises);
+      console.log("list converdetail: ", converDetails);
+
       setConversationsDetail(converDetails);
     } catch (error) {
       console.error("Lỗi khi lấy danh sách cuộc trò chuyện: ", error);
@@ -123,7 +126,6 @@ const ChatScreen = ({ route }) => {
       console.error("Error fetching conversation: ", error);
     }
   };
-
   //message function
   const handleSend = async () => {
     if (!selectedImage && !newMessage && !selectedDocument) {
@@ -169,8 +171,14 @@ const ChatScreen = ({ route }) => {
       type: "TEXT",
     };
     try {
-      const newMessage = await MessageAPI.sendMessage(data, accessToken);
+      const result = await MessageAPI.sendMessage(data, accessToken);
+      const receiveMessage = result.message;
       setNewMessage("");
+      //truyen new message vao socket
+      socket.emit("send message", receiveMessage);
+      //truyen lastMessage vao socket
+      socket.emit("update conversation", result.updatedConversation);
+
       fetchMessages();
     } catch (err) {
       console.error("Send message failed: ", err.message);
@@ -205,7 +213,10 @@ const ChatScreen = ({ route }) => {
     }
     try {
       const response = await MessageAPI.sendImageAndText(formData, accessToken);
-      fetchMessages();
+      if (response) {
+        socket.emit("send message", response);
+        fetchMessages();
+      }
       return response;
     } catch (err) {
       alert(err.response.data.error);
@@ -226,8 +237,19 @@ const ChatScreen = ({ route }) => {
       user_id: user.id,
     };
     try {
-      await MessageAPI.deleteMessage(selectMessage, data, accessToken);
+      const rs = await MessageAPI.deleteMessage(
+        selectMessage,
+        data,
+        accessToken
+      );
       await fetchMessages();
+      //emit socket
+      const dataSocket = {
+        message_id: rs.id,
+        conversation_id: conversation_id,
+      };
+      socket.emit("delete message", dataSocket);
+
       setShowMessageModal(false);
       alert("Xóa thành công");
     } catch (err) {
@@ -241,7 +263,12 @@ const ChatScreen = ({ route }) => {
       content: editContent,
     };
     try {
-      await MessageAPI.updateMessage(selectMessage, data, accessToken);
+      const updatedMessage = await MessageAPI.updateMessage(
+        selectMessage,
+        data,
+        accessToken
+      );
+      socket.emit("update message", updatedMessage);
       await fetchMessages();
 
       setEdit(false); //dong Moddal update
@@ -258,10 +285,18 @@ const ChatScreen = ({ route }) => {
       user_id: user.id,
     };
     try {
-      await MessageAPI.revokeMessage(selectMessage, data, accessToken);
-      await fetchMessages();
-      setShowMessageModal(false);
-      alert("Thu hồi thành công");
+      const revokedMessage = await MessageAPI.revokeMessage(
+        selectMessage,
+        data,
+        accessToken
+      );
+      if (revokeMessage) {
+        socket.emit("revoke message", revokedMessage);
+
+        await fetchMessages();
+        setShowMessageModal(false);
+        alert("Thu hồi thành công");
+      }
     } catch (err) {
       alert(err.response.data.error);
     }
@@ -284,8 +319,15 @@ const ChatScreen = ({ route }) => {
       image_url: currentMessage.image_url || null,
     };
     try {
-      const forwardMessage = await MessageAPI.sendMessage(data, accessToken);
+      const result = await MessageAPI.sendMessage(data, accessToken);
+      const forwardMessage = result.message;
+      //gui event len socket server
+      console.log("forward message: ", forwardMessage);
+      socket.emit("send message", forwardMessage);
       console.log("da forward: ", forwardMessage);
+      //gui event update lastmessage
+      socket.emit("update conversation", result.updatedConversation);
+
       alert("Chuyển tiếp tin nhắn thành công!");
       setShowMessageModal(false);
     } catch (err) {
@@ -336,11 +378,67 @@ const ChatScreen = ({ route }) => {
     );
   };
 
+  const socket = getSocket();
+  console.log("Socket ID:", socket.id);
+
   useEffect(() => {
+    if (!socket || !conversation_id) return;
+
     fetchFriendStatus();
     fetchConversation();
     fetchMessages();
+
+    //handle socket
+    const handleReceiveMessage = (data) => {
+      console.log("Socket received message:", data);
+      setMessages((prevMessages) => [...prevMessages, data]);
+    };
+    const handleDeleteMessage = (id) => {
+      console.log("socket received delete message: ", id, typeof id);
+      setMessages((prev) => prev.filter((msg) => msg.message_id !== id));
+    };
+    const handleRevokeMessage = (message) => {
+      console.log("client receive revokeMessage from server: ", message);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.message_id === message.message_id ? message : msg
+        )
+      );
+    };
+    // truyen coversation_id vao socket de user join dung conversaiton
+    socket.emit("single chat", { conversation_id: conversation_id });
+    socket.on("join single chat", (data) => {
+      console.log(`Someone joined to chat ${data.conversation_id} `);
+    });
+    // realtime user trong room online/offline
+    socket.on("user status", (data) => {
+      setFriendStatus(data.status);
+      setLastActive(data.updatedAt);
+    });
+    //realtime gui tin nhan
+    socket.on("new message", handleReceiveMessage);
+    //xoa
+    socket.on("message deleted", handleDeleteMessage);
+    //realtime cap nhat tin nhan
+    socket.on("message updated", (message) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.message_id === message.message_id ? message : msg
+        )
+      );
+    });
+
+    // realtime revoke
+    socket.on("message revoked", handleRevokeMessage);
+    return () => {
+      socket.off("user status");
+      socket.off("new message", handleReceiveMessage);
+      socket.off("message deleted", handleDeleteMessage);
+      socket.off("message revoked", handleRevokeMessage);
+      socket.off("message updated");
+    };
   }, [conversation_id, user]);
+  console.log("c" + conversationsDetail.userDetail);
   //xin quyen truy cap anh tren dien thoai
   useEffect(() => {
     const requestPermission = async () => {
@@ -370,24 +468,14 @@ const ChatScreen = ({ route }) => {
         }
       );
       const data = await response.json();
-      // console.log("Friend status: ", data.status);
-      // console.log("Last active: ", data.updatedAt);
-      setFriendStatus(data.status);
-      setLastActive(data.updatedAt);
+      if (data) {
+        console.log("Friend status: ", data.status);
+        socket.emit("online", data);
+      }
     } catch (error) {
       console.error("Error fetching friend status: ", error);
     }
   };
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchFriendStatus();
-      fetchMessages();
-      fetchConversation();
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [otherUserDetail.id, accessToken]);
 
   return (
     <View style={styles.container}>
@@ -410,7 +498,11 @@ const ChatScreen = ({ route }) => {
           />
           <View style={{ marginLeft: 10 }}>
             <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
-              {otherUserDetail?.fullname || item.conversation_id}
+              {
+                otherUserDetail?.fullname ||
+                  "Người dùng ID:" + otherUserDetail.user_id + ""
+                // conversation_id
+              }
             </Text>
             {friendStatus === "ONLINE" ? (
               <Text style={{ color: "green", fontSize: 12 }}>Trực tuyến</Text>

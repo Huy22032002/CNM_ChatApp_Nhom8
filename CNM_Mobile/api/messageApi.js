@@ -31,6 +31,7 @@ const MessageAPI = {
           Authorization: `Bearer ${accessToken}`,
         },
       });
+      console.log("add message in api: ", respone.data);
       return respone.data;
     } catch (err) {
       throw err;
@@ -74,7 +75,7 @@ const MessageAPI = {
         }
       );
       if (res) {
-        const revokedMessage = res.data;
+        const revokedMessage = res.data.revokedMessage;
         console.log("revoke message: ", revokedMessage);
         return revokedMessage;
       }

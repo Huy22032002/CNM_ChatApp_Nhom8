@@ -17,6 +17,7 @@ const MessageModel = {
         sender: message.sender,
         receivers: message.receivers,
         content: message.content,
+
         image_url: message.image_url || null,
         message_type: message.message_type || message.type,
         status: "SENT",
@@ -46,7 +47,9 @@ const MessageModel = {
       return result.Items;
     } catch (error) {
       console.log(`error get all message of conver in model: ${error}`);
-      return [];
+      throw new Error(
+        `Error get all message in message model: ${error.message}`
+      );
     }
   },
   async updateMessageContent(message_id, user_id, conversation_id, content) {
@@ -82,14 +85,13 @@ const MessageModel = {
         ":updated_at": new Date().toISOString(),
         ":status": "UPDATED",
       },
-      ReturnValues: "UPDATED_NEW",
+      ReturnValues: "ALL_NEW",
     };
     try {
       const result = await dynamoDB.update(params).promise();
       return result.Attributes;
     } catch (err) {
-      console.log(`Error update message: ${err}`);
-      return null;
+      throw new Error(`Error Update Message in Message Model: ${err.message}`);
     }
   },
   async deleteMessage(message_id, user_id, conversation_id) {
@@ -100,11 +102,11 @@ const MessageModel = {
         conversation_id
       );
       if (!message) {
-        throw new Error("khong tim thay message: ", message);
+        throw new Error("Không tìm thấy message");
       }
       if (message.sender !== user_id) {
         //check nguoi gui co hop le khong
-        throw new Error("Bạn không thể sửa tin nhắn người khác");
+        throw new Error("Bạn không thể xóa tin nhắn người khác");
       }
       const currentTime = moment();
       const create_at = moment(message.created_at);
@@ -132,11 +134,11 @@ const MessageModel = {
   async revokeMessage(message_id, user_id, conversation_id) {
     const message = await this.getMessage(message_id, user_id, conversation_id);
     if (!message) {
-      throw new Error("khong tim thay message: ");
+      throw new Error("Không tìm thấy message");
     }
     if (message.sender !== user_id) {
       //check nguoi gui co hop le khong
-      throw new Error("Bạn không thể sửa tin nhắn người khác");
+      throw new Error("Bạn không thể thu hồi tin nhắn người khác");
     }
 
     const currentTime = moment();
@@ -162,7 +164,7 @@ const MessageModel = {
         ":content": null,
         ":updated_at": new Date().toISOString(),
       },
-      ReturnValues: "UPDATED_NEW",
+      ReturnValues: "ALL_NEW",
     };
     const result = await dynamoDB.update(params).promise();
     return result.Attributes;
