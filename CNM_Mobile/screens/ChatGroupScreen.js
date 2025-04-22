@@ -22,19 +22,6 @@ import { getSocket } from "../services/socket";
 // Thêm import
 import { MaterialIcons } from "@expo/vector-icons";
 
-// Trong component
-<TouchableOpacity
-  onPress={() =>
-    navigation.navigate("GroupInfo", {
-      conversation_id: conversation_id,
-      groupName: groupName,
-      participants: participants,
-    })
-  }
->
-  <MaterialIcons name="info" size={24} color="#fff" />
-</TouchableOpacity>;
-
 const ChatGroupScreen = ({ route }) => {
   const { conversation_id, groupName, participants } = route.params;
   console.log(route.params);
@@ -70,7 +57,7 @@ const ChatGroupScreen = ({ route }) => {
         conversation_id,
         accessToken
       );
-      console.log("conversation: ", data);
+      console.log("conversation 12134564646: ", data);
       setConversation(data);
     } catch (error) {
       console.error("Error fetching conversation: ", error);
@@ -121,6 +108,7 @@ const ChatGroupScreen = ({ route }) => {
     }
 
     setParticipantsDetail(participants);
+    console.log("Huy ngu", participantsDetail);
   };
 
   // Get all conversations for forward
@@ -379,6 +367,7 @@ const ChatGroupScreen = ({ route }) => {
   };
 
   const socket = getSocket();
+
   useEffect(() => {
     (async () => {
       const { status } =
@@ -389,8 +378,10 @@ const ChatGroupScreen = ({ route }) => {
     })();
 
     fetchConversation(); // Thêm dòng này
-    fetchMessages();
-    fetchParticipantsDetail();
+    // console.log("fetch cv: ", conversation);
+    // fetchMessages();
+    // fetchParticipantsDetail();
+
     //handle socket
     const handleReceiveMessage = (newMessage) => {
       setMessages((prev) => [...prev, newMessage]);
@@ -435,6 +426,15 @@ const ChatGroupScreen = ({ route }) => {
     };
   }, [conversation_id]);
 
+  useEffect(() => {
+    if (conversation && conversation.participants?.length > 0) {
+      console.log(
+        "Conversation đã có, bắt đầu fetch messages và participants detail"
+      );
+      fetchMessages();
+      fetchParticipantsDetail(conversation);
+    }
+  }, [conversation]);
   const renderMessage = ({ item }) => {
     const isMyMessage = item.sender === user.id;
     const isRevoked = item.status === "REVOKED";
@@ -500,9 +500,9 @@ const ChatGroupScreen = ({ route }) => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={{ paddingTop: 20 }}></View>
+      <View style={{ paddingTop: 30 }}></View>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => navigation.navigate("homeChat")}>
           <Image
             source={require("../assets/back.png")}
             style={{ width: 24, height: 24 }}

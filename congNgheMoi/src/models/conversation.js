@@ -38,6 +38,30 @@ const ConversationModel = {
     await dynamoDB.put(params).promise();
     return params.Item;
   },
+  async leaveConversation(conversation_id, user_id) {
+    const params = {
+      TableName: TABLE_NAME,
+      Key: {
+        conversation_id,
+      },
+      UpdateExpression: "DELETE participants :user",
+      ExpressionAttributeValues: {
+        ":user": dynamoDB.createSet([user_id]),
+      },
+      ReturnValues: "ALL_NEW",
+    };
+
+    try {
+      const result = await dynamoDB.update(params).promise();
+      return result.Attributes;
+    } catch (err) {
+      console.error(
+        `Error removing participant ${user_id} from ${conversation_id}:`,
+        err
+      );
+      throw new Error("Failed to leave conversation");
+    }
+  },
 
   async updateGroupConversation(conversation_id, group_name, group_avatar) {
     const params = {
@@ -45,7 +69,8 @@ const ConversationModel = {
       Key: {
         conversation_id,
       },
-      UpdateExpression: "set group_name = :group_name, group_avatar = :group_avatar",
+      UpdateExpression:
+        "set group_name = :group_name, group_avatar = :group_avatar",
       ExpressionAttributeValues: {
         ":group_name": group_name,
         ":group_avatar": group_avatar,
@@ -61,6 +86,49 @@ const ConversationModel = {
     }
   },
 
+  async updateGroupAvatar(conversation_id, group_avatar) {
+    const params = {
+      TableName: TABLE_NAME,
+      Key: {
+        conversation_id,
+      },
+      UpdateExpression: "set group_avatar = :group_avatar",
+      ExpressionAttributeValues: {
+        ":group_avatar": group_avatar,
+      },
+      ReturnValues: "UPDATED_NEW",
+    };
+    try {
+      const result = await dynamoDB.update(params).promise();
+      return result.Attributes;
+    } catch (err) {
+      console.log(
+        `Error update group avatar conver ${conversation_id}: ${err}`
+      );
+      return null;
+    }
+  },
+
+  async updateGroupName(conversation_id, group_name) {
+    const params = {
+      TableName: TABLE_NAME,
+      Key: {
+        conversation_id,
+      },
+      UpdateExpression: "set group_name = :group_name",
+      ExpressionAttributeValues: {
+        ":group_name": group_name,
+      },
+      ReturnValues: "UPDATED_NEW",
+    };
+    try {
+      const result = await dynamoDB.update(params).promise();
+      return result.Attributes;
+    } catch (err) {
+      console.log(`Error update group name conver ${conversation_id}: ${err}`);
+      return null;
+    }
+  },
 
   async getAllConversationByUser(user_id) {
     const params = {
@@ -169,7 +237,7 @@ const ConversationModel = {
       ExpressionAttributeValues: {
         ":newParticipant": dynamoDB.createSet([newParticipant]),
       },
-      ReturnValues: "UPDATED_NEW",
+      ReturnValues: "ALL_NEW",
     };
     try {
       const result = await dynamoDB.update(params).promise();
