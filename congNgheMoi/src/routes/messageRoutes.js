@@ -18,6 +18,7 @@ router.post(
     { name: "image", maxCount: 1 },
     { name: "file", maxCount: 1 },
   ]),
+  authMiddlewareWithoutRefresh,
   MessageController.sendImageMessage
 );
 router.get(
