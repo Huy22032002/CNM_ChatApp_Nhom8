@@ -36,6 +36,7 @@ export default function HomeChat({ navigation }) {
   const [userDetail, setUserDetail] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [conversationDetails, setConversationDetails] = useState([]);
+  const [chatTab, setChatTab] = useState("ALL"); // "ALL" | "SINGLE" | "GROUP"
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showFriendRequests, setShowFriendRequests] = useState(false);
@@ -44,12 +45,45 @@ export default function HomeChat({ navigation }) {
   const [friendRequestsDetails, setFriendRequestsDetails] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [friendSearchQuery, setFriendSearchQuery] = useState("");
+  const [friendsList, setFriendsList] = useState([]);
+  const [selectedFriends, setSelectedFriends] = useState([]);
+
+  const user = useSelector((state) => state.user.user);
+  const accessToken = useSelector((state) => state.user.accessToken);
+
+  const fetchFriendsList = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/friends/${user.id}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      //lọc ra friend_id rồi gọi api lấy thông tin bạn bè
+      const friendIds = res.data.map((friend) => friend.friend_id);
+      const friendDetailsPromises = friendIds.map((friendId) =>
+        fetchUserDetail(friendId, accessToken)
+      );
+      const friendDetails = await Promise.all(friendDetailsPromises);
+      //Kết hợp thông tin bạn bè với danh sách bạn bè
+      const friendsWithDetails = res.data.map((friend, index) => ({
+        ...friend,
+        ...friendDetails[index],
+      }));
+      console.log("Danh sách bạn bè với chi tiết:", friendsWithDetails);
+      //Lưu danh sách bạn bè vào state
+      setFriendsList(friendsWithDetails);
+    } catch (err) {
+      console.error("Lỗi khi lấy danh sách bạn bè:", err);
+    }
+  };
+
   const fetchNotifications = async () => {
     try {
       const res = await axios.get(`${API_URL}/api/notifications/${user.id}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      setNotifications(res.data); // [{ message, type, status }]
+      setNotifications(res.data);
     } catch (err) {
       console.error("Lỗi khi lấy thông báo:", err);
     }
@@ -66,7 +100,7 @@ export default function HomeChat({ navigation }) {
       // console.log("res unread count:", res.data.count);
       setUnreadCount(res.data.count); // [{ message, type, status }]
     } catch (err) {
-      console.error("Lỗi khi lấy thông báo:", err);
+      console.error("Lỗi khi lấy số thông báo chưa đọc:", err);
     }
   };
 
@@ -124,7 +158,6 @@ export default function HomeChat({ navigation }) {
       });
 
       const details = await Promise.all(detailsPromises);
-      // console.log("Chi tiết lời mời kết bạn:", details);
       setFriendRequestsDetails(details);
     } catch (err) {
       console.error("Lỗi khi lấy lời mời kết bạn:", err);
@@ -146,8 +179,8 @@ export default function HomeChat({ navigation }) {
         }
       );
       handleFriendPress();
-      fetchFriendRequests(); // Refresh the friend requests after accepting one
-      getListConversation(); // Refresh the conversations after accepting a friend request
+      fetchFriendRequests();
+      getListConversation();
     } catch (err) {
       console.error("Lỗi khi chấp nhận kết bạn", err);
     }
@@ -175,15 +208,82 @@ export default function HomeChat({ navigation }) {
     }
   };
 
-  const filteredData = conversationDetails.filter((item) =>
-    (item.otherUserDetail?.fullname || "")
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
-  );
+  // Cập nhật logic lấy danh sách cuộc trò chuyện để xử lý cả chat đơn và nhóm
+  const getListConversation = async () => {
+    const data = await ConversationApi.fetchConversationsByUserId(
+      user.id,
+      accessToken
+    );
+    // console.log("Dữ liệu cuộc trò chuyện:", data);
+    if (data) {
+      setConversations(data);
 
-  //lay user va token tu redux
-  const user = useSelector((state) => state.user.user);
-  const accessToken = useSelector((state) => state.user.accessToken);
+      // Xử lý dữ liệu chi tiết cho từng loại cuộc trò chuyện
+      const detailsPromises = data.map(async (conv) => {
+        if (conv.type === "SINGLE") {
+          // Xử lý chat đơn: lấy thông tin của người dùng còn lại
+          const otherUserId = Array.isArray(conv.participants)
+            ? conv.participants.find((id) => id !== user.id)
+            : null;
+          let otherUserDetail = null;
+          if (otherUserId) {
+            otherUserDetail = await fetchUserDetail(otherUserId, accessToken);
+          }
+          return {
+            ...conv,
+            otherUserDetail,
+          };
+        } else if (conv.type === "GROUP") {
+          // Xử lý chat nhóm: lấy thông tin tất cả thành viên trừ user hiện tại
+          const otherUsers = Array.isArray(conv.participants)
+            ? conv.participants.filter((id) => id !== user.id)
+            : [];
+          const otherUserDetails = await Promise.all(
+            otherUsers.map((id) => fetchUserDetail(id, accessToken))
+          );
+          return {
+            ...conv,
+            otherUserDetails,
+          };
+        }
+        return conv;
+      });
+
+      const details = await Promise.all(detailsPromises);
+      setConversationDetails(details);
+    }
+  };
+
+  // Lọc dữ liệu theo từ khóa tìm kiếm và tab được chọn
+  const filteredData = conversationDetails.filter((item) => {
+    // Lọc theo tab đã chọn
+    if (chatTab !== "ALL" && item.type !== chatTab) {
+      return false;
+    }
+
+    // Lọc theo từ khóa tìm kiếm
+    if (item.type === "SINGLE") {
+      if (item.otherUserDetail.fullname != null) {
+        return (item.otherUserDetail?.fullname || "")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase());
+      } else {
+        return "Chua co ten".toLowerCase().includes(searchQuery.toLowerCase());
+      }
+    } else if (item.type === "GROUP") {
+      // Tìm trong danh sách thành viên nhóm
+      return (
+        item.GROUP_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.otherUserDetails?.some((user) =>
+          (user.fullname || "")
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase())
+        ) ||
+        false
+      );
+    }
+    return false;
+  });
 
   const handleLogout = () => {
     Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất không?", [
@@ -210,15 +310,11 @@ export default function HomeChat({ navigation }) {
         logout();
         return;
       }
-      // console.log("data fetch userdetail:", data);
       setUserDetail(data);
     } catch (error) {
       console.error("Lỗi khi lấy thông tin người dùng:", error);
-      // Alert.alert("Lỗi", "Không thể lấy thông tin người dùng");
       alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
-      // Xóa thông tin người dùng và token trong Redux
       justLogout();
-      // logout();
     }
   };
 
@@ -235,40 +331,10 @@ export default function HomeChat({ navigation }) {
           },
         }
       );
-      // Alert.alert("Thành công", "Đã đăng xuất thành công");
       navigation.navigate("login");
     } catch (error) {
       console.error("Lỗi khi đăng xuất:", error.message);
       Alert.alert("Lỗi", "Không thể đăng xuất");
-    }
-  };
-
-  const getListConversation = async () => {
-    const data = await ConversationApi.fetchConversationsByUserId(
-      user.id,
-      accessToken
-    );
-    if (data) {
-      setConversations(data);
-
-      // Lấy user detail của người còn lại trong participants (trừ user hiện tại)
-      const detailsPromises = data.map(async (conv) => {
-        // Giả sử conv.participants là mảng các userId
-        const otherUserId = Array.isArray(conv.participants)
-          ? conv.participants.find((id) => id !== user.id)
-          : null;
-        let otherUserDetail = null;
-        if (otherUserId) {
-          otherUserDetail = await fetchUserDetail(otherUserId, accessToken);
-        }
-        return {
-          ...conv,
-          otherUserDetail,
-        };
-      });
-
-      const details = await Promise.all(detailsPromises);
-      setConversationDetails(details);
     }
   };
 
@@ -294,6 +360,7 @@ export default function HomeChat({ navigation }) {
     fetchNotifications();
     fetchUnreadCount();
     fetchFriendRequests();
+    fetchFriendsList();
   }, [user]);
 
   const changePassword = async () => {
@@ -371,6 +438,7 @@ export default function HomeChat({ navigation }) {
       console.error(err);
     }
   };
+
   const logout = async () => {
     try {
       await axios.post(
@@ -392,40 +460,104 @@ export default function HomeChat({ navigation }) {
     }
   };
 
+  const handleCreateGroup = async () => {
+    if (selectedFriends.length < 2) {
+      Alert.alert("Lỗi", "Vui lòng chọn ít nhất hai người !");
+      return;
+    }
+    if (!groupName.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập tên nhóm !");
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/conversations/add_group`,
+        {
+          type: "GROUP",
+          group_name: groupName,
+          //participants: selectedFriends +user
+          participants: [user.id, ...selectedFriends],
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      if (response.status === 200) {
+        Alert.alert("Thành công", "Tạo nhóm thành công");
+      }
+      setShowCreateGroup(false);
+      setGroupName("");
+      setSelectedFriends([]);
+      getListConversation();
+    } catch (error) {
+      console.error("Lỗi khi tạo nhóm chat:", error.message);
+    }
+  };
+
+  const toggleSelectFriend = (friendId) => {
+    setSelectedFriends((prevSelectedFriends) => {
+      const updatedSelectedFriends = prevSelectedFriends.includes(friendId)
+        ? prevSelectedFriends.filter((id) => id !== friendId)
+        : [...prevSelectedFriends, friendId];
+      console.log("Updated selectedFriends:", updatedSelectedFriends);
+      return updatedSelectedFriends;
+    });
+  };
+  // Cập nhật render item để hiển thị đúng với loại chat
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={styles.chatItem}
       onPress={() => {
-        navigation.navigate("chatScreen", {
-          conversation_id: item.conversation_id,
-          otherUserDetail: item.otherUserDetail,
-        });
+        if (item.type === "SINGLE") {
+          navigation.navigate("chatScreen", {
+            conversation_id: item.conversation_id,
+            otherUserDetail: item.otherUserDetail,
+            type: item.type,
+          });
+        } else if (item.type === "GROUP") {
+          navigation.navigate("chatGroupScreen", {
+            conversation_id: item.conversation_id,
+            groupName: item.group_name,
+            participants: item.otherUserDetails,
+            type: item.type,
+          });
+        }
       }}
     >
-      <View>
-        <Image
-          source={
-            item.otherUserDetail?.avatar_url
+      <Image
+        source={
+          item.type === "SINGLE"
+            ? item.otherUserDetail?.avatar_url
               ? { uri: item.otherUserDetail.avatar_url }
               : require("../assets/user1.png")
-          }
-          style={styles.avatar}
-        />
-      </View>
-
+            : item.group_avatar
+            ? { uri: item.group_avatar }
+            : { uri: item.otherUserDetails[0].avatar_url }
+        }
+        style={styles.avatar}
+      />
       <View style={styles.chatContent}>
         <Text style={styles.chatName}>
-          {item.otherUserDetail?.fullname || item.conversation_id}
+          {item.type === "SINGLE"
+            ? item.otherUserDetail?.fullname ||
+              "Người dùng ID: " + item.otherUserDetail?.user_id
+            : "[Nhóm] " + item.group_name ||
+              item.otherUserDetails?.map((u) => u.fullname).join(", ") ||
+              "Nhóm chat"}
         </Text>
-        <Text style={styles.chatMsg}>
+        <Text style={styles.chatMsg} numberOfLines={1} ellipsizeMode="tail">
           {item.lastMessage?.content || "Chưa có tin nhắn"}
         </Text>
-        <Text>
-          {item.lastMessage?.updated_at ? item.lastMessage.updated_at : ""}
+        <Text style={styles.chatTime}>
+          {item.lastMessage?.updated_at || ""}
         </Text>
       </View>
     </TouchableOpacity>
   );
+
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}></View>
@@ -576,12 +708,172 @@ export default function HomeChat({ navigation }) {
         onChangeText={setSearchQuery}
         style={styles.searchInput}
       />
+
+      {/* Create Group Chat Modal */}
+      <Modal
+        visible={showCreateGroup}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowCreateGroup(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.createGroupModal}>
+            <Text style={styles.modalHeader}>Tạo nhóm chat</Text>
+
+            {/* Group Name Input */}
+            <TextInput
+              placeholder="Nhập tên nhóm"
+              value={groupName}
+              onChangeText={setGroupName}
+              style={styles.groupNameInput}
+            />
+
+            {/* Friend Search */}
+            <TextInput
+              placeholder="Tìm bạn bè"
+              value={friendSearchQuery}
+              onChangeText={setFriendSearchQuery}
+              style={styles.friendSearchInput}
+            />
+
+            {/* Friends List */}
+            <Text style={styles.friendsListHeader}>Danh sách bạn bè</Text>
+            <FlatList
+              data={friendsList.filter(
+                (friend) =>
+                  friend.fullname ||
+                  "Người dùng ID: " +
+                    friend.user_id +
+                    "".toLowerCase().includes(friendSearchQuery.toLowerCase())
+              )}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.friendItem,
+                    selectedFriends.includes(item.friend_id) &&
+                      styles.selectedFriendItem,
+                  ]}
+                  onPress={() => toggleSelectFriend(item.friend_id)}
+                >
+                  <Image
+                    source={
+                      item.avatar_url
+                        ? { uri: item.avatar_url }
+                        : require("../assets/default-avatar.png")
+                    }
+                    style={styles.friendAvatar}
+                  />
+                  <Text style={styles.friendName}>{item.fullname}</Text>
+                  {selectedFriends.includes(item.friend_id) && (
+                    <Icon
+                      name="check-circle"
+                      size={24}
+                      color="#0066cc"
+                      style={styles.checkIcon}
+                    />
+                  )}
+                </TouchableOpacity>
+              )}
+              keyExtractor={(item, index) =>
+                item.friend_id ? item.friend_id.toString() : index.toString()
+              }
+              style={styles.friendsList}
+              ListEmptyComponent={() => (
+                <Text style={styles.emptyText}>Không tìm thấy bạn bè</Text>
+              )}
+            />
+
+            {/* Action Buttons */}
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setShowCreateGroup(false)}
+              >
+                <Text style={styles.cancelButtonText}>Huỷ</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.createButton,
+                  (selectedFriends.length === 0 || !groupName.trim()) &&
+                    styles.disabledButton,
+                ]}
+                onPress={handleCreateGroup}
+                disabled={selectedFriends.length === 0 || !groupName.trim()}
+              >
+                <Text style={styles.createButtonText}>Tạo nhóm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={styles.createGroupButton}
+          onPress={() => setShowCreateGroup(true)}
+        >
+          <Icon name="users" size={24} color="#333" />
+          <Text style={styles.createGroupText}>Tạo nhóm chat</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Tab buttons */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tabButton, chatTab === "ALL" && styles.activeTab]}
+          onPress={() => setChatTab("ALL")}
+        >
+          <Text
+            style={[styles.tabText, chatTab === "ALL" && styles.activeTabText]}
+          >
+            Tất cả
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tabButton, chatTab === "SINGLE" && styles.activeTab]}
+          onPress={() => setChatTab("SINGLE")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              chatTab === "SINGLE" && styles.activeTabText,
+            ]}
+          >
+            Chat Đơn
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tabButton, chatTab === "GROUP" && styles.activeTab]}
+          onPress={() => setChatTab("GROUP")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              chatTab === "GROUP" && styles.activeTabText,
+            ]}
+          >
+            Chat Nhóm
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <FlatList
-        data={searchQuery ? filteredData : conversationDetails}
+        data={filteredData}
         renderItem={renderItem}
         keyExtractor={(item) => item.conversation_id.toString()}
         contentContainerStyle={{ paddingBottom: 60 }}
+        ListEmptyComponent={() => (
+          <Text style={styles.emptyText}>
+            {searchQuery
+              ? "Không tìm thấy kết quả phù hợp"
+              : "Chưa có cuộc trò chuyện nào"}
+          </Text>
+        )}
       />
+
       <Modal visible={showChangePassword} transparent animationType="slide">
         <View style={styles.modalView}>
           <Text style={{ marginBottom: 10 }}>Mật khẩu cũ:</Text>
@@ -619,6 +911,7 @@ export default function HomeChat({ navigation }) {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: "#f5f5f5" },
   headerRow: {
@@ -697,6 +990,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "gray",
   },
+  chatTime: {
+    fontSize: 12,
+    color: "#999",
+    marginTop: 2,
+  },
   modalView: {
     backgroundColor: "white",
     marginHorizontal: 20,
@@ -760,6 +1058,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#666",
     fontStyle: "italic",
+    marginTop: 20,
   },
   requestCard: {
     flexDirection: "row",
@@ -774,18 +1073,15 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-
   requestAvatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
     marginRight: 10,
   },
-
   requestInfo: {
     flex: 1,
   },
-
   requestName: {
     fontSize: 16,
     fontWeight: "bold",
@@ -815,5 +1111,113 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "500",
+  },
+  createGroupButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#e6f7ff",
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#0066cc",
+  },
+  createGroupText: {
+    color: "#0066cc",
+    marginLeft: 8,
+    fontWeight: "500",
+  },
+  createGroupModal: {
+    backgroundColor: "white",
+    marginHorizontal: 20,
+    padding: 20,
+    marginTop: "40%",
+    borderRadius: 8,
+    elevation: 10,
+  },
+  modalHeader: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 12,
+  },
+  groupNameInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  friendSearchInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  friendsListHeader: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  friendsList: {
+    maxHeight: 200,
+    marginBottom: 12,
+  },
+  friendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+  },
+  selectedFriendItem: {
+    backgroundColor: "#e6f7ff",
+  },
+  friendAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  friendName: {
+    fontSize: 16,
+    flex: 1,
+  },
+  checkIcon: {
+    marginLeft: "auto",
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 12,
+  },
+  cancelButton: {
+    backgroundColor: "#f44336",
+    // backgroundColor: "#ccc",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  cancelButtonText: {
+    color: "#fff",
+    fontSize: 16,
+  },
+  createButton: {
+    //xanh dương
+    backgroundColor: "#4CAF50",
+    // backgroundColor: "#0066cc",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  createButtonText: {
+    color: "#fff",
+    fontSize: 16,
+  },
+  disabledButton: {
+    backgroundColor: "#ccc",
   },
 });
