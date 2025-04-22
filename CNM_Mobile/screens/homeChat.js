@@ -581,7 +581,7 @@ export default function HomeChat({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerRow}></View>
+      <View style={{ height: 30 }}></View>
       <View style={styles.headerRow}>
         <Text style={styles.header}>
           Xin chào, {userDetail?.fullname || "User"} 👋

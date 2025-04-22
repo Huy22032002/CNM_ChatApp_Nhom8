@@ -1,4 +1,7 @@
 import ConversationService from "../services/conversationService.js";
+import S3 from "../configs/configS3.js";
+import { v4 as uuidv4 } from "uuid";
+import { upload } from "../middlewares/uploadMiddleware.js"; // Import the upload middleware
 
 const createConversation = async (req, res) => {
   try {
@@ -18,8 +21,7 @@ const createGroupConversation = async (req, res) => {
     const data = req.body;
     const newConver = await ConversationService.createGroupConversation(data);
     res.status(200).json(newConver);
-  }
-  catch (error) {
+  } catch (error) {
     res.status(400).json({
       message: "error create group conversation controller",
       error: error.message,
@@ -86,10 +88,35 @@ const getConversationById = async (req, res) => {
     });
   }
 };
+const leaveConversation = async (req, res) => {
+  const { conversation_id } = req.params;
+  const { user_id } = req.body;
+
+  if (!conversation_id || !user_id) {
+    return res
+      .status(400)
+      .json({ error: "Missing conversation_id or user_id" });
+  }
+
+  try {
+    const result = await ConversationService.leaveConversation(
+      conversation_id,
+      user_id
+    );
+    return res.status(200).json({ message: "Left group", data: result });
+  } catch (error) {
+    console.error("Leave group error:", error);
+    return res.status(500).json({
+      message: "Error leaving conversation",
+      error: error.message,
+    });
+  }
+};
 
 const addNewParticipant = async (req, res) => {
-  const { conversation_id, newParticipant } = req.body;
-  if (!conversation_id || !newParticipant) {
+  const { conversation_id } = req.params;
+  const { user_id } = req.body;
+  if (!conversation_id || !user_id) {
     return res.status(400).json({
       error: "Vui lòng truyền conversation_id và newParticipant",
     });
@@ -97,7 +124,7 @@ const addNewParticipant = async (req, res) => {
   try {
     const updatedConversation = await ConversationService.addNewParticipant(
       conversation_id,
-      newParticipant
+      user_id
     );
     return res.status(200).json(updatedConversation);
   } catch (error) {
@@ -174,10 +201,8 @@ const updateGroupConversation1 = async (req, res) => {
   }
 
   try {
-    const updatedGroupConversation = await ConversationService.updateGroupConver(
-      conversation_id,
-      groupName
-    );
+    const updatedGroupConversation =
+      await ConversationService.updateGroupConver(conversation_id, groupName);
     res.status(200).json({
       message: "Group conversation updated successfully",
       updatedGroupConversation,
@@ -189,11 +214,18 @@ const updateGroupConversation1 = async (req, res) => {
     });
   }
 };
+
 const updateGroupConversation = async (req, res) => {
   try {
     const conversation_id = req.params.conversation_id;
-    const groupDetailData = req.body;
+    const groupDetailData = {}; // Create empty object instead of using req.body directly
 
+    // Handle group_name from request body
+    if (req.body && req.body.group_name) {
+      groupDetailData.group_name = req.body.group_name;
+    }
+    console.log("groupDetailData.group_name", groupDetailData.group_name);
+    // Handle file upload if present
     if (req.file) {
       const image = req.file.originalname.split(".");
       const fileType = image[image.length - 1];
@@ -208,13 +240,26 @@ const updateGroupConversation = async (req, res) => {
 
       const uploadedImg = await S3.upload(params).promise();
       groupDetailData.group_avatar = uploadedImg.Location;
-    } 
+
+      // If frontend sends as "avatar" instead of "group_avatar"
+      if (!groupDetailData.group_avatar && req.body.avatar) {
+        groupDetailData.group_avatar = req.body.avatar;
+      }
+    }
+
+    // Kiểm tra có dữ liệu cập nhật không
+    if (Object.keys(groupDetailData).length === 0) {
+      return res.status(400).json({
+        message: "Không có thông tin để cập nhật",
+      });
+    }
 
     // Gọi service update
-    const updatedGroupDetail = await updateGroupConversation(
-      conversation_id,
-      groupDetailData
-    )
+    const updatedGroupDetail =
+      await ConversationService.updateGroupConversationDetail({
+        conversation_id,
+        groupDetailData,
+      });
 
     res.status(200).json({
       message: "Cập nhật group thành công!",
@@ -226,6 +271,7 @@ const updateGroupConversation = async (req, res) => {
   }
 };
 
+//updateGroupName
 
 export default {
   createConversation,
@@ -238,5 +284,5 @@ export default {
   getAllConversationsByType,
   createGroupConversation,
   updateGroupConversation,
-
+  leaveConversation,
 };
