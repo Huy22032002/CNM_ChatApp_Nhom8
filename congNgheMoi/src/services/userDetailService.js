@@ -11,19 +11,19 @@ const createUserDetail = async (userDetailData) => {
       throw new Error("User ID không tồn tại trong bảng User");
     }
 
-    // Kiểm tra dữ liệu đầu vào
-    if (!userDetailData.fullname || typeof userDetailData.fullname !== 'string') {
-      throw new Error("Invalid fullname: fullname is required and must be a string");
-    }
-    if (!Number.isInteger(userDetailData.age) || userDetailData.age <= 0) {
-      throw new Error("Invalid age: age must be a positive integer");
-    }
-    if (typeof userDetailData.gender !== 'boolean') {
-      throw new Error("Invalid gender: gender must be a boolean");
-    }
-    if (userDetailData.avatar_url && typeof userDetailData.avatar_url !== 'string') {
-      throw new Error("Invalid avatar_url: avatar_url must be a string");
-    }
+    // // Kiểm tra dữ liệu đầu vào
+    // if (!userDetailData.fullname || typeof userDetailData.fullname !== 'string') {
+    //   throw new Error("Invalid fullname: fullname is required and must be a string");
+    // }
+    // if (!Number.isInteger(userDetailData.age) || userDetailData.age <= 0) {
+    //   throw new Error("Invalid age: age must be a positive integer");
+    // }
+    // if (typeof userDetailData.gender !== 'boolean') {
+    //   throw new Error("Invalid gender: gender must be a boolean");
+    // }
+    // if (userDetailData.avatar_url && typeof userDetailData.avatar_url !== 'string') {
+    //   throw new Error("Invalid avatar_url: avatar_url must be a string");
+    // }
 
     console.log("User ID exists. Proceeding to create UserDetail.");
     return await UserDetail.create(userDetailData);
