@@ -18,7 +18,6 @@ export async function getFriends(req, res) {
         res.status(500).json({ error: "Lỗi khi lấy danh sách bạn bè", detail: err.message });
     }
 }
-
 export async function getFriendsWithDetails(req, res) {
     try {
         const details = await getAllFriendsWithDetails(req.params.userId);
@@ -49,6 +48,7 @@ export async function acceptRequest(req, res) {
         const result = await acceptFriendRequest(user_id, friend_id);
         res.status(200).json(result);
     } catch (err) {
+        console.error("Error in acceptRequest:", err);
         res.status(500).json({ error: "Lỗi khi chấp nhận lời mời", detail: err.message });
     }
 }

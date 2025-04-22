@@ -14,6 +14,8 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation } from "@react-navigation/native";
 import { useSelector } from "react-redux";
+import { API_URL } from "../api/apiConfig";
+
 
 export default function UserDetail() {
   const navigation = useNavigation();
@@ -24,7 +26,6 @@ export default function UserDetail() {
   const [selectedAvatar, setSelectedAvatar] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const API_URL="http://192.168.31.28:3000"||"http://10.0.2.2:3000"
   //lay user va accessToken tu redux
   const userRedux = useSelector((state) => state.user.user);
   const accessToken = useSelector((state) => state.user.accessToken);
@@ -166,6 +167,7 @@ export default function UserDetail() {
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
+    
       {/* Nút quay lại HomeChat */}
       <TouchableOpacity
         onPress={() => navigation.navigate("homeChat")}

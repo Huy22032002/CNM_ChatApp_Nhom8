@@ -10,6 +10,20 @@ const ConversationService = {
     }
     return await ConversationModel.createConversation(type, participants);
   },
+
+  async createGroupConversation(data) {
+    const { type, participants, group_name } = data;
+    //kiem tra du lieu dau vao
+    if (!type || !participants || participants.length === 0) {
+      throw new Error("invalid data create group conversation service");
+    }
+    return await ConversationModel.createGroupConversation(
+      type,
+      participants,
+      group_name
+    );
+  },
+
   async getAllConversation(user_id) {
     if (!user_id) {
       throw new Error("invalid user_id getAll Conversation service");
@@ -38,7 +52,66 @@ const ConversationService = {
       );
     } catch (err) {
       console.log(`err update conversation sevice ${err}`);
-      throw new Error("Error updating conversation service");
+      throw new Error(
+        "Error update conversation in conversation service",
+        err.message
+      );
+    }
+  },
+
+  async addNewParticipant(conversation_id, newParticipant) {
+    if (!conversation_id || !newParticipant) {
+      throw new Error("Invalid data for add participant conversation service");
+    }
+    try {
+      return await ConversationModel.addNewParticipant(
+        conversation_id,
+        newParticipant
+      );
+    } catch (err) {
+      console.log(`err add participant conversation service ${err}`);
+      throw new Error("Error adding participant to conversation service");
+    }
+  },
+
+  async removeParticipant(conversation_id, participant) {
+    if (!conversation_id || !participant) {
+      throw new Error(
+        "Invalid data for remove participant conversation service"
+      );
+    }
+    try {
+      return await ConversationModel.removeParticipant(
+        conversation_id,
+        participant
+      );
+    } catch (err) {
+      console.log(`err remove participant conversation service ${err}`);
+      throw new Error("Error removing participant from conversation service");
+    }
+  },
+
+  async deleteConversation(conversation_id) {
+    if (!conversation_id) {
+      throw new Error("Invalid data for delete conversation service");
+    }
+    try {
+      return await ConversationModel.deleteConversation(conversation_id);
+    } catch (err) {
+      console.log(`err delete conversation service ${err}`);
+      throw new Error("Error deleting conversation service");
+    }
+  },
+
+  async getAllConversationsByType(type) {
+    if (!type) {
+      throw new Error("Invalid type for get all conversations by type service");
+    }
+    try {
+      return await ConversationModel.getAllConversationsByType(type);
+    } catch (err) {
+      console.log(`err get all conversations by type service ${err}`);
+      throw new Error("Error getting all conversations by type service");
     }
   },
 };

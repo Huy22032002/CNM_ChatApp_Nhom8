@@ -37,7 +37,9 @@ const authMiddlewareWithoutRefresh = async (req, res, next) => {
   try {
     // const accessToken = req.headers.authorization?.split(" ")[1];
     //lay accessToken tu header Authorization ("Bearer token")
+    console.log("Authorization Header:", req.headers.authorization);
     const accessToken = req.headers.authorization?.split(" ")[1];
+    console.log("Extracted AccessToken:", accessToken);
     // const accessToken = req.headers["authorization"].split(" ")[1];
 
     if (!accessToken) {

@@ -8,26 +8,106 @@ import {
   TouchableOpacity,
   FlatList,
   Modal,
-  Alert,
 } from "react-native";
 import MessageAPI from "../api/messageApi";
 import ConversationApi from "../api/conversationApi";
 import { useSelector } from "react-redux";
 import { useNavigation } from "@react-navigation/native";
+import { API_URL } from "../api/apiConfig";
+import { fetchUserDetail } from "../api/userDetailApi";
+
+import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
+import { getSocket } from "../services/socket";
 
 const ChatScreen = ({ route }) => {
-  const { conversation_id } = route.params;
+  const { conversation_id, otherUserDetail } = route.params;
 
   //lay user tu redux
   const user = useSelector((state) => state.user.user);
   const accessToken = useSelector((state) => state.user.accessToken);
 
+  const [friendStatus, setFriendStatus] = useState("");
+  const [LastActive, setLastActive] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [conversation, setConversation] = useState(null);
   //state xu ly cac su kien message
   const [selectMessage, setSelectMessage] = useState(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  //state cập nhật tin nhắn
+  const [edit, setEdit] = useState(false);
+  const [editContent, setEditContent] = useState("");
+  const openEditContent = () => {
+    setEdit(true);
+  };
+  //state cho forward
+  const [forwardPopUp, setForwardPopup] = useState(false);
+  const [conversationsDetail, setConversationsDetail] = useState([]);
+
+  const getListConversationDetail = async () => {
+    try {
+      const data = await ConversationApi.fetchConversationsByUserId(
+        user.id,
+        accessToken
+      );
+      // Tạo mảng các promises để lấy userDetail cho từng cuộc trò chuyện
+      const converDetailPromises = data.map(async (conver) => {
+        const receivers = Array.isArray(conver.participants)
+          ? conver.participants.filter((id) => id !== user.id)
+          : [];
+        const receiverId = receivers[0];
+        const userDetail = await fetchUserDetail(receiverId, accessToken);
+
+        return {
+          ...conver,
+          userDetail,
+        };
+      });
+      const converDetails = await Promise.all(converDetailPromises);
+      console.log("list converdetail: ", converDetails);
+
+      setConversationsDetail(converDetails);
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách cuộc trò chuyện: ", error);
+    }
+  };
+
+  const openForwardPopup = () => {
+    setForwardPopup(true);
+    getListConversationDetail();
+  };
+  //state cho hinh anh, document
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedDocument, setSelectedDocument] = useState(null);
+
+  const selectImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
+    if (!result.canceled) {
+      const selectedImg = result.assets[0];
+      setSelectedImage(selectedImg);
+    }
+  };
+  const selectDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+      });
+
+      if (result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        console.log("Document: ", file);
+        setSelectedDocument(file);
+      }
+    } catch (err) {
+      console.log("err select document: ", err);
+    }
+  };
 
   const navigation = useNavigation();
 
@@ -46,14 +126,41 @@ const ChatScreen = ({ route }) => {
       console.error("Error fetching conversation: ", error);
     }
   };
+  //message function
+  const handleSend = async () => {
+    if (!selectedImage && !newMessage && !selectedDocument) {
+      alert("Vui lòng nhập nội dung gui");
+      return;
+    }
+    if (selectedDocument) {
+      console.log("Gui pdf");
+      await sendImageAndText();
+      setNewMessage("");
+      setSelectedDocument(null);
+      return;
+    }
+    if (selectedImage) {
+      console.log("Gui ca text va image");
+      await sendImageAndText();
+      setNewMessage("");
+      setSelectedImage(null);
+      return;
+    }
+    if (newMessage) {
+      console.log("chi gui text");
+      await sendMessage();
+      setNewMessage("");
+      return;
+    }
+  };
   const sendMessage = async () => {
     if (newMessage == "" || newMessage == null) {
       alert("vui lòng nhập nội dung để gửi");
       return;
     }
-    const receivers = conversation.participants.filter(
-      (participant) => participant != user.id
-    );
+    const receivers = conversation.participants
+      .filter((participant) => participant != user.id)
+      .map(Number);
     console.log("receivers: ", receivers);
 
     const data = {
@@ -64,19 +171,65 @@ const ChatScreen = ({ route }) => {
       type: "TEXT",
     };
     try {
-      const newMessage = await MessageAPI.sendMessage(data, accessToken);
+      const result = await MessageAPI.sendMessage(data, accessToken);
+      const receiveMessage = result.message;
       setNewMessage("");
+      //truyen new message vao socket
+      socket.emit("send message", receiveMessage);
+      //truyen lastMessage vao socket
+      socket.emit("update conversation", result.updatedConversation);
+
       fetchMessages();
     } catch (err) {
       console.error("Send message failed: ", err.message);
     }
   };
+  const sendImageAndText = async () => {
+    const receivers = conversation.participants.filter(
+      (participant) => participant != user.id
+    );
+
+    const formData = new FormData();
+    formData.append("conversation_id", conversation_id);
+    formData.append("sender", user.id);
+    receivers.forEach((id) => {
+      formData.append("receivers[]", id);
+    });
+    if (newMessage) {
+      formData.append("content", newMessage);
+    }
+    if (selectedImage) {
+      formData.append("image", {
+        uri: selectedImage.uri,
+        name: "image.jpg",
+        type: "image/jpeg",
+      });
+    } else if (selectedDocument) {
+      formData.append("image", {
+        uri: selectedDocument.uri,
+        name: selectedDocument.name || "document.pdf",
+        type: selectedDocument.mimeType || "application/pdf",
+      });
+    }
+    try {
+      const response = await MessageAPI.sendImageAndText(formData, accessToken);
+      if (response) {
+        socket.emit("send message", response);
+        fetchMessages();
+      }
+      return response;
+    } catch (err) {
+      alert(err.response.data.error);
+    }
+  };
+
+  //longPress()
   const handleMessage = (message_id) => {
     console.log("select message id: ", message_id);
     setSelectMessage(message_id);
     setShowMessageModal(true);
   };
-
+  //--------------------------------
   //Sửa, Thu hồi, Xóa message
   const deleteMessage = async () => {
     const data = {
@@ -84,8 +237,20 @@ const ChatScreen = ({ route }) => {
       user_id: user.id,
     };
     try {
-      await MessageAPI.deleteMessage(selectMessage, data, accessToken);
+      const rs = await MessageAPI.deleteMessage(
+        selectMessage,
+        data,
+        accessToken
+      );
       await fetchMessages();
+      //emit socket
+      const dataSocket = {
+        message_id: rs.id,
+        conversation_id: conversation_id,
+      };
+      socket.emit("delete message", dataSocket);
+
+      setShowMessageModal(false);
       alert("Xóa thành công");
     } catch (err) {
       alert("Xóa thất bại: " + err.response.data.error);
@@ -95,9 +260,24 @@ const ChatScreen = ({ route }) => {
     const data = {
       conversation_id: conversation_id,
       user_id: user.id,
-      content: newMessage,
+      content: editContent,
     };
-    await MessageAPI.updateMessage(selectMessage, data, accessToken);
+    try {
+      const updatedMessage = await MessageAPI.updateMessage(
+        selectMessage,
+        data,
+        accessToken
+      );
+      socket.emit("update message", updatedMessage);
+      await fetchMessages();
+
+      setEdit(false); //dong Moddal update
+      setEditContent("");
+      setShowMessageModal(false);
+      alert("Cập nhật tin nhắn thành công");
+    } catch (err) {
+      alert(err.response.data.error);
+    }
   };
   const revokeMessage = async () => {
     const data = {
@@ -105,27 +285,66 @@ const ChatScreen = ({ route }) => {
       user_id: user.id,
     };
     try {
-      await MessageAPI.revokeMessage(selectMessage, data, accessToken);
-      await fetchMessages();
-      alert("Thu hồi thành công");
+      const revokedMessage = await MessageAPI.revokeMessage(
+        selectMessage,
+        data,
+        accessToken
+      );
+      if (revokeMessage) {
+        socket.emit("revoke message", revokedMessage);
+
+        await fetchMessages();
+        setShowMessageModal(false);
+        alert("Thu hồi thành công");
+      }
     } catch (err) {
       alert(err.response.data.error);
     }
   };
-  const forwardMessage = async () => {};
-  //-------------------------
+  const forwardMessage = async (conversation_id, participants) => {
+    const currentMessage = messages.find(
+      (message) => message.message_id == selectMessage
+    );
+    if (!currentMessage) {
+      alert("khong tim thay tin nhan");
+      return;
+    }
 
+    const data = {
+      conversation_id: conversation_id,
+      sender: user.id,
+      receivers: participants.filter((id) => id !== user.id),
+      content: currentMessage.content,
+      type: currentMessage.message_type,
+      image_url: currentMessage.image_url || null,
+    };
+    try {
+      const result = await MessageAPI.sendMessage(data, accessToken);
+      const forwardMessage = result.message;
+      //gui event len socket server
+      console.log("forward message: ", forwardMessage);
+      socket.emit("send message", forwardMessage);
+      console.log("da forward: ", forwardMessage);
+      //gui event update lastmessage
+      socket.emit("update conversation", result.updatedConversation);
+
+      alert("Chuyển tiếp tin nhắn thành công!");
+      setShowMessageModal(false);
+    } catch (err) {
+      console.error("Send message failed: ", err.message);
+    }
+  };
+  //-------------------------
   const renderMessage = ({ item }) => {
     const isMyMessage = item.sender === user.id;
-    //kiem tra tin nhan REVOKED chua
     const isRevoked = item.status === "REVOKED";
     const isUpdated = item.status === "UPDATED";
+    const isContent =
+      item.content && item.content !== null && item.content !== "null";
+    const textStyle = isUpdated ? { fontWeight: "bold" } : {};
+
     return (
-      <TouchableOpacity
-        onLongPress={() => {
-          handleMessage(item.message_id);
-        }}
-      >
+      <TouchableOpacity onLongPress={() => handleMessage(item.message_id)}>
         <View
           style={[
             styles.message,
@@ -136,36 +355,177 @@ const ChatScreen = ({ route }) => {
             <Text style={{ color: "gray" }}>Tin nhắn đã thu hồi</Text>
           ) : (
             <>
-              {item.content && <Text>{item.content}</Text>}
+              {isContent && <Text style={textStyle}>{item.content}</Text>}
               {item.image_url && (
                 <Image
                   source={{ uri: item.image_url }}
-                  style={{ width: 80, height: 80, borderRadius: 20 }}
+                  style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 20,
+                    marginTop: item.content ? 5 : 0,
+                  }}
                 />
               )}
-              {item.content && item.status === "UPDATED" && (
-                <Text style={{ fontWeight: "bold" }}>{item.content}</Text>
+              {item.message_type === "FILE" && (
+                <Text style={{ color: "blue" }}>{item.image_url}</Text>
               )}
             </>
           )}
         </View>
+        {/* <Text style={{fontSize:10}}>{item.created_at}</Text> */}
       </TouchableOpacity>
     );
   };
 
+  const socket = getSocket();
+  console.log("Socket ID:", socket.id);
+
   useEffect(() => {
+    if (!socket || !conversation_id) return;
+
+    fetchFriendStatus();
     fetchConversation();
     fetchMessages();
+
+    //handle socket
+    const handleReceiveMessage = (data) => {
+      console.log("Socket received message:", data);
+      setMessages((prevMessages) => [...prevMessages, data]);
+    };
+    const handleDeleteMessage = (id) => {
+      console.log("socket received delete message: ", id, typeof id);
+      setMessages((prev) => prev.filter((msg) => msg.message_id !== id));
+    };
+    const handleRevokeMessage = (message) => {
+      console.log("client receive revokeMessage from server: ", message);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.message_id === message.message_id ? message : msg
+        )
+      );
+    };
+    // truyen coversation_id vao socket de user join dung conversaiton
+    socket.emit("single chat", { conversation_id: conversation_id });
+    socket.on("join single chat", (data) => {
+      console.log(`Someone joined to chat ${data.conversation_id} `);
+    });
+    // realtime user trong room online/offline
+    socket.on("user status", (data) => {
+      setFriendStatus(data.status);
+      setLastActive(data.updatedAt);
+    });
+    //realtime gui tin nhan
+    socket.on("new message", handleReceiveMessage);
+    //xoa
+    socket.on("message deleted", handleDeleteMessage);
+    //realtime cap nhat tin nhan
+    socket.on("message updated", (message) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.message_id === message.message_id ? message : msg
+        )
+      );
+    });
+
+    // realtime revoke
+    socket.on("message revoked", handleRevokeMessage);
+    return () => {
+      socket.off("user status");
+      socket.off("new message", handleReceiveMessage);
+      socket.off("message deleted", handleDeleteMessage);
+      socket.off("message revoked", handleRevokeMessage);
+      socket.off("message updated");
+    };
   }, [conversation_id, user]);
+  console.log("c" + conversationsDetail.userDetail);
+  //xin quyen truy cap anh tren dien thoai
+  useEffect(() => {
+    const requestPermission = async () => {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        alert("Quyền truy cap anh bị từ chối!");
+      }
+    };
+    requestPermission();
+  }, []);
 
   const backToHomeChat = () => {
-    navigation.goBack();
+    navigation.navigate("homeChat");
   };
+
+  const fetchFriendStatus = async () => {
+    try {
+      const response = await fetch(
+        `${API_URL}/api/users/${otherUserDetail.user_id}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      const data = await response.json();
+      if (data) {
+        console.log("Friend status: ", data.status);
+        socket.emit("online", data);
+      }
+    } catch (error) {
+      console.error("Error fetching friend status: ", error);
+    }
+  };
+
   return (
     <View style={styles.container}>
+      <View style={{ height: 30 }}></View>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{conversation_id}</Text>
-        <Text>Hoạt động 10 phút trước</Text>
+        <View style={{ flexDirection: "row" }}>
+          <TouchableOpacity onPress={backToHomeChat}>
+            <Image
+              source={require("../assets/back.png")}
+              style={{ width: 24, height: 24 }}
+            />
+          </TouchableOpacity>
+          <Image
+            source={
+              otherUserDetail?.avatar_url
+                ? { uri: otherUserDetail.avatar_url }
+                : require("../assets/user1.png")
+            }
+            style={{ width: 40, height: 40, borderRadius: 20, marginLeft: 10 }}
+          />
+          <View style={{ marginLeft: 10 }}>
+            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
+              {
+                otherUserDetail?.fullname ||
+                  "Người dùng ID:" + otherUserDetail.user_id + ""
+                // conversation_id
+              }
+            </Text>
+            {friendStatus === "ONLINE" ? (
+              <Text style={{ color: "green", fontSize: 12 }}>Trực tuyến</Text>
+            ) : (
+              <Text style={{ color: "gray", fontSize: 12 }}>
+                {(() => {
+                  const minutesAgo = Math.floor(
+                    (Date.now() - new Date(LastActive)) / 60000
+                  );
+                  if (minutesAgo > 1440) {
+                    return `Hoạt động ${Math.floor(
+                      minutesAgo / 1440
+                    )} ngày trước`;
+                  } else if (minutesAgo > 60) {
+                    return `Hoạt động ${Math.floor(minutesAgo / 60)} giờ trước`;
+                  } else {
+                    return `Hoạt động ${minutesAgo} phút trước`;
+                  }
+                })()}
+              </Text>
+            )}
+          </View>
+        </View>
       </View>
       <View style={styles.listMessage}>
         <FlatList
@@ -177,7 +537,7 @@ const ChatScreen = ({ route }) => {
           transparent={true}
           animationType="fade"
           visible={showMessageModal}
-          onRequestClose={() => setShowActions(false)}
+          onRequestClose={() => setShowMessageModal(false)}
         >
           <View style={styles.modalBackground}>
             <View style={styles.modalContainer}>
@@ -194,13 +554,41 @@ const ChatScreen = ({ route }) => {
                 <Text style={styles.modalButtonText}>Thu hồi</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={updateMessage}
+                onPress={openEditContent}
                 style={styles.modalButton}
               >
                 <Text style={styles.modalButtonText}>Sửa</Text>
               </TouchableOpacity>
+              {edit && (
+                <View
+                  style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    justifyContent: "center",
+                  }}
+                >
+                  <TextInput
+                    value={editContent}
+                    onChangeText={setEditContent}
+                    style={{
+                      height: 40,
+                      width: 200,
+                      borderRadius: 20,
+                      borderWidth: 1,
+                      padding: 10,
+                      marginBottom: 10,
+                    }}
+                  />
+                  <TouchableOpacity
+                    style={styles.modalButton}
+                    onPress={updateMessage}
+                  >
+                    <Text style={{ color: "red" }}>Xác nhận</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
               <TouchableOpacity
-                onPress={forwardMessage}
+                onPress={openForwardPopup}
                 style={styles.modalButton}
               >
                 <Text style={styles.modalButtonText}>Chuyển tiếp</Text>
@@ -215,26 +603,72 @@ const ChatScreen = ({ route }) => {
           </View>
         </Modal>
       </View>
-      <View style={styles.footer}>
-        <TouchableOpacity onPress={backToHomeChat}>
+      {forwardPopUp && (
+        <Modal visible={true} transparent={true} animationType="fade">
+          <View style={styles.centeredModal}>
+            <View style={styles.modalContainer}>
+              <TouchableOpacity onPress={() => setForwardPopup(false)}>
+                <Text>X</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>
+                Chọn cuộc trò chuyện để chuyển tiếp
+              </Text>
+              {conversationsDetail.map((c) => (
+                <TouchableOpacity
+                  key={c.conversation_id}
+                  style={styles.conversationItem}
+                  onPress={() => {
+                    forwardMessage(c.conversation_id, c.participants);
+                    setForwardPopup(false);
+                  }}
+                >
+                  <Text style={styles.conversationText}>
+                    {c.userDetail.fullname || c.conversation_id}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </Modal>
+      )}
+      {selectedImage && (
+        <View
+          style={{
+            width: "100%",
+            height: 80,
+            padding: 10,
+            backgroundColor: "gray",
+          }}
+        >
           <Image
-            source={require("../assets/microphone.png")}
-            style={{ width: 30, height: 30 }}
+            source={{ uri: selectedImage.uri }}
+            style={{ width: 60, height: 60 }}
           />
-        </TouchableOpacity>
-        <TouchableOpacity>
+        </View>
+      )}
+      {selectedDocument && (
+        <View>
+          <Text>{selectedDocument.name}</Text>
+          <Text>{selectedDocument.uri}</Text>
+        </View>
+      )}
+      <View style={styles.footer}>
+        <TouchableOpacity onPress={selectDocument}>
           <Image
             source={require("../assets/documents.png")}
             style={{ width: 30, height: 30 }}
           />
         </TouchableOpacity>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={selectImage}>
           <Image
             source={require("../assets/image.png")}
             style={{ width: 30, height: 30 }}
           />
         </TouchableOpacity>
-        <TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => setShowEmojiPicker(true)} // Show emoji picker
+        >
           <Image
             source={require("../assets/emoji.png")}
             style={{ width: 30, height: 30 }}
@@ -253,13 +687,56 @@ const ChatScreen = ({ route }) => {
           placeholder="Type a message..."
           placeholderTextColor="#888"
         />
-        <TouchableOpacity onPress={sendMessage}>
+        <TouchableOpacity onPress={handleSend}>
           <Image
             source={require("../assets/send.png")}
             style={{ width: 30, height: 30 }}
           />
         </TouchableOpacity>
       </View>
+      <Modal
+        transparent={true}
+        animationType="slide"
+        visible={showEmojiPicker}
+        onRequestClose={() => setShowEmojiPicker(false)}
+      >
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContainer}>
+            <FlatList
+              data={[
+                "😀",
+                "😂",
+                "😍",
+                "😎",
+                "😭",
+                "😡",
+                "👍",
+                "🎉",
+                "❤️",
+                "🔥",
+              ]}
+              numColumns={5}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => {
+                    setNewMessage((prev) => prev + item);
+                    setShowEmojiPicker(false);
+                  }}
+                >
+                  <Text style={{ fontSize: 30, margin: 10 }}>{item}</Text>
+                </TouchableOpacity>
+              )}
+              keyExtractor={(item, index) => index.toString()}
+            />
+            <TouchableOpacity
+              onPress={() => setShowEmojiPicker(false)}
+              style={styles.modalButton}
+            >
+              <Text style={styles.modalButtonText}>Đóng</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -271,8 +748,10 @@ const styles = StyleSheet.create({
   header: {
     height: 60,
     backgroundColor: "#6200ea",
-    justifyContent: "center",
+    flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 10,
+    // justifyContent: "space-between",
   },
   listMessage: { flex: 1, padding: 10 },
   message: {
@@ -286,6 +765,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 2,
+    maxWidth: "80%",
+    width: "auto",
   },
   footer: {
     display: "flex",
@@ -303,11 +784,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
+  centeredModal: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)", // nền mờ
+  },
   modalContainer: {
     backgroundColor: "#fff",
     padding: 20,
     borderRadius: 10,
     width: "80%",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  conversationItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+  },
+  conversationText: {
+    fontSize: 16,
   },
   modalButton: {
     padding: 10,
