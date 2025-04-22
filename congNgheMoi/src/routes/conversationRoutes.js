@@ -42,7 +42,7 @@ router.put(
 router.put(
   "/updateGroup/:conversation_id",
   authMiddlewareWithoutRefresh,
-  upload.single("avatar"),
+  upload.single("group_avatar"),
   ConversationController.updateGroupConversation
 );
 router.put(
