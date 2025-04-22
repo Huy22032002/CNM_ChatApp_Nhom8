@@ -18,6 +18,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { API_URL } from "../api/apiConfig";
 import { Alert } from "react-native";
 import { Icon } from "react-native-paper";
+import { getSocket } from "../services/socket";
 // Thêm import
 import { MaterialIcons } from "@expo/vector-icons";
 
@@ -30,7 +31,7 @@ const ChatGroupScreen = ({ route }) => {
   const [conversation, setConversation] = useState(null);
 
   const user = useSelector((state) => state.user.user);
-//   console.log("user", user);
+  //   console.log("user", user);
   const accessToken = useSelector((state) => state.user.accessToken);
 
   const [messages, setMessages] = useState([]);
@@ -56,7 +57,7 @@ const ChatGroupScreen = ({ route }) => {
         conversation_id,
         accessToken
       );
-      console.log("conversation: ", data);
+      console.log("conversation 12134564646: ", data);
       setConversation(data);
     } catch (error) {
       console.error("Error fetching conversation: ", error);
@@ -81,35 +82,33 @@ const ChatGroupScreen = ({ route }) => {
     const isMatch = participants.every((participant) =>
       conversation.participants.includes(participant.user_id)
     );
-    if (!isMatch) { 
-        console.log("Không đủ participants, đang tải thông tin chi tiết...");
-        //lấy participantsDetail còn thiếu rồi thêm vào participants
-        const missingParticipants = conversation.participants.filter(
-            (participant) => !participants.includes(participant)
-        );
-        const missingParticipantsDetail = await Promise.all(
-            missingParticipants.map(async (participant) => {
-                const response = await fetch(
-                    `${API_URL}/api/userDetails/${participant}`,
-                    {
-                        method: "GET",
-                        headers: {
-                            Authorization: `Bearer ${accessToken}`,
-                            "Content-Type": "application/json",
-                        },
-                    }
-                );
-                const data = await response.json();
-                return data;
-            })
-        );
-        setParticipantsDetail((prev) => [
-            ...prev,
-            ...missingParticipantsDetail,
-        ]);
-    }            
-    
+    if (!isMatch) {
+      console.log("Không đủ participants, đang tải thông tin chi tiết...");
+      //lấy participantsDetail còn thiếu rồi thêm vào participants
+      const missingParticipants = conversation.participants.filter(
+        (participant) => !participants.includes(participant)
+      );
+      const missingParticipantsDetail = await Promise.all(
+        missingParticipants.map(async (participant) => {
+          const response = await fetch(
+            `${API_URL}/api/userDetails/${participant}`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+          const data = await response.json();
+          return data;
+        })
+      );
+      setParticipantsDetail((prev) => [...prev, ...missingParticipantsDetail]);
+    }
+
     setParticipantsDetail(participants);
+    console.log("Huy ngu", participantsDetail);
   };
 
   // Get all conversations for forward
@@ -151,7 +150,7 @@ const ChatGroupScreen = ({ route }) => {
     }
 
     const data = {
-      conversation_id,
+      conversation_id: conversation_id,
       sender: user.id,
       receivers: participants.filter((id) => id !== user.id),
       content: newMessage,
@@ -159,7 +158,12 @@ const ChatGroupScreen = ({ route }) => {
     };
 
     try {
-      await MessageAPI.sendMessage(data, accessToken);
+      const result = await MessageAPI.sendMessage(data, accessToken);
+      const receiveMessage = result.message;
+
+      socket.emit("send message", receiveMessage);
+      socket.emit("update conversation", result.updatedConversation);
+
       setNewMessage("");
       fetchMessages();
     } catch (error) {
@@ -202,6 +206,9 @@ const ChatGroupScreen = ({ route }) => {
     }
     try {
       const response = await MessageAPI.sendImageAndText(formData, accessToken);
+      console.log("create message with file/img: ", response);
+      socket.emit("send message", response);
+
       fetchMessages();
       return response;
     } catch (err) {
@@ -229,12 +236,17 @@ const ChatGroupScreen = ({ route }) => {
   // Select document
   const selectDocument = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({ type: "*/*" });
-      if (result.type === "success") {
-        setSelectedDocument(result);
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+      });
+
+      if (result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        console.log("Document: ", file);
+        setSelectedDocument(file);
       }
-    } catch (error) {
-      console.error("Error selecting document:", error);
+    } catch (err) {
+      console.log("err select document: ", err);
     }
   };
 
@@ -253,7 +265,17 @@ const ChatGroupScreen = ({ route }) => {
     };
 
     try {
-      await MessageAPI.deleteMessage(selectMessage, data, accessToken);
+      const result = await MessageAPI.deleteMessage(
+        selectMessage,
+        data,
+        accessToken
+      );
+      //socket
+      const socketData = {
+        message_id: result.id,
+        conversation_id: conversation_id,
+      };
+      socket.emit("delete message", socketData);
       await fetchMessages();
       setShowMessageModal(false);
       alert("Xóa thành công");
@@ -272,12 +294,15 @@ const ChatGroupScreen = ({ route }) => {
   // Update message
   const updateMessage = async () => {
     try {
-      await MessageAPI.updateMessage(
+      const updatedMessage = await MessageAPI.updateMessage(
         selectMessage,
         { conversation_id, user_id: user.id, content: editContent },
         accessToken
       );
       fetchMessages();
+      //socket
+      socket.emit("update message", updatedMessage);
+
       setEdit(false);
       setEditContent("");
       setShowMessageModal(false);
@@ -290,11 +315,14 @@ const ChatGroupScreen = ({ route }) => {
   // Revoke message
   const revokeMessage = async () => {
     try {
-      await MessageAPI.revokeMessage(
+      const revokedMessage = await MessageAPI.revokeMessage(
         selectMessage,
         { conversation_id, user_id: user.id },
         accessToken
       );
+      //socket
+      socket.emit("revoke message", revokedMessage);
+
       fetchMessages();
       setShowMessageModal(false);
       alert("Thu hồi thành công");
@@ -325,13 +353,20 @@ const ChatGroupScreen = ({ route }) => {
       image_url: currentMessage.image_url || null,
     };
     try {
-      await MessageAPI.sendMessage(data, accessToken);
+      const result = await MessageAPI.sendMessage(data, accessToken);
+      const forwardMessage = result.message;
       alert("Chuyển tiếp tin nhắn thành công!");
+      //socket
+      socket.emit("send message", forwardMessage);
+      socket.emit("update conversation", result.updatedConversation);
+
       setShowMessageModal(false);
     } catch (error) {
       alert("Chuyển tiếp thất bại");
     }
   };
+
+  const socket = getSocket();
 
   useEffect(() => {
     (async () => {
@@ -341,11 +376,65 @@ const ChatGroupScreen = ({ route }) => {
         Alert.alert("Quyền bị từ chối", "Ứng dụng cần quyền truy cập ảnh.");
       }
     })();
+
     fetchConversation(); // Thêm dòng này
-    fetchMessages();
-    fetchParticipantsDetail();
+    // console.log("fetch cv: ", conversation);
+    // fetchMessages();
+    // fetchParticipantsDetail();
+
+    //handle socket
+    const handleReceiveMessage = (newMessage) => {
+      setMessages((prev) => [...prev, newMessage]);
+    };
+    const handleRevokeMessage = (revokedMessage) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.message_id === revokedMessage.message_id ? revokedMessage : msg
+        )
+      );
+    };
+    const handleUpdatedMessage = (updatedMessage) => {
+      setMessages((prev) =>
+        prev.map((mes) =>
+          mes.message_id === updatedMessage.message_id ? updatedMessage : mes
+        )
+      );
+    };
+    const handleDeleteMessage = (message_id) => {
+      setMessages((prev) =>
+        prev.filter((mes) => mes.message_id !== message_id)
+      );
+    };
+
+    //socket
+    socket.emit("group chat", { conversation_id: conversation_id });
+    socket.on("join group chat", ({ conversation_id }) => {
+      console.log("SO joined group", conversation_id);
+    });
+    //realtime user status
+
+    socket.on("new message", handleReceiveMessage);
+    socket.on("message revoked", handleRevokeMessage);
+    socket.on("message updated", handleUpdatedMessage);
+    socket.on("message deleted", handleDeleteMessage);
+
+    return () => {
+      socket.off("new message", handleReceiveMessage);
+      socket.off("message revoked", handleRevokeMessage);
+      socket.off("message updated", handleUpdatedMessage);
+      socket.off("message deleted", handleDeleteMessage);
+    };
   }, [conversation_id]);
 
+  useEffect(() => {
+    if (conversation && conversation.participants?.length > 0) {
+      console.log(
+        "Conversation đã có, bắt đầu fetch messages và participants detail"
+      );
+      fetchMessages();
+      fetchParticipantsDetail(conversation);
+    }
+  }, [conversation]);
   const renderMessage = ({ item }) => {
     const isMyMessage = item.sender === user.id;
     const isRevoked = item.status === "REVOKED";
@@ -411,7 +500,7 @@ const ChatGroupScreen = ({ route }) => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={{ paddingTop: 20 }}></View>
+      <View style={{ paddingTop: 30 }}></View>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.navigate("homeChat")}>
           <Image

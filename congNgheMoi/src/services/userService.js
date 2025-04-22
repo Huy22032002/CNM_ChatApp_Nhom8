@@ -14,11 +14,11 @@ async function createUser(username, email, pass_hash, phone) {
   try {
     const user = await User.create({ username, email, pass_hash, phone });
     // Tạo userDetail cho user mới tạo
-    await createUserDetail({user_id: user.id,});
+    await createUserDetail({ user_id: user.id });
     // tao userFriend cho user mới tạo
     console.log("user id", user.id);
     await Friends.createUserFriend(user.id);
-    
+
     return user;
   } catch (error) {
     throw new Error("Lỗi khi tạo user: " + error.message);
@@ -38,7 +38,9 @@ async function updateUser(id, user_data) {
     });
 
     if (updated === 0) {
-      console.warn(`Không tìm thấy user với ID: ${id} hoặc không có gì thay đổi`);
+      console.warn(
+        `Không tìm thấy user với ID: ${id} hoặc không có gì thay đổi`
+      );
       return null;
     }
 
@@ -51,6 +53,8 @@ async function updateUser(id, user_data) {
 }
 
 async function findUser(id) {
+  console.log("user id: ", id, typeof id);
+
   try {
     const user = await User.findByPk(id, {
       include: [{ model: UserDetail }],
@@ -87,12 +91,14 @@ async function authenticate(username, password) {
 
 async function addFriend(userId, friendId) {
   try {
-    const friend = await Friends.addFriend({ user_id: userId, friend_id: friendId });
+    const friend = await Friends.addFriend({
+      user_id: userId,
+      friend_id: friendId,
+    });
     return friend;
   } catch (error) {
     throw new Error("Lỗi khi thêm bạn bè: " + error.message);
   }
 }
-
 
 export { createUser, updateUser, getAllUSer, findUser, authenticate };

@@ -17,10 +17,11 @@ import { useSelector } from "react-redux";
 
 import { fetchUserDetail } from "../api/userDetailApi";
 import ConversationApi from "../api/conversationApi";
-
 import Icon from "react-native-vector-icons/Feather";
 import { useNavigation } from "@react-navigation/native";
 import { API_URL } from "../api/apiConfig";
+
+import { createSocket, disconnectSocket, getSocket } from "../services/socket";
 
 export default function HomeChat({ navigation }) {
   navigation = useNavigation();
@@ -96,7 +97,8 @@ export default function HomeChat({ navigation }) {
           headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
-      setUnreadCount(res.data.count);
+      // console.log("res unread count:", res.data.count);
+      setUnreadCount(res.data.count); // [{ message, type, status }]
     } catch (err) {
       console.error("Lỗi khi lấy số thông báo chưa đọc:", err);
     }
@@ -140,7 +142,8 @@ export default function HomeChat({ navigation }) {
           headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
-      setFriendRequests(res.data);
+      setFriendRequests(res.data); // [{ message, type, status }]
+      // console.log("Lời mời kết bạn:", friendRequests);
 
       // Fetch details for each friend request
       const detailsPromises = res.data.map(async (request) => {
@@ -198,7 +201,7 @@ export default function HomeChat({ navigation }) {
         }
       );
       handleFriendPress();
-      fetchFriendRequests();
+      fetchFriendRequests(); // Refresh the friend requests after accepting one
       getListConversation();
     } catch (err) {
       console.error("Lỗi khi từ chối kết bạn", err);
@@ -211,7 +214,6 @@ export default function HomeChat({ navigation }) {
       user.id,
       accessToken
     );
-    // console.log("Dữ liệu cuộc trò chuyện:", data);
     if (data) {
       setConversations(data);
 
@@ -260,15 +262,19 @@ export default function HomeChat({ navigation }) {
 
     // Lọc theo từ khóa tìm kiếm
     if (item.type === "SINGLE") {
-      return (item.otherUserDetail?.fullname || "")
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
+      if (item.otherUserDetail && item.otherUserDetail.fullname != null) {
+        return (item.otherUserDetail?.fullname || "")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase());
+      } else {
+        return "Chua co ten".toLowerCase().includes(searchQuery.toLowerCase());
+      }
     } else if (item.type === "GROUP") {
       // Tìm trong danh sách thành viên nhóm
       return (
         item.GROUP_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.otherUserDetails?.some((user) =>
-          (user.fullname || "")
+          (user?.fullname || "")
             .toLowerCase()
             .includes(searchQuery.toLowerCase())
         ) ||
@@ -333,6 +339,38 @@ export default function HomeChat({ navigation }) {
 
   useEffect(() => {
     setUserInfo(user);
+    //tao socket
+    if (user) {
+      const socket = createSocket();
+
+      socket.on("connect", () => {
+        console.log(`User ${user.id} connected Socket`);
+        //thong bao toi server user online
+        socket.emit("online", { user: user });
+      });
+      //update lastMessage
+      socket.on("conversation updated", (data) => {
+        console.log("updated conversation from socket: ", data);
+        setConversationDetails((prev) =>
+          prev.map((conver) =>
+            conver.conversation_id === data.conversation_id
+              ? {
+                  ...conver,
+                  lastMessage: {
+                    ...conver.lastMessage,
+                    ...data.lastMessage,
+                  },
+                }
+              : conver
+          )
+        );
+      });
+
+      socket.on("disconnect", () => {
+        console.log("disconnected socket");
+      });
+    }
+
     getUserDetail();
     getListConversation();
     fetchNotifications();
@@ -439,7 +477,7 @@ export default function HomeChat({ navigation }) {
   };
 
   const handleCreateGroup = async () => {
-    if (selectedFriends.length <2 ) {
+    if (selectedFriends.length < 2) {
       Alert.alert("Lỗi", "Vui lòng chọn ít nhất hai người !");
       return;
     }
@@ -499,7 +537,7 @@ export default function HomeChat({ navigation }) {
           navigation.navigate("chatGroupScreen", {
             conversation_id: item.conversation_id,
             groupName: item.group_name,
-            participants: [...item.otherUserDetails,userDetail],
+            participants: [...item.otherUserDetails, userDetail],
             type: item.type,
           });
         }
@@ -512,20 +550,24 @@ export default function HomeChat({ navigation }) {
               ? { uri: item.otherUserDetail.avatar_url }
               : require("../assets/user1.png")
             : item.group_avatar
-              ? { uri: item.group_avatar }
-              : item.otherUserDetails?.[0]?.avatar_url
-                ? { uri: item.otherUserDetails[0].avatar_url }
-                : require("../assets/user1.png")
+            ? { uri: item.group_avatar }
+            : item.otherUserDetails?.[0]?.avatar_url
+            ? { uri: item.otherUserDetails[0].avatar_url }
+            : require("../assets/user1.png")
         }
         style={styles.avatar}
       />
       <View style={styles.chatContent}>
         <Text style={styles.chatName}>
           {item.type === "SINGLE"
-            ? item.otherUserDetail?.fullname || "Người dùng ID: "+item.otherUserDetail?.user_id
-            : "[Nhóm] "+item.group_name ||
-              item.otherUserDetails?.map((u) => u.fullname).join(", ") ||
-              "Nhóm chat"}
+            ? item.otherUserDetail?.fullname ||
+              "Người dùng ID: " + item.otherUserDetail?.user_id
+            : "[Nhóm] " + item.group_name
+            ? "[Nhóm] " + item.group_name
+            : item.otherUserDetails?.length
+            ? "[Nhóm] " +
+              item.otherUserDetails.map((u) => u?.fullname).join(", ")
+            : "Nhóm chat"}
         </Text>
         <Text style={styles.chatMsg} numberOfLines={1} ellipsizeMode="tail">
           {item.lastMessage?.content || "Chưa có tin nhắn"}
@@ -539,6 +581,7 @@ export default function HomeChat({ navigation }) {
 
   return (
     <View style={styles.container}>
+      <View style={{ height: 30 }}></View>
       <View style={styles.headerRow}>
         <Text style={styles.header}>
           Xin chào, {userDetail?.fullname || "User"} 👋
@@ -717,10 +760,12 @@ export default function HomeChat({ navigation }) {
             {/* Friends List */}
             <Text style={styles.friendsListHeader}>Danh sách bạn bè</Text>
             <FlatList
-              data={friendsList.filter((friend) =>
-                friend.fullname||"Người dùng ID: "+friend.user_id+""
-                  .toLowerCase()
-                  .includes(friendSearchQuery.toLowerCase())
+              data={friendsList.filter(
+                (friend) =>
+                  friend?.fullname ||
+                  "Người dùng ID: " +
+                    friend.user_id +
+                    "".toLowerCase().includes(friendSearchQuery.toLowerCase())
               )}
               renderItem={({ item }) => (
                 <TouchableOpacity
@@ -739,7 +784,7 @@ export default function HomeChat({ navigation }) {
                     }
                     style={styles.friendAvatar}
                   />
-                  <Text style={styles.friendName}>{item.fullname}</Text>
+                  <Text style={styles.friendName}>{item?.fullname}</Text>
                   {selectedFriends.includes(item.friend_id) && (
                     <Icon
                       name="check-circle"

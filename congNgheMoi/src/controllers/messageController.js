@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import S3 from "../configs/configS3.js";
 import MessageService from "../services/messageService.js";
+import ConversationService from "../services/conversationService.js";
 
 const MessageController = {
   async sendImageMessage(req, res) {
@@ -65,7 +66,22 @@ const MessageController = {
           .json({ error: "Vui lòng nhập đủ thông tin để tạo message" });
       }
       const message = await MessageService.createMessage(data);
-      return res.status(200).json(message);
+      console.log("create message: ", message);
+
+      //update conversation
+      const lastMessage = {
+        content: message.content,
+        updated_at: message.created_at,
+      };
+      const updatedConversation = await ConversationService.updateConver(
+        message.conversation_id,
+        lastMessage
+      );
+      console.log(
+        "update conversation after create new message: ",
+        updatedConversation
+      );
+      return res.status(200).json({ message, updatedConversation });
     } catch (error) {
       return res.status(500).json({
         message: "error create message in message controler",
@@ -75,8 +91,6 @@ const MessageController = {
   },
   async getAllMessageByConversationId(req, res) {
     const converId = req.params.converId;
-    console.log(converId);
-
     if (!converId) {
       return res.status(400).json({ error: "Vui lòng truyền conversation_id" });
     }
@@ -116,13 +130,12 @@ const MessageController = {
       if (!updatedMessage) {
         return res
           .status(404)
-          .json({ error: "Message not found or update failed" });
+          .json({ error: "Message update failed in Message Controller" });
       }
       res.status(200).json(updatedMessage);
     } catch (err) {
       console.error("Error updating message in mesage controler:", err.message);
       return res.status(500).json({
-        message: "Error updating message in mesage controler",
         error: err.message,
       });
     }
@@ -145,9 +158,10 @@ const MessageController = {
         conversation_id
       );
       if (rs)
-        return res
-          .status(200)
-          .json({ message: `deleted message ${message_id} successfully!` });
+        return res.status(200).json({
+          message: `deleted message ${message_id} successfully!`,
+          id: `${message_id}`,
+        });
     } catch (err) {
       return res.status(500).json({
         message: "Error Delete Message in Message Controller",

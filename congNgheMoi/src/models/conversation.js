@@ -15,7 +15,7 @@ const ConversationModel = {
         participants: dynamoDB.createSet(participants),
         created_at: new Date().toISOString(),
         status: "ACTIVE", //chua can luu lastMessage
-        lastMessage:"Chưa có tin nhắn nào",
+        lastMessage: "Chưa có tin nhắn nào",
       },
     };
     await dynamoDB.put(params).promise();
@@ -30,13 +30,37 @@ const ConversationModel = {
         participants: dynamoDB.createSet(participants),
         created_at: new Date().toISOString(),
         status: "ACTIVE",
-        lastMessage:"Chưa có tin nhắn nào",
+        lastMessage: "Chưa có tin nhắn nào",
         group_name: group_name,
-        group_avatar:null, //default avatar group
+        group_avatar: null, //default avatar group
       },
     };
     await dynamoDB.put(params).promise();
     return params.Item;
+  },
+  async leaveConversation(conversation_id, user_id) {
+    const params = {
+      TableName: TABLE_NAME,
+      Key: {
+        conversation_id,
+      },
+      UpdateExpression: "DELETE participants :user",
+      ExpressionAttributeValues: {
+        ":user": dynamoDB.createSet([user_id]),
+      },
+      ReturnValues: "ALL_NEW",
+    };
+
+    try {
+      const result = await dynamoDB.update(params).promise();
+      return result.Attributes;
+    } catch (err) {
+      console.error(
+        `Error removing participant ${user_id} from ${conversation_id}:`,
+        err
+      );
+      throw new Error("Failed to leave conversation");
+    }
   },
 
   async updateGroupConversation(conversation_id, group_name, group_avatar) {
@@ -45,7 +69,8 @@ const ConversationModel = {
       Key: {
         conversation_id,
       },
-      UpdateExpression: "set group_name = :group_name, group_avatar = :group_avatar",
+      UpdateExpression:
+        "set group_name = :group_name, group_avatar = :group_avatar",
       ExpressionAttributeValues: {
         ":group_name": group_name,
         ":group_avatar": group_avatar,
@@ -77,7 +102,9 @@ const ConversationModel = {
       const result = await dynamoDB.update(params).promise();
       return result.Attributes;
     } catch (err) {
-      console.log(`Error update group avatar conver ${conversation_id}: ${err}`);
+      console.log(
+        `Error update group avatar conver ${conversation_id}: ${err}`
+      );
       return null;
     }
   },
@@ -102,7 +129,6 @@ const ConversationModel = {
       return null;
     }
   },
-
 
   async getAllConversationByUser(user_id) {
     const params = {
@@ -151,17 +177,18 @@ const ConversationModel = {
           updated_at: new Date().toISOString(),
         },
       },
-      ReturnValues: "UPDATED_NEW", //return gia tri moi dc update
+      ReturnValues: "ALL_NEW", //return gia tri moi dc update
     };
     try {
       const result = await dynamoDB.update(params).promise();
       return result.Attributes;
     } catch (err) {
       console.log(`Error update conver ${conversation_id}: ${err}`);
-      return null;
+      throw new Error(
+        `Error update conversation in conversation model: ${err.message}`
+      );
     }
   },
-
   async getConversationByParticipants(type, participants) {
     const params = {
       TableName: TABLE_NAME,
@@ -173,16 +200,16 @@ const ConversationModel = {
         ":typeVal": type,
       },
     };
-  
+
     try {
       const result = await dynamoDB.scan(params).promise();
       const allConversations = result.Items || [];
-  
+
       // Tìm cuộc hội thoại có đủ participants (giả định chỉ là 1-1 chat)
       for (const convo of allConversations) {
         const convoParticipants = convo.participants.values.sort();
         const inputParticipants = [...participants].sort();
-  
+
         if (
           convoParticipants.length === inputParticipants.length &&
           convoParticipants.every((val, idx) => val === inputParticipants[idx])
@@ -190,11 +217,14 @@ const ConversationModel = {
           return convo;
         }
       }
-  
+
       return null;
     } catch (error) {
       console.error("Error getConversationByParticipants:", error);
-      throw new Error("Failed to fetch conversation by participants");
+      throw new Error(
+        "Failed to fetch conversation by participants",
+        error.message
+      );
     }
   },
   async addNewParticipant(conversation_id, newParticipant) {
@@ -207,7 +237,7 @@ const ConversationModel = {
       ExpressionAttributeValues: {
         ":newParticipant": dynamoDB.createSet([newParticipant]),
       },
-      ReturnValues: "UPDATED_NEW",
+      ReturnValues: "ALL_NEW",
     };
     try {
       const result = await dynamoDB.update(params).promise();
@@ -216,7 +246,7 @@ const ConversationModel = {
       console.log(`Error add participant conver ${conversation_id}: ${err}`);
       return null;
     }
-  }, 
+  },
 
   async deleteConversation(conversation_id) {
     const params = {
@@ -245,7 +275,7 @@ const ConversationModel = {
         ":typeVal": type,
       },
     };
-  
+
     try {
       const result = await dynamoDB.scan(params).promise();
       return result.Items || [];
@@ -254,9 +284,6 @@ const ConversationModel = {
       throw new Error("Failed to fetch conversations by type");
     }
   },
-
-
-  
 };
 
 export default ConversationModel;

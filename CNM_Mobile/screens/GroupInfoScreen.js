@@ -26,7 +26,7 @@ const GroupInfoScreen = ({ route }) => {
     groupName: initialGroupName,
     participants: initialParticipants,
   } = route.params || {};
-  console.log("GroupInfoScreen params:", route.params);
+  // console.log("GroupInfoScreen params:", route.params);
   const user = useSelector((state) => state.user.user);
   const accessToken = useSelector((state) => state.user.accessToken);
 
@@ -135,7 +135,7 @@ const GroupInfoScreen = ({ route }) => {
 
       // Filter out any null or undefined values
       const validDetails = details.filter((d) => d !== null && d !== undefined);
-      console.log("Participants details:", validDetails);
+      // console.log("Participants details:", validDetails);
       setParticipantsDetail(validDetails);
     } catch (error) {
       console.error("Error fetching participant details:", error);
@@ -151,6 +151,7 @@ const GroupInfoScreen = ({ route }) => {
       }
 
       const response = await friendApi.getFriends(user.id, accessToken);
+      console.log("fr151650", response);
 
       // Ensure we have valid data
       if (Array.isArray(response)) {
@@ -160,9 +161,10 @@ const GroupInfoScreen = ({ route }) => {
         // Filter out users who are already in the group
         const filteredFriends = response.filter(
           (friend) =>
-            friend && friend.user_id && !participantIds.has(friend.user_id)
+            friend && friend.friend_id && !participantIds.has(friend.friend_id)
         );
         setFriends(filteredFriends);
+        console.log("list friend: ", filteredFriends);
       } else {
         console.error("Expected array from getFriends, but got:", response);
         setFriends([]);
@@ -210,7 +212,7 @@ const GroupInfoScreen = ({ route }) => {
       // Đảm bảo gửi đúng tên field mà backend mong đợi
       formData.append("group_name", group_name);
 
-      console.log("Form data for group name:", group_name);
+      // console.log("Form data for group name:", group_name);
 
       await ConversationApi.updateGroupConversation(
         conversation_id,
@@ -237,9 +239,9 @@ const GroupInfoScreen = ({ route }) => {
         type: "image/jpeg",
       });
 
-      console.log("Form data for avatar:");
+      // console.log("Form data for avatar:");
       for (let pair of formData.entries()) {
-        console.log(pair[0] + ": " + pair[1]);
+        // console.log(pair[0] + ": " + pair[1]);
       }
 
       await ConversationApi.updateGroupConversation(
@@ -256,7 +258,7 @@ const GroupInfoScreen = ({ route }) => {
     }
   };
 
-  const handleAddMembers = async () => {
+  const handleAddMembers = async (id) => {
     if (selectedFriends.length === 0) {
       setShowAddMemberModal(false);
       return;
@@ -264,18 +266,22 @@ const GroupInfoScreen = ({ route }) => {
 
     try {
       // Get user IDs from selected friends
-      const selectedUserIds = selectedFriends.map((friend) => friend.user_id);
+      // const selectedUserIds = selectedFriends.map((friend) => friend.user_id);
 
-      await ConversationApi.addParticipants(
-        conversation_id,
-        selectedUserIds,
-        accessToken
+      await Promise.all(
+        selectedFriends.map((friend) =>
+          ConversationApi.addParticipants(
+            conversation_id,
+            friend.friend_id,
+            accessToken
+          )
+        )
       );
+      console.log("11");
 
       // Update participants list with new members
-      setParticipants((prevParticipants) => [
-        ...new Set([...prevParticipants, ...selectedUserIds]),
-      ]);
+      fetchParticipantsDetail();
+      fetchGroupDetails();
 
       setSelectedFriends([]);
       setShowAddMemberModal(false);
@@ -348,7 +354,7 @@ const GroupInfoScreen = ({ route }) => {
               accessToken
             );
             Alert.alert("Success", "You have left the group");
-            navigation.navigate("Home");
+            navigation.navigate("homeChat");
           } catch (error) {
             console.error("Error leaving group:", error);
             Alert.alert("Error", "Failed to leave the group");
@@ -359,18 +365,18 @@ const GroupInfoScreen = ({ route }) => {
   };
 
   const toggleFriendSelection = (friend) => {
-    if (!friend || !friend.user_id) {
+    if (!friend || !friend.friend_id) {
       console.warn("Invalid friend object:", friend);
       return;
     }
 
     const isSelected = selectedFriends.some(
-      (f) => f.user_id === friend.user_id
+      (f) => f.friend_id === friend.friend_id
     );
 
     if (isSelected) {
       setSelectedFriends(
-        selectedFriends.filter((f) => f.user_id !== friend.user_id)
+        selectedFriends.filter((f) => f.friend_id !== friend.friend_id)
       );
     } else {
       setSelectedFriends([...selectedFriends, friend]);
@@ -410,13 +416,14 @@ const GroupInfoScreen = ({ route }) => {
   };
 
   const renderFriendItem = ({ item, index }) => {
-    if (!item || !item.user_id) {
+    if (!item || !item.friend_id) {
       console.warn("Invalid friend item:", item);
       return null;
     }
-
-    const isSelected = selectedFriends.some((f) => f.user_id === item.user_id);
-
+    const isSelected = selectedFriends.some(
+      (f) => f.friend_id === item.friend_id
+    );
+    console.log("idsdfsdfsd", isSelected);
     return (
       <TouchableOpacity
         style={[styles.friendItem, isSelected && styles.friendItemSelected]}
@@ -446,7 +453,7 @@ const GroupInfoScreen = ({ route }) => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={{height:20}}></View>
+      <View style={{ height: 30 }}></View>
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => {
@@ -601,8 +608,8 @@ const GroupInfoScreen = ({ route }) => {
                 data={friends}
                 renderItem={renderFriendItem}
                 keyExtractor={(item, index) =>
-                  item && item.user_id
-                    ? `friend-${item.user_id}`
+                  item && item.friend_id
+                    ? `friend-${item.friend_id}`
                     : `unknown-friend-${index}`
                 }
                 style={styles.friendsList}

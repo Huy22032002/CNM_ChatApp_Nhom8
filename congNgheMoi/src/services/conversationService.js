@@ -23,6 +23,20 @@ const ConversationService = {
       group_name
     );
   },
+  async leaveConversation(conversation_id, user_id) {
+    if (!conversation_id || !user_id) {
+      throw new Error("Invalid data for leave conversation");
+    }
+    try {
+      return await ConversationModel.leaveConversation(
+        conversation_id,
+        user_id
+      );
+    } catch (err) {
+      console.error("Error in leaveConversation service:", err);
+      throw err;
+    }
+  },
 
   async updateGroupConversationDetail(data) {
     const { conversation_id, groupDetailData } = data;
@@ -31,20 +45,19 @@ const ConversationService = {
     if (!conversation_id || !groupDetailData) {
       throw new Error("invalid data update group conversation service");
     }
-
     // Only update what is provided
     let groupName = undefined;
     let groupAvatar = undefined;
-    
-    if ('group_name' in groupDetailData) {
+
+    if ("group_name" in groupDetailData) {
       groupName = groupDetailData.group_name;
       return await ConversationModel.updateGroupName(
         conversation_id,
-        groupName,
+        groupName
       );
     }
-    
-    if ('group_avatar' in groupDetailData) {
+
+    if ("group_avatar" in groupDetailData) {
       groupAvatar = groupDetailData.group_avatar;
       return await ConversationModel.updateGroupAvatar(
         conversation_id,
@@ -52,7 +65,6 @@ const ConversationService = {
       );
     }
   },
-
 
   async getAllConversation(user_id) {
     if (!user_id) {
@@ -82,18 +94,21 @@ const ConversationService = {
       );
     } catch (err) {
       console.log(`err update conversation sevice ${err}`);
-      throw new Error("Error updating conversation service");
+      throw new Error(
+        "Error update conversation in conversation service",
+        err.message
+      );
     }
   },
 
-  async addNewParticipant(conversation_id, newParticipant) {
-    if (!conversation_id || !newParticipant) {
+  async addNewParticipant(conversation_id, user_id) {
+    if (!conversation_id || !user_id) {
       throw new Error("Invalid data for add participant conversation service");
     }
     try {
       return await ConversationModel.addNewParticipant(
         conversation_id,
-        newParticipant
+        user_id
       );
     } catch (err) {
       console.log(`err add participant conversation service ${err}`);
@@ -103,7 +118,9 @@ const ConversationService = {
 
   async removeParticipant(conversation_id, participant) {
     if (!conversation_id || !participant) {
-      throw new Error("Invalid data for remove participant conversation service");
+      throw new Error(
+        "Invalid data for remove participant conversation service"
+      );
     }
     try {
       return await ConversationModel.removeParticipant(
@@ -139,8 +156,6 @@ const ConversationService = {
       throw new Error("Error getting all conversations by type service");
     }
   },
-
-
 };
 
 export default ConversationService;
