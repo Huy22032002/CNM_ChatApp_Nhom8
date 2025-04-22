@@ -410,7 +410,10 @@ const ChatScreen = ({ route }) => {
           />
           <View style={{ marginLeft: 10 }}>
             <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
-              {otherUserDetail?.fullname || item.conversation_id}
+              {otherUserDetail?.fullname || 
+                "Người dùng ID:" + otherUserDetail.user_id+""
+                // conversation_id
+              }
             </Text>
             {friendStatus === "ONLINE" ? (
               <Text style={{ color: "green", fontSize: 12 }}>Trực tuyến</Text>

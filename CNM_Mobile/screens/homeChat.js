@@ -711,7 +711,7 @@ export default function HomeChat({ navigation }) {
             <Text style={styles.friendsListHeader}>Danh sách bạn bè</Text>
             <FlatList
               data={friendsList.filter((friend) =>
-                friend.fullname
+                friend.fullname||""
                   .toLowerCase()
                   .includes(friendSearchQuery.toLowerCase())
               )}
