@@ -18,6 +18,21 @@ import * as DocumentPicker from "expo-document-picker";
 import { API_URL } from "../api/apiConfig";
 import { Alert } from "react-native";
 import { Icon } from "react-native-paper";
+// Thêm import
+import { MaterialIcons } from "@expo/vector-icons";
+
+// Trong component
+<TouchableOpacity
+  onPress={() =>
+    navigation.navigate("GroupInfo", {
+      conversation_id: conversation_id,
+      groupName: groupName,
+      participants: participants,
+    })
+  }
+>
+  <MaterialIcons name="info" size={24} color="#fff" />
+</TouchableOpacity>;
 
 const ChatGroupScreen = ({ route }) => {
   const { conversation_id, groupName, participants } = route.params;
@@ -28,6 +43,7 @@ const ChatGroupScreen = ({ route }) => {
   const [conversation, setConversation] = useState(null);
 
   const user = useSelector((state) => state.user.user);
+//   console.log("user", user);
   const accessToken = useSelector((state) => state.user.accessToken);
 
   const [messages, setMessages] = useState([]);
@@ -45,8 +61,6 @@ const ChatGroupScreen = ({ route }) => {
   const [forwardPopUp, setForwardPopup] = useState(false);
   const [conversationsDetail, setConversationsDetail] = useState([]);
 
- 
-
   const navigation = useNavigation();
 
   const fetchConversation = async () => {
@@ -55,6 +69,7 @@ const ChatGroupScreen = ({ route }) => {
         conversation_id,
         accessToken
       );
+      console.log("conversation: ", data);
       setConversation(data);
     } catch (error) {
       console.error("Error fetching conversation: ", error);
@@ -71,9 +86,44 @@ const ChatGroupScreen = ({ route }) => {
   };
 
   const fetchParticipantsDetail = async () => {
+    // kiểm tra xem có đủ participants không (so sánh id trong participants với conversation.participants)
+    if (!conversation) {
+      console.log("Đang tải thông tin cuộc trò chuyện, vui lòng thử lại sau");
+      return;
+    }
+    const isMatch = participants.every((participant) =>
+      conversation.participants.includes(participant.user_id)
+    );
+    if (!isMatch) { 
+        console.log("Không đủ participants, đang tải thông tin chi tiết...");
+        //lấy participantsDetail còn thiếu rồi thêm vào participants
+        const missingParticipants = conversation.participants.filter(
+            (participant) => !participants.includes(participant)
+        );
+        const missingParticipantsDetail = await Promise.all(
+            missingParticipants.map(async (participant) => {
+                const response = await fetch(
+                    `${API_URL}/api/userDetails/${participant}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`,
+                            "Content-Type": "application/json",
+                        },
+                    }
+                );
+                const data = await response.json();
+                return data;
+            })
+        );
+        setParticipantsDetail((prev) => [
+            ...prev,
+            ...missingParticipantsDetail,
+        ]);
+    }            
     
     setParticipantsDetail(participants);
-  }; 
+  };
 
   // Get all conversations for forward
   const getListConversationDetail = async () => {
@@ -99,12 +149,12 @@ const ChatGroupScreen = ({ route }) => {
       alert("Vui lòng nhập nội dung để gửi");
       return;
     }
-  
+
     if (!conversation) {
       alert("Đang tải thông tin cuộc trò chuyện, vui lòng thử lại sau");
       return;
     }
-  
+
     if (selectedImage || selectedDocument) {
       await sendImageAndText();
       setNewMessage("");
@@ -112,7 +162,7 @@ const ChatGroupScreen = ({ route }) => {
       setSelectedDocument(null);
       return;
     }
-  
+
     const data = {
       conversation_id,
       sender: user.id,
@@ -120,7 +170,7 @@ const ChatGroupScreen = ({ route }) => {
       content: newMessage,
       type: "TEXT",
     };
-  
+
     try {
       await MessageAPI.sendMessage(data, accessToken);
       setNewMessage("");
@@ -133,9 +183,9 @@ const ChatGroupScreen = ({ route }) => {
 
   // Send image or document
   const sendImageAndText = async () => {
-    if(!conversation){
-        alert("Đang tải thông tin cuộc trò chuyện, vui lòng thử lại sau");
-        return;
+    if (!conversation) {
+      alert("Đang tải thông tin cuộc trò chuyện, vui lòng thử lại sau");
+      return;
     }
     const receivers = conversation.participants.filter(
       (participant) => participant != user.id
@@ -168,12 +218,12 @@ const ChatGroupScreen = ({ route }) => {
       fetchMessages();
       return response;
     } catch (err) {
-        if (err.response && err.response.data && err.response.data.error) {
-            alert(err.response.data.error);
-        } else {
-            alert("Không thể gửi tin nhắn. Vui lòng thử lại sau.");
-            console.error("Error sending message:", err);
-        }
+      if (err.response && err.response.data && err.response.data.error) {
+        alert(err.response.data.error);
+      } else {
+        alert("Không thể gửi tin nhắn. Vui lòng thử lại sau.");
+        console.error("Error sending message:", err);
+      }
     }
   };
 
@@ -186,17 +236,6 @@ const ChatGroupScreen = ({ route }) => {
     });
     if (!result.canceled) {
       setSelectedImage(result.assets[0]);
-    }
-  };
-
-  const selectNewAvatar = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 1,
-    });
-    if (!result.canceled) {
-      setNewAvatar(result.assets[0]);
     }
   };
 
@@ -219,18 +258,27 @@ const ChatGroupScreen = ({ route }) => {
   };
 
   // Delete message
+  // Delete message
   const deleteMessage = async () => {
+    const data = {
+      conversation_id: conversation_id,
+      user_id: user.id,
+    };
+
     try {
-      await MessageAPI.deleteMessage(
-        selectMessage,
-        { conversation_id },
-        accessToken
-      );
-      fetchMessages();
+      await MessageAPI.deleteMessage(selectMessage, data, accessToken);
+      await fetchMessages();
       setShowMessageModal(false);
       alert("Xóa thành công");
     } catch (error) {
-      alert("Xóa thất bại");
+      console.error("Error deleting message:", error);
+
+      // Hiển thị lỗi chi tiết nếu có
+      if (error.response && error.response.data && error.response.data.error) {
+        alert("Xóa thất bại: " + error.response.data.error);
+      } else {
+        alert("Xóa thất bại. Vui lòng thử lại sau.");
+      }
     }
   };
 
@@ -300,13 +348,12 @@ const ChatGroupScreen = ({ route }) => {
 
   useEffect(() => {
     (async () => {
-          const { status } =
-            await ImagePicker.requestMediaLibraryPermissionsAsync();
-          if (status !== "granted") {
-            Alert.alert("Quyền bị từ chối", "Ứng dụng cần quyền truy cập ảnh.");
-          }
-        }
-    )();
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Quyền bị từ chối", "Ứng dụng cần quyền truy cập ảnh.");
+      }
+    })();
     fetchConversation(); // Thêm dòng này
     fetchMessages();
     fetchParticipantsDetail();
@@ -377,6 +424,7 @@ const ChatGroupScreen = ({ route }) => {
   return (
     <View style={styles.container}>
       {/* Header */}
+      <View style={{ paddingTop: 20 }}></View>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Image
@@ -386,11 +434,19 @@ const ChatGroupScreen = ({ route }) => {
         </TouchableOpacity>
         <Text style={styles.groupName}>{groupName}</Text>
 
-        <TouchableOpacity onPress={() => navigation.navigate("GroupInfo")}> 
-            <Icon name="information" size={24} color="#fff" />
-        </TouchableOpacity>
-    
+        <View style={{ flex: 1 }}></View>
 
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate("groupInfoScreen", {
+              conversation_id: conversation_id,
+              groupName: groupName,
+              participants: participants,
+            })
+          }
+        >
+          <MaterialIcons name="info" size={24} color="#fff" />
+        </TouchableOpacity>
       </View>
 
       {/* Messages */}
@@ -612,6 +668,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 10,
+    justifyContent: "space-between",
   },
   groupName: {
     fontSize: 18,

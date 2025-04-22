@@ -4,6 +4,8 @@ import {
   authMiddlewareWithoutRefresh,
   authMiddleware,
 } from "../middlewares/authMiddleware.js";
+import { upload } from "../middlewares/uploadMiddleware.js";
+
 
 const router = express.Router();
 // router.get(
@@ -34,9 +36,15 @@ router.get(
 );
 router.put(
   "/update/:conversation_id",
+  authMiddlewareWithoutRefresh,
   ConversationController.updateConversation
 );
-
+router.put(
+  "/updateGroup/:conversation_id",
+  authMiddlewareWithoutRefresh,
+  upload.single("avatar"),
+  ConversationController.updateGroupConversation
+);
 router.put(
   "/addParticipant/:conversation_id",
   authMiddlewareWithoutRefresh,

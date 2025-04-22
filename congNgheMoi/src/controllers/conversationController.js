@@ -166,6 +166,66 @@ const getAllConversationsByType = async (req, res) => {
   }
 };
 
+const updateGroupConversation1 = async (req, res) => {
+  const { conversation_id, groupName } = req.body;
+  if (!conversation_id || !groupName) {
+    return res.status(400).json({
+      message: "Invalid data for update group conversation",
+    });
+  }
+
+  try {
+    const updatedGroupConversation = await ConversationService.updateGroupConver(
+      conversation_id,
+      groupName
+    );
+    res.status(200).json({
+      message: "Group conversation updated successfully",
+      updatedGroupConversation,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error updating group conversation controller",
+      error: error.message,
+    });
+  }
+};
+const updateGroupConversation = async (req, res) => {
+  try {
+    const conversation_id = req.params.conversation_id;
+    const groupDetailData = req.body;
+
+    if (req.file) {
+      const image = req.file.originalname.split(".");
+      const fileType = image[image.length - 1];
+      const filePath = `${uuidv4()}.${fileType}`;
+
+      const params = {
+        Bucket: "chatappnhom8",
+        Key: filePath,
+        Body: req.file.buffer,
+        ContentType: req.file.mimetype,
+      };
+
+      const uploadedImg = await S3.upload(params).promise();
+      groupDetailData.group_avatar = uploadedImg.Location;
+    } 
+
+    // Gọi service update
+    const updatedGroupDetail = await updateGroupConversation(
+      conversation_id,
+      groupDetailData
+    )
+
+    res.status(200).json({
+      message: "Cập nhật group thành công!",
+      groupDetail: updatedGroupDetail,
+    });
+  } catch (err) {
+    console.error("Lỗi cập nhật group:", err);
+    res.status(500).json({ message: "Lỗi server", error: err.message });
+  }
+};
 
 
 export default {
@@ -178,5 +238,6 @@ export default {
   deleteConversation,
   getAllConversationsByType,
   createGroupConversation,
+  updateGroupConversation,
 
 };
