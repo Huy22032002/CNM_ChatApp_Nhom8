@@ -1,6 +1,7 @@
 import { create } from "domain";
 import dynamoDB from "../configs/connectDynamo.js";
 import { v4 as uuidv4 } from "uuid"; //goi ham uuidv4
+import { group } from "console";
 
 const TABLE_NAME = "Conversations";
 
@@ -31,6 +32,7 @@ const ConversationModel = {
         status: "ACTIVE",
         lastMessage: "Chưa có tin nhắn nào",
         group_name: group_name,
+        group_avatar:null, //default avatar group
       },
     };
     await dynamoDB.put(params).promise();

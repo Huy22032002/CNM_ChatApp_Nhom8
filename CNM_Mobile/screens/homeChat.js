@@ -461,10 +461,15 @@ export default function HomeChat({ navigation }) {
   };
 
   const handleCreateGroup = async () => {
-    if (selectedFriends.length === 0 || !groupName.trim()) {
-      Alert.alert("Lỗi", "Vui lòng chọn ít nhất một người và nhập tên nhóm");
+    if (selectedFriends.length < 2) {
+      Alert.alert("Lỗi", "Vui lòng chọn ít nhất hai người !");
       return;
     }
+    if (!groupName.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập tên nhóm !");
+      return;
+    }
+
     try {
       const response = await axios.post(
         `${API_URL}/api/conversations/add_group`,
@@ -528,16 +533,17 @@ export default function HomeChat({ navigation }) {
             ? item.otherUserDetail?.avatar_url
               ? { uri: item.otherUserDetail.avatar_url }
               : require("../assets/user1.png")
-            : item.otherUserDetails?.[0]?.avatar_url
-            ? { uri: item.otherUserDetails[0].avatar_url }
-            : require("../assets/user1.png")
+            : item.group_avatar
+            ? { uri: item.group_avatar }
+            : { uri: item.otherUserDetails[0].avatar_url }
         }
         style={styles.avatar}
       />
       <View style={styles.chatContent}>
         <Text style={styles.chatName}>
           {item.type === "SINGLE"
-            ? item.otherUserDetail?.fullname || "Người dùng"
+            ? item.otherUserDetail?.fullname ||
+              "Người dùng ID: " + item.otherUserDetail?.user_id
             : "[Nhóm] " + item.group_name ||
               item.otherUserDetails?.map((u) => u.fullname).join(", ") ||
               "Nhóm chat"}
@@ -736,7 +742,9 @@ export default function HomeChat({ navigation }) {
               data={friendsList.filter(
                 (friend) =>
                   friend.fullname ||
-                  "".toLowerCase().includes(friendSearchQuery.toLowerCase())
+                  "Người dùng ID: " +
+                    friend.user_id +
+                    "".toLowerCase().includes(friendSearchQuery.toLowerCase())
               )}
               renderItem={({ item }) => (
                 <TouchableOpacity
