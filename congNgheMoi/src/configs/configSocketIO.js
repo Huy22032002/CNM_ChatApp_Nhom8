@@ -1,6 +1,5 @@
 import { Server } from "socket.io";
-import messageService from "../services/messageService.js";
-import conversationService from "../services/conversationService.js";
+
 import SocketControler from "../controllers/socketController.js";
 // io.on : client tao 1 connection -> Server
 // io.emit: Server gui data den All Clients ddang connect
