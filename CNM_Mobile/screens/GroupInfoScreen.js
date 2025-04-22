@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,190 +10,312 @@ import {
   ScrollView,
   Modal,
   Alert,
-} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { useSelector } from 'react-redux';
-import * as ImagePicker from 'expo-image-picker';
-import { Icon } from 'react-native-paper';
-import ConversationApi from '../api/conversationApi';
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { useSelector } from "react-redux";
+import * as ImagePicker from "expo-image-picker";
+import { Icon } from "react-native-paper";
+import ConversationApi from "../api/conversationApi";
+import friendApi from "../api/friendApi";
+import { fetchUserDetail } from "../api/userDetailApi";
 
 const GroupInfoScreen = ({ route }) => {
   const navigation = useNavigation();
-  const { conversation_id, groupName: initialGroupName, participants: initialParticipants } = route.params || {};
+  const {
+    conversation_id,
+    groupName: initialGroupName,
+    participants: initialParticipants,
+  } = route.params || {};
+  // console.log("GroupInfoScreen params:", route.params);
   const user = useSelector((state) => state.user.user);
   const accessToken = useSelector((state) => state.user.accessToken);
-  
+
   // States
-  const [groupName, setGroupName] = useState(initialGroupName || '');
+  const [groupName, setGroupName] = useState(initialGroupName || "");
   const [groupAvatar, setGroupAvatar] = useState(null);
   const [isEditingName, setIsEditingName] = useState(false);
-  const [participants, setParticipants] = useState(initialParticipants || []);
+  const [participants, setParticipants] = useState(() => {
+    if (Array.isArray(initialParticipants)) {
+      return initialParticipants.map((p) =>
+        typeof p === "object" && p !== null ? p.user_id : p
+      );
+    }
+    return [];
+  });
   const [participantsDetail, setParticipantsDetail] = useState([]);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [friends, setFriends] = useState([]);
   const [selectedFriends, setSelectedFriends] = useState([]);
-  
+  const [isLoading, setIsLoading] = useState(true);
+
   // Fetch group details, participants and friends
   useEffect(() => {
-    fetchGroupDetails();
-    fetchParticipantsDetail();
-    fetchFriends();
+    if (conversation_id) {
+      fetchGroupDetails();
+      fetchFriends();
+    }
   }, [conversation_id]);
-  
+
+  // Update participants details whenever participants list changes
+  useEffect(() => {
+    if (participants && participants.length > 0) {
+      fetchParticipantsDetail();
+    }
+  }, [participants]);
+  useEffect(() => {
+    if (
+      Array.isArray(initialParticipants) &&
+      initialParticipants.length > 0 &&
+      initialParticipants[0] &&
+      typeof initialParticipants[0] === "object"
+    ) {
+      setParticipantsDetail(initialParticipants.filter((p) => p !== null));
+    }
+  }, []);
   const fetchGroupDetails = async () => {
     try {
-      const response = await ConversationApi.fetchConversationsByConverId(conversation_id, accessToken);
+      setIsLoading(true);
+      const response = await ConversationApi.fetchConversationsByConverId(
+        conversation_id,
+        accessToken
+      );
       if (response) {
-        setGroupName(response.group_name || '');
+        setGroupName(response.group_name || "");
         setGroupAvatar(response.group_avatar || null);
-        setParticipants(response.participants || []);
+
+        // Handle participants - extract user_ids if they're objects
+        if (Array.isArray(response.participants)) {
+          const participantIds = response.participants.map((p) =>
+            typeof p === "object" && p !== null ? p.user_id : p
+          );
+          setParticipants(participantIds);
+        }
       }
     } catch (error) {
-      console.error('Error fetching group details:', error);
+      console.error("Error fetching group details:", error);
+      Alert.alert("Error", "Failed to load group details");
+    } finally {
+      setIsLoading(false);
     }
   };
-  
   const fetchParticipantsDetail = async () => {
     try {
-      // Assuming you have an API to get user details for each participant
-      // For now, we'll use mock data
+      if (!Array.isArray(participants) || participants.length === 0) {
+        setParticipantsDetail([]);
+        return;
+      }
+
       const details = await Promise.all(
-        participants.map(async (id) => {
+        participants.map(async (user_id, index) => {
+          if (!user_id) {
+            console.warn("Invalid user ID in participants");
+            return {
+              user_id: `unknown-${index}`,
+              fullname: "Unknown User",
+              avatar_url: null,
+            };
+          }
+
           try {
-            const userData = await ConversationApi.getUserById(id, accessToken);
-            return userData || { user_id: id, fullname: 'Unknown User', avatar_url: null };
+            const userData = await fetchUserDetail(user_id, accessToken);
+            return {
+              ...userData,
+              user_id: Number(user_id),
+            };
           } catch (error) {
-            return { user_id: id, fullname: 'Unknown User', avatar_url: null };
+            console.error(`Error fetching user ${user_id} details:`, error);
+            return {
+              user_id: String(user_id),
+              fullname: "Unknown User",
+              avatar_url: null,
+            };
           }
         })
       );
-      setParticipantsDetail(details);
+
+      // Filter out any null or undefined values
+      const validDetails = details.filter((d) => d !== null && d !== undefined);
+      // console.log("Participants details:", validDetails);
+      setParticipantsDetail(validDetails);
     } catch (error) {
-      console.error('Error fetching participant details:', error);
+      console.error("Error fetching participant details:", error);
+      setParticipantsDetail([]);
     }
   };
-  
   const fetchFriends = async () => {
     try {
-      // Assuming there's an API to get user's friends
-      const response = await ConversationApi.getFriends(user.id, accessToken);
-      // Filter out users who are already in the group
-      const filteredFriends = response.filter(
-        friend => !participants.includes(friend.user_id)
-      );
-      setFriends(filteredFriends);
+      if (!user || !user.id) {
+        console.error("User ID is missing");
+        setFriends([]);
+        return;
+      }
+
+      const response = await friendApi.getFriends(user.id, accessToken);
+      console.log("fr151650", response);
+
+      // Ensure we have valid data
+      if (Array.isArray(response)) {
+        // Create a Set of current participant IDs for faster lookup
+        const participantIds = new Set(participants);
+
+        // Filter out users who are already in the group
+        const filteredFriends = response.filter(
+          (friend) =>
+            friend && friend.friend_id && !participantIds.has(friend.friend_id)
+        );
+        setFriends(filteredFriends);
+        console.log("list friend: ", filteredFriends);
+      } else {
+        console.error("Expected array from getFriends, but got:", response);
+        setFriends([]);
+      }
     } catch (error) {
-      console.error('Error fetching friends:', error);
+      console.error("Error fetching friends:", error);
       setFriends([]);
     }
   };
-  
+
   // Handlers
   const handleSelectAvatar = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (status !== 'granted') {
-      Alert.alert('Permission required', 'Please grant camera roll permissions to change group avatar');
-      return;
-    }
-    
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-    
-    if (!result.canceled) {
-      setGroupAvatar(result.assets[0].uri);
-      handleUpdateGroupAvatar(result.assets[0]);
+    try {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission required",
+          "Please grant camera roll permissions to change group avatar"
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setGroupAvatar(result.assets[0].uri);
+        handleUpdateGroupAvatar(result.assets[0]);
+      }
+    } catch (error) {
+      console.error("Error selecting avatar:", error);
+      Alert.alert("Error", "Failed to select image");
     }
   };
-  
-  const handleUpdateGroupName = async () => {
-    if (!groupName.trim()) {
-      Alert.alert('Error', 'Group name cannot be empty');
-      return;
-    }
-    
+
+  const handleUpdateGroupName = async (group_name) => {
     try {
-      await ConversationApi.updateConversation(
+      const formData = new FormData();
+      // Đảm bảo gửi đúng tên field mà backend mong đợi
+      formData.append("group_name", group_name);
+
+      // console.log("Form data for group name:", group_name);
+
+      await ConversationApi.updateGroupConversation(
         conversation_id,
-        { group_name: groupName },
+        formData,
         accessToken
       );
+
+      setGroupName(group_name);
       setIsEditingName(false);
-      Alert.alert('Success', 'Group name has been updated');
+      Alert.alert("Success", "Group name has been updated");
     } catch (error) {
-      console.error('Error updating group name:', error);
-      Alert.alert('Error', 'Failed to update group name');
+      console.error("Error updating group name:", error);
+      Alert.alert("Error", "Failed to update group name");
     }
   };
-  
+
   const handleUpdateGroupAvatar = async (imageAsset) => {
     try {
       const formData = new FormData();
-      formData.append('conversation_id', conversation_id);
-      formData.append('avatar', {
+      // Đổi tên field để phù hợp với mong đợi của backend
+      formData.append("group_avatar", {
         uri: imageAsset.uri,
-        name: 'group-avatar.jpg',
-        type: 'image/jpeg',
+        name: `group-avatar-${Date.now()}.jpg`,
+        type: "image/jpeg",
       });
-      
-      await ConversationApi.updateConversationAvatar(formData, accessToken);
-      Alert.alert('Success', 'Group avatar has been updated');
+
+      // console.log("Form data for avatar:");
+      for (let pair of formData.entries()) {
+        // console.log(pair[0] + ": " + pair[1]);
+      }
+
+      await ConversationApi.updateGroupConversation(
+        conversation_id,
+        formData,
+        accessToken
+      );
+
+      setGroupAvatar(imageAsset.uri);
+      Alert.alert("Success", "Group avatar has been updated");
     } catch (error) {
-      console.error('Error updating group avatar:', error);
-      Alert.alert('Error', 'Failed to update group avatar');
+      console.error("Error updating group avatar:", error);
+      Alert.alert("Error", "Failed to update group avatar");
     }
   };
-  
-  const handleAddMembers = async () => {
+
+  const handleAddMembers = async (id) => {
     if (selectedFriends.length === 0) {
       setShowAddMemberModal(false);
       return;
     }
-    
+
     try {
-      await ConversationApi.addParticipants(
-        conversation_id,
-        selectedFriends.map(friend => friend.user_id),
-        accessToken
+      // Get user IDs from selected friends
+      // const selectedUserIds = selectedFriends.map((friend) => friend.user_id);
+
+      await Promise.all(
+        selectedFriends.map((friend) =>
+          ConversationApi.addParticipants(
+            conversation_id,
+            friend.friend_id,
+            accessToken
+          )
+        )
       );
-      
-      // Update participants list
-      const newParticipants = [...participants, ...selectedFriends.map(f => f.user_id)];
-      setParticipants(newParticipants);
-      
-      // Update participants detail
-      const newParticipantsDetail = [...participantsDetail, ...selectedFriends];
-      setParticipantsDetail(newParticipantsDetail);
-      
+      console.log("11");
+
+      // Update participants list with new members
+      fetchParticipantsDetail();
+      fetchGroupDetails();
+
       setSelectedFriends([]);
       setShowAddMemberModal(false);
-      fetchFriends(); // Refresh friends list
-      
-      Alert.alert('Success', 'Members added to the group');
+
+      // Refresh friends list to exclude newly added members
+      fetchFriends();
+
+      Alert.alert("Success", "Members added to the group");
     } catch (error) {
-      console.error('Error adding members:', error);
-      Alert.alert('Error', 'Failed to add members to the group');
+      console.error("Error adding members:", error);
+      Alert.alert("Error", "Failed to add members to the group");
     }
   };
-  
+
   const handleRemoveMember = async (memberId) => {
+    if (!memberId) {
+      console.warn("No member ID provided for removal");
+      return;
+    }
+
+    // If current user is trying to remove themselves, handle as "leave group"
     if (memberId === user.id) {
       handleLeaveGroup();
       return;
     }
-    
+
     Alert.alert(
-      'Remove Member',
-      'Are you sure you want to remove this member from the group?',
+      "Remove Member",
+      "Are you sure you want to remove this member from the group?",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Remove',
-          style: 'destructive',
+          text: "Remove",
+          style: "destructive",
           onPress: async () => {
             try {
               await ConversationApi.removeParticipant(
@@ -201,82 +323,87 @@ const GroupInfoScreen = ({ route }) => {
                 memberId,
                 accessToken
               );
-              
+
               // Update participants list
-              const newParticipants = participants.filter(id => id !== memberId);
-              setParticipants(newParticipants);
-              
-              // Update participants detail
-              const newParticipantsDetail = participantsDetail.filter(
-                p => p.user_id !== memberId
+              setParticipants((prevParticipants) =>
+                prevParticipants.filter((id) => id !== memberId)
               );
-              setParticipantsDetail(newParticipantsDetail);
-              
-              Alert.alert('Success', 'Member removed from the group');
+
+              Alert.alert("Success", "Member removed from the group");
             } catch (error) {
-              console.error('Error removing member:', error);
-              Alert.alert('Error', 'Failed to remove member from the group');
+              console.error("Error removing member:", error);
+              Alert.alert("Error", "Failed to remove member from the group");
             }
           },
         },
       ]
     );
   };
-  
+
   const handleLeaveGroup = () => {
-    Alert.alert(
-      'Leave Group',
-      'Are you sure you want to leave this group?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Leave',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await ConversationApi.leaveConversation(
-                conversation_id,
-                user.id,
-                accessToken
-              );
-              Alert.alert('Success', 'You have left the group');
-              navigation.navigate('Home');
-            } catch (error) {
-              console.error('Error leaving group:', error);
-              Alert.alert('Error', 'Failed to leave the group');
-            }
-          },
+    Alert.alert("Leave Group", "Are you sure you want to leave this group?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Leave",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await ConversationApi.leaveConversation(
+              conversation_id,
+              user.id,
+              accessToken
+            );
+            Alert.alert("Success", "You have left the group");
+            navigation.navigate("homeChat");
+          } catch (error) {
+            console.error("Error leaving group:", error);
+            Alert.alert("Error", "Failed to leave the group");
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
-  
+
   const toggleFriendSelection = (friend) => {
-    const isSelected = selectedFriends.some(f => f.user_id === friend.user_id);
-    
+    if (!friend || !friend.friend_id) {
+      console.warn("Invalid friend object:", friend);
+      return;
+    }
+
+    const isSelected = selectedFriends.some(
+      (f) => f.friend_id === friend.friend_id
+    );
+
     if (isSelected) {
-      setSelectedFriends(selectedFriends.filter(f => f.user_id !== friend.user_id));
+      setSelectedFriends(
+        selectedFriends.filter((f) => f.friend_id !== friend.friend_id)
+      );
     } else {
       setSelectedFriends([...selectedFriends, friend]);
     }
   };
-  
+
   // Render functions
   const renderParticipant = ({ item }) => {
+    if (!item || !item.user_id) {
+      console.warn("Invalid participant item:", item);
+      return null;
+    }
     const isCurrentUser = item.user_id === user.id;
-    
+
     return (
       <View style={styles.participantItem}>
         <Image
           source={
             item.avatar_url
               ? { uri: item.avatar_url }
-              : require('../assets/default-avatar.png')
+              : require("../assets/default-avatar.png")
           }
           style={styles.participantAvatar}
         />
         <Text style={styles.participantName}>
-          {item.fullname} {isCurrentUser ? '(You)' : ''}
+          {item.fullname || "Người dùng ID: " + item.user_id}{" "}
+          {isCurrentUser ? "(You)" : ""}
         </Text>
         <TouchableOpacity
           style={styles.removeButton}
@@ -287,10 +414,16 @@ const GroupInfoScreen = ({ route }) => {
       </View>
     );
   };
-  
-  const renderFriendItem = ({ item }) => {
-    const isSelected = selectedFriends.some(f => f.user_id === item.user_id);
-    
+
+  const renderFriendItem = ({ item, index }) => {
+    if (!item || !item.friend_id) {
+      console.warn("Invalid friend item:", item);
+      return null;
+    }
+    const isSelected = selectedFriends.some(
+      (f) => f.friend_id === item.friend_id
+    );
+    console.log("idsdfsdfsd", isSelected);
     return (
       <TouchableOpacity
         style={[styles.friendItem, isSelected && styles.friendItemSelected]}
@@ -300,31 +433,47 @@ const GroupInfoScreen = ({ route }) => {
           source={
             item.avatar_url
               ? { uri: item.avatar_url }
-              : require('../assets/default-avatar.png')
+              : require("../assets/default-avatar.png")
           }
           style={styles.friendAvatar}
         />
-        <Text style={styles.friendName}>{item.fullname}</Text>
+        <Text style={styles.friendName}>{item.fullname || "Unknown User"}</Text>
         {isSelected && (
-          <Icon name="check-circle" size={24} color="#4CAF50" style={styles.checkIcon} />
+          <Icon
+            name="check-circle"
+            size={24}
+            color="#4CAF50"
+            style={styles.checkIcon}
+          />
         )}
       </TouchableOpacity>
     );
   };
-  
+
   return (
     <View style={styles.container}>
       {/* Header */}
+      <View style={{ height: 30 }}></View>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          onPress={() => {
+            // Navigate back to previous screen with refresh flag
+            navigation.navigate("chatGroupScreen", {
+              refresh: true,
+              conversation_id: conversation_id,
+              groupName: groupName,
+              participants: participantsDetail,
+            });
+          }}
+        >
           <Image
-            source={require('../assets/back.png')}
+            source={require("../assets/back.png")}
             style={styles.backIcon}
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Group Info</Text>
       </View>
-      
+
       <ScrollView style={styles.content}>
         {/* Group avatar and name */}
         <View style={styles.groupInfoSection}>
@@ -337,7 +486,7 @@ const GroupInfoScreen = ({ route }) => {
               </View>
             )}
           </TouchableOpacity>
-          
+
           {isEditingName ? (
             <View style={styles.editNameContainer}>
               <TextInput
@@ -356,7 +505,7 @@ const GroupInfoScreen = ({ route }) => {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.editButton, styles.saveButton]}
-                  onPress={handleUpdateGroupName}
+                  onPress={() => handleUpdateGroupName(groupName)}
                 >
                   <Text style={styles.editButtonText}>Save</Text>
                 </TouchableOpacity>
@@ -373,8 +522,32 @@ const GroupInfoScreen = ({ route }) => {
               </TouchableOpacity>
             </View>
           )}
+
+          {/* Edit Group Info Button */}
+          <TouchableOpacity
+            style={styles.editGroupButton}
+            onPress={() => {
+              Alert.alert("Edit Group Info", "Choose what to edit:", [
+                {
+                  text: "Change Avatar",
+                  onPress: handleSelectAvatar,
+                },
+                {
+                  text: "Change Name",
+                  onPress: () => setIsEditingName(true),
+                },
+                {
+                  text: "Cancel",
+                  style: "cancel",
+                },
+              ]);
+            }}
+          >
+            <Icon name="account-group-outline" size={20} color="#fff" />
+            <Text style={styles.editGroupButtonText}>Edit Group Info</Text>
+          </TouchableOpacity>
         </View>
-        
+
         {/* Members section */}
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
@@ -389,15 +562,21 @@ const GroupInfoScreen = ({ route }) => {
               <Text style={styles.addButtonText}>Add</Text>
             </TouchableOpacity>
           </View>
-          
           <FlatList
             data={participantsDetail}
             renderItem={renderParticipant}
-            keyExtractor={(item) => item.user_id.toString()}
+            keyExtractor={(item, index) =>
+              item && item.user_id
+                ? `participant-${String(item.user_id)}`
+                : `unknown-participant-${index}`
+            }
             scrollEnabled={false}
+            ListEmptyComponent={
+              <Text style={styles.noFriendsText}>No members to display</Text>
+            }
           />
         </View>
-        
+
         {/* Leave group button */}
         <TouchableOpacity
           style={styles.leaveGroupButton}
@@ -407,7 +586,7 @@ const GroupInfoScreen = ({ route }) => {
           <Text style={styles.leaveGroupText}>Leave Group</Text>
         </TouchableOpacity>
       </ScrollView>
-      
+
       {/* Add members modal */}
       <Modal
         visible={showAddMemberModal}
@@ -423,20 +602,31 @@ const GroupInfoScreen = ({ route }) => {
                 <Icon name="close" size={24} color="#000" />
               </TouchableOpacity>
             </View>
-            
+
             {friends.length > 0 ? (
               <FlatList
                 data={friends}
                 renderItem={renderFriendItem}
-                keyExtractor={(item) => item.user_id.toString()}
+                keyExtractor={(item, index) =>
+                  item && item.friend_id
+                    ? `friend-${item.friend_id}`
+                    : `unknown-friend-${index}`
+                }
                 style={styles.friendsList}
+                ListEmptyComponent={
+                  <Text style={styles.noFriendsText}>
+                    No friends to display
+                  </Text>
+                }
               />
             ) : (
               <View style={styles.noFriendsContainer}>
-                <Text style={styles.noFriendsText}>No friends available to add</Text>
+                <Text style={styles.noFriendsText}>
+                  No friends available to add
+                </Text>
               </View>
             )}
-            
+
             <View style={styles.modalFooter}>
               <TouchableOpacity
                 style={[
@@ -447,8 +637,17 @@ const GroupInfoScreen = ({ route }) => {
                 disabled={selectedFriends.length === 0}
               >
                 <Text style={styles.addMembersButtonText}>
-                  Add {selectedFriends.length > 0 ? `(${selectedFriends.length})` : ''}
+                  Add{" "}
+                  {selectedFriends.length > 0
+                    ? `(${selectedFriends.length})`
+                    : ""}
                 </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.addMembersButton, styles.cancelButton]}
+                onPress={() => setShowAddMemberModal(false)}
+              >
+                <Text style={styles.addMembersButtonText}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -461,13 +660,13 @@ const GroupInfoScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f7f7f7',
+    backgroundColor: "#f7f7f7",
   },
   header: {
     height: 60,
-    backgroundColor: '#6200ea',
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: "#6200ea",
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 10,
   },
   backIcon: {
@@ -476,19 +675,19 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
     marginLeft: 10,
   },
   content: {
     flex: 1,
   },
   groupInfoSection: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
   },
   groupAvatar: {
     width: 100,
@@ -499,36 +698,36 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#e0e0e0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#e0e0e0",
+    justifyContent: "center",
+    alignItems: "center",
   },
   groupNameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 10,
   },
   groupName: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   editNameButton: {
     marginLeft: 10,
     padding: 5,
   },
   editNameContainer: {
-    width: '80%',
+    width: "80%",
     marginTop: 10,
   },
   nameInput: {
     fontSize: 18,
     borderBottomWidth: 1,
-    borderBottomColor: '#6200ea',
+    borderBottomColor: "#6200ea",
     paddingVertical: 5,
   },
   editActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     marginTop: 10,
   },
   editButton: {
@@ -538,44 +737,44 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   cancelButton: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: "#f44336",
   },
   saveButton: {
-    backgroundColor: '#6200ea',
+    backgroundColor: "#6200ea",
   },
   editButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "bold",
   },
   sectionContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     marginTop: 10,
     padding: 15,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 15,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   addButtonText: {
-    color: '#6200ea',
+    color: "#6200ea",
     marginLeft: 5,
   },
   participantItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: "#f0f0f0",
   },
   participantAvatar: {
     width: 40,
@@ -591,58 +790,58 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   leaveGroupButton: {
-    backgroundColor: '#f44336',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#f44336",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     padding: 15,
     marginVertical: 20,
     marginHorizontal: 15,
     borderRadius: 10,
   },
   leaveGroupText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "bold",
     fontSize: 16,
     marginLeft: 10,
   },
   modalBackground: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContainer: {
-    backgroundColor: '#fff',
-    width: '90%',
-    maxHeight: '80%',
+    backgroundColor: "#fff",
+    width: "90%",
+    maxHeight: "80%",
     borderRadius: 10,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   friendsList: {
     maxHeight: 300,
   },
   friendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: "#f0f0f0",
   },
   friendItemSelected: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: "#e3f2fd",
   },
   friendAvatar: {
     width: 40,
@@ -660,30 +859,34 @@ const styles = StyleSheet.create({
   modalFooter: {
     padding: 15,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
-    alignItems: 'center',
+    borderTopColor: "#eee",
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   addMembersButton: {
-    backgroundColor: '#6200ea',
+    backgroundColor: "#6200ea",
     paddingVertical: 12,
     paddingHorizontal: 30,
     borderRadius: 25,
   },
   disabledButton: {
-    backgroundColor: '#9e9e9e',
+    backgroundColor: "#9e9e9e",
   },
   addMembersButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "bold",
     fontSize: 16,
   },
   noFriendsContainer: {
     padding: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   noFriendsText: {
     fontSize: 16,
-    color: '#757575',
+    color: "#757575",
+    padding: 20,
+    textAlign: "center",
   },
 });
 
