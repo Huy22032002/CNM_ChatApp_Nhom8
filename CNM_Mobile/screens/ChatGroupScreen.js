@@ -114,13 +114,16 @@ const ChatGroupScreen = ({ route }) => {
 
   // Send image or document
   const sendImageAndText = async () => {
+    const receivers = conversation.participants.filter(
+      (participant) => participant != user.id
+    );
+
     const formData = new FormData();
     formData.append("conversation_id", conversation_id);
     formData.append("sender", user.id);
-    participants
-      .filter((id) => id !== user.id)
-      .forEach((id) => formData.append("receivers[]", id));
-
+    receivers.forEach((id) => {
+      formData.append("receivers[]", id);
+    });
     if (newMessage) {
       formData.append("content", newMessage);
     }
@@ -137,12 +140,12 @@ const ChatGroupScreen = ({ route }) => {
         type: selectedDocument.mimeType || "application/pdf",
       });
     }
-
     try {
-      await MessageAPI.sendImageAndText(formData, accessToken);
+      const response = await MessageAPI.sendImageAndText(formData, accessToken);
       fetchMessages();
-    } catch (error) {
-      console.error("Error sending image or document:", error);
+      return response;
+    } catch (err) {
+      alert(err.response.data.error);
     }
   };
 
