@@ -14,8 +14,8 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation } from "@react-navigation/native";
 import { useSelector } from "react-redux";
-import { API_URL } from "../api/apiConfig";
 
+import { fetchUserDetail, updateUserDetail } from "../api/userDetailApi";
 
 export default function UserDetail() {
   const navigation = useNavigation();
@@ -30,7 +30,7 @@ export default function UserDetail() {
   const userRedux = useSelector((state) => state.user.user);
   const accessToken = useSelector((state) => state.user.accessToken);
 
-  // Xin quyền truy cập thư viện ảnhr
+  // Xin quyền truy cập thư viện ảnh
   useEffect(() => {
     (async () => {
       const { status } =
@@ -40,24 +40,14 @@ export default function UserDetail() {
       }
     })();
 
-    fetchUserDetail();
+    getUserDetail();
   }, []);
 
-  const fetchUserDetail = async () => {
+  const getUserDetail = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `${API_URL}/api/userDetails/${userRedux.id}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      const data = await response.json();
-      if (!response.ok) throw new Error("Lỗi khi lấy thông tin người dùng");
+      const data = await fetchUserDetail(userRedux.id, accessToken);
+      if (!data) throw new Error("Lỗi khi lấy thông tin người dùng");
       setUserDetail(data);
     } catch (err) {
       console.error(err);
@@ -112,32 +102,13 @@ export default function UserDetail() {
     try {
       setSaving(true);
 
-      const response = await fetch(
-        `${API_URL}/api/userDetails/update/${userRedux.id}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: formData,
-        }
-      );
-
-      const text = await response.text();
-      let result;
-      try {
-        result = JSON.parse(text);
-      } catch (err) {
-        throw new Error("Phản hồi không hợp lệ từ máy chủ.");
+      const data = await updateUserDetail(userRedux.id, accessToken, formData);
+      if (data != null) {
+        Alert.alert("Cập nhật thành công!");
+        setEditing(false);
+        setSelectedAvatar(null);
+        await getUserDetail();
       }
-
-      if (!response.ok)
-        throw new Error(result.message || "Lỗi khi cập nhật thông tin");
-
-      Alert.alert("Cập nhật thành công!");
-      setEditing(false);
-      setSelectedAvatar(null);
-      await fetchUserDetail();
     } catch (err) {
       console.error("Update user error:", err);
       Alert.alert("Lỗi", err.message);
@@ -167,7 +138,6 @@ export default function UserDetail() {
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-    
       {/* Nút quay lại HomeChat */}
       <TouchableOpacity
         onPress={() => navigation.navigate("homeChat")}

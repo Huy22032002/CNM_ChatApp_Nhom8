@@ -41,6 +41,7 @@ const MessageModel = {
         ":converId": conversation_id,
       },
       ScanIndexForward: true, //sort từ cũ -> mới
+      Limit: 5,
     };
     try {
       const result = await dynamoDB.query(params).promise();
