@@ -18,6 +18,7 @@ import { Icon } from "react-native-paper";
 import ConversationApi from "../api/conversationApi";
 import friendApi from "../api/friendApi";
 import { fetchUserDetail } from "../api/userDetailApi";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const GroupInfoScreen = ({ route }) => {
   const navigation = useNavigation();
@@ -318,7 +319,7 @@ const GroupInfoScreen = ({ route }) => {
           style: "destructive",
           onPress: async () => {
             try {
-              await ConversationApi.removeParticipant(
+              await ConversationApi.leaveConversation(
                 conversation_id,
                 memberId,
                 accessToken
@@ -409,7 +410,11 @@ const GroupInfoScreen = ({ route }) => {
           style={styles.removeButton}
           onPress={() => handleRemoveMember(item.user_id)}
         >
-          <Icon name="close-circle" size={24} color="#f44336" />
+          <MaterialCommunityIcons
+            name="close-circle"
+            size={24}
+            color="#f44336"
+          />
         </TouchableOpacity>
       </View>
     );
@@ -437,7 +442,9 @@ const GroupInfoScreen = ({ route }) => {
           }
           style={styles.friendAvatar}
         />
-        <Text style={styles.friendName}>{item.fullname || "Unknown User"}</Text>
+        <Text style={styles.friendName}>
+          {item.fullname || "User ID:" + item.friend_id}
+        </Text>
         {isSelected && (
           <Icon
             name="check-circle"

@@ -522,6 +522,7 @@ export default function HomeChat({ navigation }) {
       return updatedSelectedFriends;
     });
   };
+
   // Cập nhật render item để hiển thị đúng với loại chat
   const renderItem = ({ item }) => (
     <TouchableOpacity
@@ -882,7 +883,9 @@ export default function HomeChat({ navigation }) {
       </View>
 
       <FlatList
-        data={filteredData}
+        data={[...filteredData].sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        )}
         renderItem={renderItem}
         keyExtractor={(item) => item.conversation_id.toString()}
         contentContainerStyle={{ paddingBottom: 60 }}
