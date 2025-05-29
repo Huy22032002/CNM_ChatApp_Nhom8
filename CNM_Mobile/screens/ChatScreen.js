@@ -384,7 +384,8 @@ const ChatScreen = ({ route }) => {
             <>
               {isContent && <Text style={textStyle}>{item.content}</Text>}
               {item.image_url && <ImageView message={item} />}
-              {item.message_type === "pdf" && <PDFView />}
+              {item.message_type === "pdf" && <PDFView message={item} />}
+
             </>
           )}
         </View>
@@ -397,7 +398,6 @@ const ChatScreen = ({ route }) => {
 
   useEffect(() => {
     if (!socket || !conversation_id) return;
-
     fetchFriendStatus();
     fetchConversation();
     fetchMessages();
@@ -457,7 +457,7 @@ const ChatScreen = ({ route }) => {
       socket.off("message updated");
     };
   }, [conversation_id, user]);
-  console.log("c" + conversationsDetail.userDetail);
+
   //xin quyen truy cap anh tren dien thoai
   useEffect(() => {
     const requestPermission = async () => {
@@ -554,6 +554,8 @@ const ChatScreen = ({ route }) => {
           onEndReached={fetchMessages} //khi scroll len thi se goi ham de load them message
           onEndReachedThreshold={0.1}
           inverted
+          decelerationRate={"normal"}
+
         />
         <Modal
           transparent={true}

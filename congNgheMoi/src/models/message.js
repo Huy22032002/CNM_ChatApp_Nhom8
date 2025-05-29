@@ -32,7 +32,7 @@ const MessageModel = {
       throw new Error(`Err add message model ${error.message}`);
     }
   },
-  async getAllMessageByConversationId(conversation_id) {
+  async getAllMessageByConversationId(conversation_id, lastKey) {
     const params = {
       TableName: TABLE_NAME,
       IndexName: "ConversationIndex", //ten GSI,
@@ -40,11 +40,22 @@ const MessageModel = {
       ExpressionAttributeValues: {
         ":converId": conversation_id,
       },
-      ScanIndexForward: true, //sort từ cũ -> mới
+      Limit: 20,
+      ScanIndexForward: false, //sort từ mới -> cu
+
     };
+
+    if (lastKey) {
+      params.ExclusiveStartKey = lastKey;
+    }
     try {
       const result = await dynamoDB.query(params).promise();
-      return result.Items;
+
+      return {
+        messages: result.Items,
+        lastEvaluatedKey: result.LastEvaluatedKey || null,
+      };
+
     } catch (error) {
       console.log(`error get all message of conver in model: ${error}`);
       throw new Error(

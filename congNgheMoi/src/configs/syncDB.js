@@ -2,8 +2,9 @@ import { sequelize } from "./connectRDS.js";
 
 async function syncDB() {
   try {
-    await sequelize.sync({ 
-      // alter: true 
+    await sequelize.sync({
+      // alter: true
+
     }); // Cập nhật cau truc bang mà không mất dữ liệu
     console.log("Database synchronized!");
   } catch (error) {
@@ -14,3 +15,4 @@ async function syncDB() {
 }
 
 export default { syncDB };
+

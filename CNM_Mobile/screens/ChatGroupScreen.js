@@ -17,9 +17,11 @@ import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { API_URL } from "../api/apiConfig";
 import { Alert } from "react-native";
-import { Icon } from "react-native-paper";
 import { getSocket } from "../services/socket";
-// Thêm import
+import PDFView from "../components/PDFView";
+import ImageView from "../components/ImageView";
+import { Icon } from "react-native-paper";
+
 import { MaterialIcons } from "@expo/vector-icons";
 
 const ChatGroupScreen = ({ route }) => {
@@ -31,10 +33,12 @@ const ChatGroupScreen = ({ route }) => {
   const [conversation, setConversation] = useState(null);
 
   const user = useSelector((state) => state.user.user);
-  //   console.log("user", user);
   const accessToken = useSelector((state) => state.user.accessToken);
-
+  //state xu ly cac su kien message
   const [messages, setMessages] = useState([]);
+  const [lastKey, setLastKey] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [newMessage, setNewMessage] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedDocument, setSelectedDocument] = useState(null);
@@ -65,11 +69,19 @@ const ChatGroupScreen = ({ route }) => {
   };
   // Fetch messages for the group
   const fetchMessages = async () => {
+    if (!hasMore || loadingMore) return;
+    setLoadingMore(true);
     try {
-      const data = await MessageAPI.fetchMessages(conversation_id, accessToken);
-      setMessages(data.messages);
+      const { messages: newMessages, lastKey: newLastKey } =
+        await MessageAPI.fetchMessages(conversation_id, accessToken, lastKey);
+      setMessages((prev) => [...prev, ...newMessages]);
+      setLastKey(newLastKey);
+      setHasMore(!!newLastKey); //false neu lastKey khong co
     } catch (error) {
       console.error("Error fetching messages:", error);
+    } finally {
+      setLoadingMore(false);
+
     }
   };
 
@@ -209,7 +221,8 @@ const ChatGroupScreen = ({ route }) => {
       console.log("create message with file/img: ", response);
       socket.emit("send message", response);
 
-      fetchMessages();
+      // fetchMessages();
+
       return response;
     } catch (err) {
       if (err.response && err.response.data && err.response.data.error) {
@@ -383,8 +396,14 @@ const ChatGroupScreen = ({ route }) => {
     // fetchParticipantsDetail();
 
     //handle socket
-    const handleReceiveMessage = (newMessage) => {
-      setMessages((prev) => [...prev, newMessage]);
+    const handleReceiveMessage = (data) => {
+      setMessages((prevMessages) => {
+        if (prevMessages.some((msg) => msg.message_id === data.message_id)) {
+          return prevMessages; // đã có, không thêm nữa
+        }
+        return [data, ...prevMessages];
+      });
+
     };
     const handleRevokeMessage = (revokedMessage) => {
       setMessages((prev) =>
@@ -480,15 +499,8 @@ const ChatGroupScreen = ({ route }) => {
             ) : (
               <>
                 {isContent && <Text style={textStyle}>{item.content}</Text>}
-                {item.image_url && (
-                  <Image
-                    source={{ uri: item.image_url }}
-                    style={styles.messageImage}
-                  />
-                )}
-                {item.message_type === "FILE" && (
-                  <Text style={{ color: "blue" }}>{item.image_url}</Text>
-                )}
+                {item.image_url && <ImageView message={item} />}
+                {item.message_type === "pdf" && <PDFView message={item} />}
               </>
             )}
           </View>
@@ -530,10 +542,14 @@ const ChatGroupScreen = ({ route }) => {
         data={messages}
         renderItem={renderMessage}
         keyExtractor={(item) => item.message_id.toString()}
-        style={styles.messagesList}
+        onEndReached={fetchMessages}
+        onEndReachedThreshold={0.1}
+        inverted
+        decelerationRate={"normal"}
       />
 
-      {/* Message Actions Modal */}
+      {/* modal thuc hien updata, xoa, revoke, forward message */}
+
       <Modal
         transparent={true}
         animationType="fade"
@@ -752,10 +768,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     marginLeft: 10,
   },
-  messagesList: {
-    flex: 1,
-    padding: 10,
-  },
+
   messageContainer: {
     flexDirection: "row",
     alignItems: "flex-start",

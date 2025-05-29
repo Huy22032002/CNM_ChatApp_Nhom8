@@ -14,7 +14,12 @@ router.post(
 );
 router.post(
   "/sendImage",
-  upload.single("image"),
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "file", maxCount: 1 },
+  ]),
+  authMiddlewareWithoutRefresh,
+
   MessageController.sendImageMessage
 );
 router.get(

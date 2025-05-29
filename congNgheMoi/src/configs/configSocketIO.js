@@ -1,4 +1,6 @@
 import { Server } from "socket.io";
+
+
 import messageService from "../services/messageService.js";
 import conversationService from "../services/conversationService.js";
 import SocketControler from "../controllers/socketController.js";
@@ -160,6 +162,7 @@ export const ConnectSocket = (server) => {
     socket.on("disconnect", () => {
       socket.leaveAll();
       console.log(`Client disconnected: ${socket.id}`);
+
       const userId = socketUserMap.get(socket.id);
 
       if (userId) {
@@ -180,6 +183,7 @@ export const ConnectSocket = (server) => {
       console.error("Socket error: ", err);
     });
   });
+
 
   function getCallReceiverId(userId, callId) {
     // Lấy receiverId từ callId và userId
