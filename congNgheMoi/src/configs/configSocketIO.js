@@ -49,6 +49,11 @@ export const ConnectSocket = (server) => {
     socket.on("online", async (data) => SocketControler.onlineUser(io, data));
     //user offline
     socket.on("offline", async (data) => SocketControler.offlineUser(io, data));
+    //create conversation
+    socket.on("create group", async (data) =>
+      SocketControler.createGroup(io, data)
+    );
+
     socket.on("disconnect", () => {
       socket.leaveAll();
       console.log(`Client disconnected: ${socket.id}`);

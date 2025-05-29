@@ -79,6 +79,10 @@ const SocketControler = {
     //cap nhat lastmessage cho conver o homeChat
     io.emit("conversation updated", data);
   },
+  async createGroup(io, data) {
+    console.log("create group: ", data);
+    io.emit("group created", data);
+  },
 };
 
 export default SocketControler;
