@@ -385,7 +385,6 @@ const ChatScreen = ({ route }) => {
               {isContent && <Text style={textStyle}>{item.content}</Text>}
               {item.image_url && <ImageView message={item} />}
               {item.message_type === "pdf" && <PDFView message={item} />}
-
             </>
           )}
         </View>
@@ -401,7 +400,6 @@ const ChatScreen = ({ route }) => {
     fetchFriendStatus();
     fetchConversation();
     fetchMessages();
-
     //handle socket
     const handleReceiveMessage = (data) => {
       setMessages((prevMessages) => {
@@ -411,7 +409,6 @@ const ChatScreen = ({ route }) => {
         return [data, ...prevMessages];
       });
     };
-
     const handleDeleteMessage = (id) => {
       console.log("socket received delete message: ", id, typeof id);
       setMessages((prev) => prev.filter((msg) => msg.message_id !== id));
@@ -457,7 +454,6 @@ const ChatScreen = ({ route }) => {
       socket.off("message updated");
     };
   }, [conversation_id, user]);
-
   //xin quyen truy cap anh tren dien thoai
   useEffect(() => {
     const requestPermission = async () => {
@@ -555,7 +551,6 @@ const ChatScreen = ({ route }) => {
           onEndReachedThreshold={0.1}
           inverted
           decelerationRate={"normal"}
-
         />
         <Modal
           transparent={true}

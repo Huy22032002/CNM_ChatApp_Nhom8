@@ -34,13 +34,11 @@ async function syncDB() {
   try {
     await connectDB();
     await sequelize.sync({});
-
     console.log("Database synchronized successfully!");
   } catch (error) {
     console.error("Error synchronizing database:", error);
     process.exit(1); // Thoát ứng dụng nếu không thể đồng bộ
   }
-
 }
 // syncDB();
 

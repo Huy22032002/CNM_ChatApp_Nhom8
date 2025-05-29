@@ -11,5 +11,4 @@ export const checkFileType = (file, cb) => {
     return cb(null, true);
   }
   return cb("Err: Unsupported file type");
-
 };

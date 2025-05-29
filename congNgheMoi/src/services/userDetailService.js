@@ -4,7 +4,7 @@ import User from "../models/userModel.js";
 const createUserDetail = async (userDetailData) => {
   try {
     // Kiểm tra user_id có tồn tại trong bảng User
-    console.log("Checking if user_id exists in User table:", userDetailData.user_id);
+    console.log("Checking if user_id exists in User table:", userDetailData);
     const userExists = await User.findByPk(userDetailData.user_id);
     if (!userExists) {
       console.error("User ID không tồn tại trong bảng User:", userDetailData.user_id);
@@ -26,7 +26,15 @@ const createUserDetail = async (userDetailData) => {
     // }
 
     console.log("User ID exists. Proceeding to create UserDetail.");
-    return await UserDetail.create(userDetailData);
+    const userDetail=await UserDetail.create({user_id: userDetailData.user_id});
+    //update userDetail with fullname
+    const fullname = userDetailData.fullname;
+    await updateUserDetail(userDetail.user_id, { fullname });
+
+    return await UserDetail.findOne({
+      where: { user_id: userDetailData.user_id },
+    });
+   
   } catch (err) {
     console.error("Error in createUserDetail service:", err);
     throw new Error(`Err Creating UserDetail service: ${err.message}`);

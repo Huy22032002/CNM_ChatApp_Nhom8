@@ -19,6 +19,7 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [username, setUsername] = useState('');
+  const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -30,10 +31,13 @@ export default function RegisterScreen() {
     try {
       setLoading(true);
       // const apiUrl = "http://10.0.2.2:3000";
-      if (!username || !password || !email || !phone || !confirmPassword) {
+      if (!username || !fullName|| !password || !email || !phone || !confirmPassword) {
         alert('Vui lòng nhập đầy đủ thông tin!');
 
         return;
+      }else{
+        console.log('username', username);
+        console.log('fullName', fullName);
       }
       //check phone 10 digits
       if (!/^\d{10}$/.test(phone)) {
@@ -59,6 +63,7 @@ export default function RegisterScreen() {
         password,
         email,
         phone,
+        fullname:fullName,
       });
 
         if(response.status === 401) {
@@ -78,6 +83,7 @@ export default function RegisterScreen() {
         password,
         email,
         phone,
+        fullname:fullName,
         otpGen: response.data.otp,
       });
     } catch (err) {
@@ -104,6 +110,13 @@ export default function RegisterScreen() {
         onChangeText={setEmail}
         style={styles.input}
         keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      <TextInput
+        placeholder="Họ và tên"
+        value={fullName}
+        onChangeText={setFullName}
+        style={styles.input}
         autoCapitalize="none"
       />
       <TextInput

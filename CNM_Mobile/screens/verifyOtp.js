@@ -23,7 +23,7 @@ const VerifyOtp = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
-  const { email, username, password, phone, otpGen } = route.params;
+  const { email, username,fullname, password, phone, otpGen } = route.params;
 
   useEffect(() => {
     if (timeLeft > 0) {
@@ -66,7 +66,8 @@ const VerifyOtp = () => {
         username,
         password,
         email,
-        phone
+        phone,
+        fullname,
       });
       Alert.alert('Thành công', 'Tạo tài khoản thành công!');
       navigation.navigate('login');

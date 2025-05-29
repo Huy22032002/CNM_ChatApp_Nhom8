@@ -1,5 +1,4 @@
 import MessageModel from "../models/message.js";
-
 const MessageService = {
   async createMessage(message) {
     try {
@@ -14,7 +13,6 @@ const MessageService = {
     }
   },
   async getAllMessageByConversationId(conversation_id, lastKey) {
-
     if (!conversation_id) {
       throw new Error("Require conversation_id in service");
     }
@@ -23,7 +21,6 @@ const MessageService = {
         conversation_id,
         lastKey
       );
-
     } catch (error) {
       console.error(`Error fetching messages: ${error.message}`);
       throw new Error(
