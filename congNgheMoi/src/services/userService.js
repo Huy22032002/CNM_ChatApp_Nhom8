@@ -10,11 +10,11 @@ import {
   findUserDetailByUserId,
 } from "./userDetailService.js";
 
-async function createUser(username, email, pass_hash, phone) {
+async function createUser(username,fullname, email, pass_hash, phone) {
   try {
     const user = await User.create({ username, email, pass_hash, phone });
     // Tạo userDetail cho user mới tạo
-    await createUserDetail({ user_id: user.id });
+    await createUserDetail({ user_id: user.id,fullname });
     // tao userFriend cho user mới tạo
     console.log("user id", user.id);
     await Friends.createUserFriend(user.id);

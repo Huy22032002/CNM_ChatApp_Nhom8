@@ -526,6 +526,7 @@ const ChatGroupScreen = ({ route }) => {
               conversation_id: conversation_id,
               groupName: groupName,
               participants: participants,
+              admin_id: conversation?.admin_id,
             })
           }
         >
