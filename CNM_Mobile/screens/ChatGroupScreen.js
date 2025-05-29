@@ -384,6 +384,7 @@ const ChatGroupScreen = ({ route }) => {
 
     //handle socket
     const handleReceiveMessage = (newMessage) => {
+      console.log("new message: ", newMessage);
       setMessages((prev) => [...prev, newMessage]);
     };
     const handleRevokeMessage = (revokedMessage) => {
