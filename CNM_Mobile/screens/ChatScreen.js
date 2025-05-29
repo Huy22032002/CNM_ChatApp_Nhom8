@@ -119,9 +119,27 @@ const ChatScreen = ({ route }) => {
 
   const navigation = useNavigation();
 
+  // const fetchMessages = async () => {
+  //   const data = await MessageAPI.fetchMessages(conversation_id, accessToken);
+  //   setMessages(data);
+  // };
   const fetchMessages = async () => {
-    const data = await MessageAPI.fetchMessages(conversation_id, accessToken);
-    setMessages(data);
+    if (!hasMore || loadingMore) return;
+
+    setLoadingMore(true);
+    try {
+      const { messages: newMessages, lastKey: newLastKey } =
+        await MessageAPI.fetchMessages(conversation_id, accessToken, lastKey);
+      console.log("tong message: ", newMessages.length);
+
+      setMessages((prev) => [...prev, ...newMessages]); // thêm vào cuối (đang dùng inverted)
+      setLastKey(newLastKey);
+      setHasMore(!!newLastKey);
+    } catch (err) {
+      console.error("Lỗi khi tải thêm tin nhắn:", err.message);
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   const fetchConversation = async () => {
@@ -390,7 +408,7 @@ const ChatScreen = ({ route }) => {
         if (prevMessages.some((msg) => msg.message_id === data.message_id)) {
           return prevMessages; // đã có, không thêm nữa
         }
-        return [...prevMessages, data];
+        return [data, ...prevMessages];
       });
     };
 

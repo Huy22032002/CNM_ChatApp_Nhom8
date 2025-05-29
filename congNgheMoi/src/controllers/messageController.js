@@ -94,15 +94,22 @@ const MessageController = {
   },
   async getAllMessageByConversationId(req, res) {
     const converId = req.params.converId;
+    const lastKey = req.query.lastKey ? JSON.parse(req.query.lastKey) : null;
+    console.log("last key: ", lastKey);
+
     if (!converId) {
       return res.status(400).json({ error: "Vui lòng truyền conversation_id" });
     }
 
     try {
       const lstMessage = await MessageService.getAllMessageByConversationId(
-        converId
+        converId,
+        lastKey
       );
-      return res.status(200).json(lstMessage);
+      return res.status(200).json({
+        messages: lstMessage.messages,
+        lastEvaluatedKey: lstMessage.lastEvaluatedKey || null,
+      });
     } catch (error) {
       return res.status(500).json({
         message: "error get all messages with converId in message controler",

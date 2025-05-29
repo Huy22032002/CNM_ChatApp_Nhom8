@@ -3,7 +3,7 @@ import { API_URL } from "./apiConfig";
 const MESSAGES_API = `${API_URL}/api/messages`;
 
 const MessageAPI = {
-  async fetchMessages(conversation_id, accessToken) {
+  async fetchMessages(conversation_id, accessToken, lastKey = null) {
     if (!conversation_id || !accessToken) {
       throw new Error("Invalid conversation_id or token");
     }
@@ -12,10 +12,13 @@ const MessageAPI = {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
+        params: lastKey ? { lastKey: JSON.stringify(lastKey) } : {},
       });
-      if (response) {
-        const messages = response.data;
-        return messages;
+      if (response && response.data) {
+        return {
+          messages: response.data.messages,
+          lastKey: response.data.lastEvaluatedKey || null,
+        };
       }
     } catch (err) {
       throw err;
