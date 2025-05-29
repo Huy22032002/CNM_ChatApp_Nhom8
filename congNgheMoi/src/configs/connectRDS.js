@@ -1,7 +1,6 @@
 import dotenv from "dotenv";
 import { Sequelize } from "sequelize";
 
-
 dotenv.config();
 
 const sequelize = new Sequelize(
@@ -32,27 +31,14 @@ async function connectDB() {
 }
 
 async function syncDB() {
-
-  await connectDB();
-
-  await sequelize.sync({
-    //  alter: true, // for dev
-    // force: true, // for prod
-  });
-  // console.log("Syn DB");
-
   try {
     await connectDB();
-    await sequelize.sync({
-      // alter: true, // for dev
-      // force: true, // for prod
-    });
+    await sequelize.sync({});
     console.log("Database synchronized successfully!");
   } catch (error) {
     console.error("Error synchronizing database:", error);
     process.exit(1); // Thoát ứng dụng nếu không thể đồng bộ
   }
-
 }
 // syncDB();
 

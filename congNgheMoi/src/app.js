@@ -35,14 +35,14 @@ app.use(
 );
 
 // Tăng giới hạn kích thước payload để tránh lỗi 'Payload Too Large'
-app.use(express.json({ limit: '20mb' }));
-app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+app.use(express.json({ limit: "20mb" }));
+app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 
 app.use("/auth", authRoutes);
 
 // app.use(
 //   authMiddlewareWithoutRefresh
-//   // authMiddleware 
+//   // authMiddleware
 // );
 app.use(authMiddlewareWithoutRefresh);
 
