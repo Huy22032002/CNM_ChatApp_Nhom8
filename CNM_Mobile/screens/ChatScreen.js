@@ -19,6 +19,8 @@ import { fetchUserDetail } from "../api/userDetailApi";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { getSocket } from "../services/socket";
+import PDFView from "../components/PDFView";
+import ImageView from "../components/ImageView";
 
 const ChatScreen = ({ route }) => {
   const { conversation_id, otherUserDetail } = route.params;
@@ -29,13 +31,19 @@ const ChatScreen = ({ route }) => {
 
   const [friendStatus, setFriendStatus] = useState("");
   const [LastActive, setLastActive] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState("");
+
   const [conversation, setConversation] = useState(null);
   //state xu ly cac su kien message
   const [selectMessage, setSelectMessage] = useState(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const [messages, setMessages] = useState([]);
+  const [lastKey, setLastKey] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  const [newMessage, setNewMessage] = useState("");
   //state cập nhật tin nhắn
   const [edit, setEdit] = useState(false);
   const [editContent, setEditContent] = useState("");
@@ -111,10 +119,29 @@ const ChatScreen = ({ route }) => {
 
   const navigation = useNavigation();
 
+  // const fetchMessages = async () => {
+  //   const data = await MessageAPI.fetchMessages(conversation_id, accessToken);
+  //   setMessages(data);
+  // };
   const fetchMessages = async () => {
-    const data = await MessageAPI.fetchMessages(conversation_id, accessToken);
-    setMessages(data);
+    if (!hasMore || loadingMore) return;
+
+    setLoadingMore(true);
+    try {
+      const { messages: newMessages, lastKey: newLastKey } =
+        await MessageAPI.fetchMessages(conversation_id, accessToken, lastKey);
+      console.log("tong message: ", newMessages.length);
+
+      setMessages((prev) => [...prev, ...newMessages]); // thêm vào cuối (đang dùng inverted)
+      setLastKey(newLastKey);
+      setHasMore(!!newLastKey);
+    } catch (err) {
+      console.error("Lỗi khi tải thêm tin nhắn:", err.message);
+    } finally {
+      setLoadingMore(false);
+    }
   };
+
   const fetchConversation = async () => {
     try {
       const data = await ConversationApi.fetchConversationsByConverId(
@@ -179,7 +206,7 @@ const ChatScreen = ({ route }) => {
       //truyen lastMessage vao socket
       socket.emit("update conversation", result.updatedConversation);
 
-      fetchMessages();
+      // fetchMessages();
     } catch (err) {
       console.error("Send message failed: ", err.message);
     }
@@ -215,7 +242,7 @@ const ChatScreen = ({ route }) => {
       const response = await MessageAPI.sendImageAndText(formData, accessToken);
       if (response) {
         socket.emit("send message", response);
-        fetchMessages();
+        // fetchMessages();
       }
       return response;
     } catch (err) {
@@ -356,24 +383,11 @@ const ChatScreen = ({ route }) => {
           ) : (
             <>
               {isContent && <Text style={textStyle}>{item.content}</Text>}
-              {item.image_url && (
-                <Image
-                  source={{ uri: item.image_url }}
-                  style={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: 20,
-                    marginTop: item.content ? 5 : 0,
-                  }}
-                />
-              )}
-              {item.message_type === "FILE" && (
-                <Text style={{ color: "blue" }}>{item.image_url}</Text>
-              )}
+              {item.image_url && <ImageView message={item} />}
+              {item.message_type === "pdf" && <PDFView />}
             </>
           )}
         </View>
-        {/* <Text style={{fontSize:10}}>{item.created_at}</Text> */}
       </TouchableOpacity>
     );
   };
@@ -390,9 +404,14 @@ const ChatScreen = ({ route }) => {
 
     //handle socket
     const handleReceiveMessage = (data) => {
-      console.log("Socket received message:", data);
-      setMessages((prevMessages) => [...prevMessages, data]);
+      setMessages((prevMessages) => {
+        if (prevMessages.some((msg) => msg.message_id === data.message_id)) {
+          return prevMessages; // đã có, không thêm nữa
+        }
+        return [data, ...prevMessages];
+      });
     };
+
     const handleDeleteMessage = (id) => {
       console.log("socket received delete message: ", id, typeof id);
       setMessages((prev) => prev.filter((msg) => msg.message_id !== id));
@@ -532,6 +551,9 @@ const ChatScreen = ({ route }) => {
           data={messages}
           renderItem={renderMessage}
           keyExtractor={(item) => item.message_id.toString()}
+          onEndReached={fetchMessages} //khi scroll len thi se goi ham de load them message
+          onEndReachedThreshold={0.1}
+          inverted
         />
         <Modal
           transparent={true}
@@ -757,16 +779,16 @@ const styles = StyleSheet.create({
   message: {
     display: "flex",
     flexDirection: "row",
+    padding: 10,
     marginBottom: 10,
     backgroundColor: "#fff",
-    padding: 10,
     borderRadius: 10,
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 2,
     maxWidth: "80%",
-    width: "auto",
+    overflow: "hidden",
   },
   footer: {
     display: "flex",

@@ -67,7 +67,7 @@ const ChatGroupScreen = ({ route }) => {
   const fetchMessages = async () => {
     try {
       const data = await MessageAPI.fetchMessages(conversation_id, accessToken);
-      setMessages(data);
+      setMessages(data.messages);
     } catch (error) {
       console.error("Error fetching messages:", error);
     }

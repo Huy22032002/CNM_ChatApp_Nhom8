@@ -1,0 +1,33 @@
+import { Text, TouchableOpacity, Image, Linking } from "react-native";
+
+const PDFView = ({ pdfUrl }) => {
+  const handleOpenPdf = () => {
+    console.log("url: ", pdfUrl);
+    Linking.openURL(pdfUrl);
+  };
+
+  return (
+    <TouchableOpacity
+      onPress={handleOpenPdf}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#f0f0f0",
+        padding: 10,
+        borderRadius: 8,
+        maxWidth: "80%",
+        marginVertical: 5,
+      }}
+    >
+      <Image
+        source={require("../assets/pdf-icon.png")}
+        style={{ width: 24, height: 24, marginRight: 10 }}
+      />
+      <Text numberOfLines={1} style={{ color: "#000", flexShrink: 1 }}>
+        PDF File
+      </Text>
+    </TouchableOpacity>
+  );
+};
+
+export default PDFView;

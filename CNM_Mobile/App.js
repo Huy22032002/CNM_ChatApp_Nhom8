@@ -30,7 +30,6 @@ export default function App() {
           <Stack.Screen name="chatScreen" component={ChatScreen} />
           <Stack.Screen name="chatGroupScreen" component={ChatGroupScreen} />
           <Stack.Screen name="groupInfoScreen" component={GroupInfoScreen} />
-
         </Stack.Navigator>
       </NavigationContainer>
     </Provider>
