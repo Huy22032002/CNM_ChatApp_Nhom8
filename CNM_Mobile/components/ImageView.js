@@ -84,14 +84,16 @@ const ImageView = ({ message }) => {
         <View style={styles.modalBackground}>
           {/* Vùng thông tin người dùng ở góc trên */}
           {userDetail && (
-            <View style={styles.userInfo}>
-              <Image
-                source={{ uri: userDetail.avatar_url }}
-                style={styles.avatar}
-              />
-              <Text style={styles.fullname}>{userDetail.fullname}</Text>
+            <View style={styles.header}>
+              <View style={styles.userInfo}>
+                <Image
+                  source={{ uri: userDetail.avatar_url }}
+                  style={styles.avatar}
+                />
+                <Text style={styles.fullname}>{userDetail.fullname}</Text>
+              </View>
               <TouchableOpacity style={styles.btnDown} onPress={downloadImage}>
-                <Text style={styles.fullname}>Tai xuog</Text>
+                <Text style={styles.fullname}>Tải xuống</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -131,16 +133,23 @@ const styles = StyleSheet.create({
   fullImage: {
     width: "100%",
     marginTop: 10,
+    maxHeight: "80%",
   },
-  userInfo: {
+  header: {
     position: "absolute",
     top: 20,
     left: 20,
+    right: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    zIndex: 999,
+  },
+  userInfo: {
     flexDirection: "row",
     alignItems: "center",
     padding: 6,
     borderRadius: 20,
-    zIndex: 999,
   },
   avatar: {
     width: 30,
@@ -152,7 +161,12 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
   },
-  btnDown: {},
+  btnDown: {
+    backgroundColor: "#444",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
 });
 
 export default ImageView;

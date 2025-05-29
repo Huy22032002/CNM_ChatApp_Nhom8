@@ -15,7 +15,7 @@ const PDFView = ({ message }) => {
         backgroundColor: "#f0f0f0",
         padding: 10,
         borderRadius: 8,
-        maxWidth: "80%",
+        maxWidth: "100%",
         marginVertical: 5,
       }}
     >
