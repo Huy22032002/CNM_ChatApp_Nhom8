@@ -78,6 +78,7 @@ const getUserDetailByUserId = async (req, res) => {
   } catch (err) {
     console.error("Error fetching user detail by ID:", err);
     res.status(500).json({ message: "Error fetching user detail.", error: err.message });
+
   }
 };
 const updateUserDetails = async (req, res) => {

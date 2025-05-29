@@ -42,6 +42,7 @@ const MessageModel = {
       },
       Limit: 20,
       ScanIndexForward: false, //sort từ mới -> cu
+
     };
 
     if (lastKey) {
@@ -49,10 +50,12 @@ const MessageModel = {
     }
     try {
       const result = await dynamoDB.query(params).promise();
+
       return {
         messages: result.Items,
         lastEvaluatedKey: result.LastEvaluatedKey || null,
       };
+
     } catch (error) {
       console.log(`error get all message of conver in model: ${error}`);
       throw new Error(

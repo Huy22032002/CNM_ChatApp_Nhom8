@@ -46,6 +46,13 @@ app.use("/auth", authRoutes);
 // );
 app.use(authMiddlewareWithoutRefresh);
 
+app.use("/auth", authRoutes);
+
+// app.use(
+//   authMiddlewareWithoutRefresh
+//   // authMiddleware
+// );
+app.use(authMiddlewareWithoutRefresh);
 app.use("/api/home", homeRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/friends", friendRoutes);

@@ -25,13 +25,13 @@ const MessageController = {
         Key: filePath,
         Body: file.buffer,
         ContentType: file.mimetype,
+
       };
 
       const uploadedImg = await S3.upload(params).promise();
 
       const data = req.body;
       const isContent = data.content && data.content.trim() !== "";
-
       let message_type = "";
       if (isContent && isImg) {
         message_type = "image_text";
@@ -97,6 +97,7 @@ const MessageController = {
     const lastKey = req.query.lastKey ? JSON.parse(req.query.lastKey) : null;
     console.log("last key: ", lastKey);
 
+
     if (!converId) {
       return res.status(400).json({ error: "Vui lòng truyền conversation_id" });
     }
@@ -110,6 +111,7 @@ const MessageController = {
         messages: lstMessage.messages,
         lastEvaluatedKey: lstMessage.lastEvaluatedKey || null,
       });
+
     } catch (error) {
       return res.status(500).json({
         message: "error get all messages with converId in message controler",

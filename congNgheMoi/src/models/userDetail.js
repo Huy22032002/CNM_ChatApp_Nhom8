@@ -8,6 +8,7 @@ const UserDetail = sequelize.define("UserDetail", {
   age: { type: DataTypes.INTEGER },
   gender: { type: DataTypes.BOOLEAN },
   avatar_url: { type: DataTypes.TEXT("long"), allowNull: true },
+
 });
 
 // Set Foreign Key

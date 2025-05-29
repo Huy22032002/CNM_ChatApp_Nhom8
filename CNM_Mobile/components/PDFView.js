@@ -4,6 +4,7 @@ const PDFView = ({ message }) => {
   const handleOpenPdf = () => {
     console.log("url: ", message.image_url);
     Linking.openURL(message.image_url);
+
   };
 
   return (

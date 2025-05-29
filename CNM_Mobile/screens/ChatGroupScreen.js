@@ -20,6 +20,8 @@ import { Alert } from "react-native";
 import { getSocket } from "../services/socket";
 import PDFView from "../components/PDFView";
 import ImageView from "../components/ImageView";
+import { Icon } from "react-native-paper";
+
 import { MaterialIcons } from "@expo/vector-icons";
 
 const ChatGroupScreen = ({ route }) => {
@@ -37,7 +39,6 @@ const ChatGroupScreen = ({ route }) => {
   const [lastKey, setLastKey] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-
   const [newMessage, setNewMessage] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedDocument, setSelectedDocument] = useState(null);
@@ -80,6 +81,7 @@ const ChatGroupScreen = ({ route }) => {
       console.error("Error fetching messages:", error);
     } finally {
       setLoadingMore(false);
+
     }
   };
 
@@ -220,6 +222,7 @@ const ChatGroupScreen = ({ route }) => {
       socket.emit("send message", response);
 
       // fetchMessages();
+
       return response;
     } catch (err) {
       if (err.response && err.response.data && err.response.data.error) {
@@ -400,6 +403,7 @@ const ChatGroupScreen = ({ route }) => {
         }
         return [data, ...prevMessages];
       });
+
     };
     const handleRevokeMessage = (revokedMessage) => {
       setMessages((prev) =>
@@ -545,6 +549,7 @@ const ChatGroupScreen = ({ route }) => {
       />
 
       {/* modal thuc hien updata, xoa, revoke, forward message */}
+
       <Modal
         transparent={true}
         animationType="fade"
@@ -763,6 +768,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     marginLeft: 10,
   },
+
   messageContainer: {
     flexDirection: "row",
     alignItems: "flex-start",

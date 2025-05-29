@@ -13,6 +13,7 @@ import ImageViewer from "react-native-image-zoom-viewer";
 import * as MediaLibrary from "expo-media-library";
 import * as FileSystem from "expo-file-system";
 
+
 const ImageView = ({ message }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [userDetail, setUserDetail] = useState(null);
@@ -57,6 +58,7 @@ const ImageView = ({ message }) => {
       alert("Tải ảnh thất bại!");
     }
   };
+
 
   const getUserDetail = async () => {
     const data = await fetchUserDetail(message.sender, accessToken);
@@ -130,6 +132,7 @@ const styles = StyleSheet.create({
   },
   fullImage: {
     width: "100%",
+
     marginTop: 10,
   },
   userInfo: {
@@ -141,6 +144,7 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 20,
     zIndex: 999,
+
   },
   avatar: {
     width: 30,
@@ -153,6 +157,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   btnDown: {},
+
 });
 
 export default ImageView;

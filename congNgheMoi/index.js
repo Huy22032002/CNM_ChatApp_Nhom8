@@ -8,6 +8,8 @@ import authRoutes from "./src/routes/authRoutes.js";
 import friendRoutes from "./src/routes/friendRoutes.js";
 import notificationRoutes from "./src/routes/notificationRoutes.js";
 
+import callRoutes from "./routes/callRoutes.js";  
+
 import { ConnectSocket } from "./src/configs/configSocketIO.js";
 import http from "http";
 import dotenv from "dotenv";
@@ -47,6 +49,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/userDetails", userDetailRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/calls", callRoutes); 
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
