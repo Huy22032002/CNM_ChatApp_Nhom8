@@ -241,7 +241,9 @@ const ChatScreen = ({ route }) => {
     try {
       const response = await MessageAPI.sendImageAndText(formData, accessToken);
       if (response) {
-        socket.emit("send message", response);
+        console.log("ha: ", response.message);
+        socket.emit("send message", response.message);
+        socket.emit("update conversation", response.updatedConversation);
         // fetchMessages();
       }
       return response;
@@ -348,14 +350,11 @@ const ChatScreen = ({ route }) => {
     try {
       const result = await MessageAPI.sendMessage(data, accessToken);
       const forwardMessage = result.message;
+      alert("Chuyển tiếp tin nhắn thành công!");
       //gui event len socket server
-      console.log("forward message: ", forwardMessage);
       socket.emit("send message", forwardMessage);
-      console.log("da forward: ", forwardMessage);
-      //gui event update lastmessage
       socket.emit("update conversation", result.updatedConversation);
 
-      alert("Chuyển tiếp tin nhắn thành công!");
       setShowMessageModal(false);
     } catch (err) {
       console.error("Send message failed: ", err.message);
@@ -693,12 +692,7 @@ const ChatScreen = ({ route }) => {
             style={{ width: 30, height: 30 }}
           />
         </TouchableOpacity>
-        <TouchableOpacity>
-          <Image
-            source={require("../assets/microphone.png")}
-            style={{ width: 30, height: 30 }}
-          />
-        </TouchableOpacity>
+
         <TextInput
           style={styles.input}
           value={newMessage}

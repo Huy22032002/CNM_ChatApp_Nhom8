@@ -52,8 +52,19 @@ const MessageController = {
         image_url: uploadedImg.Location,
       };
 
-      const savedMessage = await MessageService.createMessage(newMessage);
-      return res.status(200).json(savedMessage);
+      const message = await MessageService.createMessage(newMessage);
+
+      //update conversation
+      const lastMessage = {
+        content: message.message_type == "image" ? "Hình ảnh" : "Tài liệu",
+        updated_at: message.created_at,
+      };
+      const updatedConversation = await ConversationService.updateConver(
+        message.conversation_id,
+        lastMessage
+      );
+      return res.status(200).json({ message, updatedConversation });
+      // return res.status(200).json(savedMessage);
     } catch (err) {
       console.log(`err upload img s3: ${err}`);
       return res.status(500).json({ error: err.message });

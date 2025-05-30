@@ -216,8 +216,9 @@ const ChatGroupScreen = ({ route }) => {
     }
     try {
       const response = await MessageAPI.sendImageAndText(formData, accessToken);
-      console.log("create message with file/img: ", response);
-      socket.emit("send message", response);
+
+      socket.emit("send message", response.message);
+      socket.emit("update conversation", response.updatedConversation);
 
       // fetchMessages();
       return response;

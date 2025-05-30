@@ -84,6 +84,9 @@ export default function HomeChat({ navigation }) {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       setNotifications(res.data);
+
+      console.log("noti: ", res.data);
+      socket.emit("send friend request", res.data);
     } catch (err) {
       console.error("Lỗi khi lấy thông báo:", err);
     }
@@ -368,7 +371,7 @@ export default function HomeChat({ navigation }) {
         getListConversation();
       });
 
-      socket.on("receive friend request", (data) => {
+      socket.on("received friend request", (data) => {
         console.log("friend request socket: ", data);
         fetchFriendRequests();
       });
