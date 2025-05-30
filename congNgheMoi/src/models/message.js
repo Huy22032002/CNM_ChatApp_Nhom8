@@ -47,6 +47,7 @@ const MessageModel = {
     if (lastKey) {
       params.ExclusiveStartKey = lastKey;
     }
+     console.log("DynamoDB query params:", JSON.stringify(params, null, 2));
     try {
       const result = await dynamoDB.query(params).promise();
       return {
