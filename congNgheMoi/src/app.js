@@ -24,11 +24,14 @@ app.use(
   cors({
     // origin: "http://localhost:5173"||"192.168.31.28:5173",
     origin: [
-      "http://localhost:8081",
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "http://192.168.1.3:3000",
-      "http://192.168.31.28:8081",
+      "*",
+       'https://CNM_webchat.github.io',
+      'https://thanhtienpham03.github.io',
+      // "http://localhost:8081",
+      // "http://localhost:5173",
+      // "http://localhost:5174",
+      // "http://192.168.1.3:3000",
+      // "http://192.168.31.28:8081",
     ],
     credentials: true,
   })
