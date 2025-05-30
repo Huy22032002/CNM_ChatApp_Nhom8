@@ -7,6 +7,7 @@ import messageRoutes from "./routes/messageRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import friendRoutes from "./routes/friendRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import hello from "./hello.js";
 
 import { ConnectSocket } from "./configs/configSocketIO.js";
 import http from "http";
@@ -24,14 +25,11 @@ app.use(
   cors({
     // origin: "http://localhost:5173"||"192.168.31.28:5173",
     origin: [
-      "*",
-       'https://CNM_webchat.github.io',
-      'https://thanhtienpham03.github.io',
-      // "http://localhost:8081",
-      // "http://localhost:5173",
-      // "http://localhost:5174",
-      // "http://192.168.1.3:3000",
-      // "http://192.168.31.28:8081",
+      "http://localhost:8081",
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://192.168.1.3:3000",
+      "http://192.168.31.28:8081",
     ],
     credentials: true,
   })
@@ -56,5 +54,9 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/userDetails", userDetailRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/hello", hello);
+app.get("/", (req, res) => {
+  res.status(200).json({ message: "Welcome to the API!" });
+});
 
 export default app;

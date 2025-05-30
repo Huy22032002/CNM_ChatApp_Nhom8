@@ -15,8 +15,8 @@ import otpCache from "../middlewares/otpCache.js";
 
 const register = async (req, res) => {
   try {
-    const { username, password, email, phone } = req.body;
-
+    const { username,fullname, password, email, phone } = req.body;
+    console.log("Received data:", { username, fullname, email, phone });
 
     const existMail = await User.findOne({ where: { email } });
     if (existMail) {
@@ -65,7 +65,7 @@ const register = async (req, res) => {
 
 const verifyOtp = async (req, res) => {
   try {
-    const { email, username, password, phone, otp } = req.body;
+    const { email, username,fullname, password, phone, otp } = req.body;
     console.log("Received data:", { email, username, otp });
 
     const storedOtp = otpCache.get(email);
@@ -103,7 +103,7 @@ const verifyOtp = async (req, res) => {
     //   avatar_url: null,
     // });
     // await userDetail.save();
-    await createUser(username, email, hashedPassword, phone);
+    await createUser(username,fullname, email, hashedPassword, phone);
 
   otpCache.delete(email);
 
@@ -115,8 +115,8 @@ const verifyOtp = async (req, res) => {
 
 const createNewUser = async (req, res) => {
   try {
-    const { username, password, email, phone } = req.body;
-    console.log(username, password, email, phone);
+    const { username,fullname, password, email, phone } = req.body;
+    console.log("Dang tao:",username,fullname, password, email, phone);
     const existingUser = await findUser(username);
     if (existingUser) {
       return res.status(400).json({ message: "Username already exists" });
@@ -145,7 +145,7 @@ const createNewUser = async (req, res) => {
     // });
     // await userDetail.save();
     
-    await createUser(username, email, hashedPassword, phone);
+    await createUser(username,fullname, email, hashedPassword, phone);
 
     res.status(201).json({ message: "User created successfully" });
   } catch (error) {

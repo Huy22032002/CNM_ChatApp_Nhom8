@@ -26,6 +26,7 @@ const GroupInfoScreen = ({ route }) => {
     conversation_id,
     groupName: initialGroupName,
     participants: initialParticipants,
+    admin_id,
   } = route.params || {};
   // console.log("GroupInfoScreen params:", route.params);
   const user = useSelector((state) => state.user.user);
@@ -406,7 +407,8 @@ const GroupInfoScreen = ({ route }) => {
           {item.fullname || "Người dùng ID: " + item.user_id}{" "}
           {isCurrentUser ? "(You)" : ""}
         </Text>
-        <TouchableOpacity
+        {admin_id == user.id && (
+          <TouchableOpacity
           style={styles.removeButton}
           onPress={() => handleRemoveMember(item.user_id)}
         >
@@ -416,6 +418,7 @@ const GroupInfoScreen = ({ route }) => {
             color="#f44336"
           />
         </TouchableOpacity>
+        )}
       </View>
     );
   };

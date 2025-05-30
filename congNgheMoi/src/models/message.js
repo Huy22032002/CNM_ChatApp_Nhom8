@@ -42,11 +42,18 @@ const MessageModel = {
       },
       Limit: 20,
       ScanIndexForward: false, //sort từ mới -> cu
+<<<<<<< HEAD
     };
 
     if (lastKey) {
       params.ExclusiveStartKey = lastKey;
+=======
+>>>>>>> HoangBranch
     };
+
+    if (lastKey) {
+      params.ExclusiveStartKey = lastKey;
+    }
     try {
       const result = await dynamoDB.query(params).promise();
       return {

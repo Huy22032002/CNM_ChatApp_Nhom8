@@ -27,6 +27,7 @@ const ConversationModel = {
       Item: {
         conversation_id: uuidv4(),
         type,
+        admin_id: participants[0], //first participant is admin
         participants: dynamoDB.createSet(participants),
         created_at: new Date().toISOString(),
         status: "ACTIVE",

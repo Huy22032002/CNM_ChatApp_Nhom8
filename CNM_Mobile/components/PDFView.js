@@ -1,9 +1,9 @@
 import { Text, TouchableOpacity, Image, Linking } from "react-native";
 
-const PDFView = ({ pdfUrl }) => {
+const PDFView = ({ message }) => {
   const handleOpenPdf = () => {
-    console.log("url: ", pdfUrl);
-    Linking.openURL(pdfUrl);
+    console.log("url: ", message.image_url);
+    Linking.openURL(message.image_url);
   };
 
   return (
@@ -15,7 +15,7 @@ const PDFView = ({ pdfUrl }) => {
         backgroundColor: "#f0f0f0",
         padding: 10,
         borderRadius: 8,
-        maxWidth: "80%",
+        maxWidth: "100%",
         marginVertical: 5,
       }}
     >
