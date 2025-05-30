@@ -83,6 +83,11 @@ const SocketControler = {
     console.log("create group: ", data);
     io.emit("group created", data);
   },
+  //notification
+  async sendFriendRequest(io, data) {
+    console.log("friend request: ", data);
+    io.emit("received friend request", data);
+  },
 };
 
 export default SocketControler;

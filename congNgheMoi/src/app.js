@@ -7,6 +7,7 @@ import messageRoutes from "./routes/messageRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import friendRoutes from "./routes/friendRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import hello from "./hello.js";
 
 import { ConnectSocket } from "./configs/configSocketIO.js";
 import http from "http";
@@ -53,5 +54,9 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/userDetails", userDetailRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/hello", hello);
+app.get("/", (req, res) => {
+  res.status(200).json({ message: "Welcome to the API!" });
+});
 
 export default app;

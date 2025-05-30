@@ -54,6 +54,11 @@ export const ConnectSocket = (server) => {
       SocketControler.createGroup(io, data)
     );
 
+    //notification
+    socket.on("send friend request", async (data) =>
+      SocketControler.sendFriendRequest(io, data)
+    );
+
     socket.on("disconnect", () => {
       socket.leaveAll();
       console.log(`Client disconnected: ${socket.id}`);

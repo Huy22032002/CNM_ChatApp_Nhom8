@@ -336,13 +336,11 @@ export default function HomeChat({ navigation }) {
       Alert.alert("Lỗi", "Không thể đăng xuất");
     }
   };
-
+  const socket = createSocket();
   useEffect(() => {
     setUserInfo(user);
     //tao socket
     if (user) {
-      const socket = createSocket();
-
       socket.on("connect", () => {
         console.log(`User ${user.id} connected Socket`);
         //thong bao toi server user online
@@ -350,7 +348,6 @@ export default function HomeChat({ navigation }) {
       });
       //update lastMessage
       socket.on("conversation updated", (data) => {
-        console.log("updated conversation from socket: ", data);
         setConversationDetails((prev) =>
           prev.map((conver) =>
             conver.conversation_id === data.conversation_id
@@ -364,6 +361,16 @@ export default function HomeChat({ navigation }) {
               : conver
           )
         );
+      });
+
+      socket.on("group created", (data) => {
+        console.log("conver create: ", data);
+        getListConversation();
+      });
+
+      socket.on("receive friend request", (data) => {
+        console.log("friend request socket: ", data);
+        fetchFriendRequests();
       });
 
       socket.on("disconnect", () => {
@@ -503,6 +510,8 @@ export default function HomeChat({ navigation }) {
       );
       if (response.status === 200) {
         Alert.alert("Thành công", "Tạo nhóm thành công");
+        //gui new conver cho socket server
+        socket.emit("create group", response.data);
       }
       setShowCreateGroup(false);
       setGroupName("");
